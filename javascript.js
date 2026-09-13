@@ -64,41 +64,70 @@ function setLoginMode(mode){loginMode=mode==='parent'?'parent':'teacher';const t
 async function signIn(){const email=document.getElementById('loginEmail').value.trim(),password=document.getElementById('loginPassword').value;const button=document.getElementById('loginButton');const msg=document.getElementById('loginMessage');if(!email||!password){msg.textContent='Enter your email and password.';return}button.disabled=true;msg.textContent='Signing in...';try{const {error}=await supabaseClient.auth.signInWithPassword({email,password});if(error)throw dbError(error);const user=(await supabaseClient.auth.getUser()).data.user;if(loginMode==='parent'){const {data,error:parentError}=await supabaseClient.from('parent_accounts').select('user_id,parent_name,active').eq('user_id',user.id).maybeSingle();if(parentError)throw dbError(parentError);if(!data){await supabaseClient.auth.signOut();throw new Error('This account is not registered as a parent account yet.')}if(data.active===false){await supabaseClient.auth.signOut();throw new Error('This parent account is inactive. Please contact the teacher.')}}msg.textContent='';}catch(e){msg.textContent=e.message||'Sign in failed.'}finally{button.disabled=false}}
 async function signOut(){await supabaseClient.auth.signOut();authReady=false;currentUserRole='teacher';PARENT_CONTEXT={account:null,students:[]};hideParentPortal();showLogin('You have signed out.');}
 async function enterSession(session){
-  if(!session){authReady=false;currentUserRole='teacher';hideParentPortal();showLogin();return;}
-  authReady=true;hideLogin();setConnection('● Loading...',false);
+  if(!session){
+    authReady=false;
+    currentUserRole='teacher';
+    PARENT_CONTEXT={account:null,students:[]};
+    hideParentPortal();
+    showLogin();
+    return;
+  }
+
+  authReady=true;
+  setConnection('● Loading...',false);
+
   try{
-    // Determine the portal from the signed-in account, not from temporary page state.
-    // This keeps a parent in the Parent Portal after a browser refresh.
+    // Determine the portal from the authenticated Supabase user.
+    // This survives browser refresh because loginMode is not used here.
     const account=await getCurrentParentAccount();
+
     if(account){
       if(account.active===false){
         await supabaseClient.auth.signOut();
         currentUserRole='teacher';
+        PARENT_CONTEXT={account:null,students:[]};
         hideParentPortal();
         showLogin('This parent account is inactive. Please contact the teacher.');
         return;
       }
+
       currentUserRole='parent';
-      loginMode='parent';
+      hideLogin();
       await loadParentPortal();
       return;
     }
 
+    // No parent_accounts record means this is the Teacher Portal account.
     currentUserRole='teacher';
-    loginMode='teacher';
     hideParentPortal();
-    await refreshOnline(true);
+    hideLogin();
+    DATA=await loadRemoteData();
+    setConnection('● Online',false);
+    renderAll();
+
   }catch(e){
     currentUserRole='teacher';
+    PARENT_CONTEXT={account:null,students:[]};
     hideParentPortal();
     await supabaseClient.auth.signOut();
     showLogin((loginMode==='parent'?'Parent login failed: ':'Online database connection failed: ')+(e.message||e));
   }
 }
+
 async function initSupabaseAuth(){
-  supabaseClient.auth.onAuthStateChange((_event,session)=>{setTimeout(()=>enterSession(session),0);});
-  const {data,error}=await supabaseClient.auth.getSession();if(error){showLogin(error.message);return}await enterSession(data.session);
+  supabaseClient.auth.onAuthStateChange((_event,session)=>{
+    setTimeout(()=>enterSession(session),0);
+  });
+
+  const {data,error}=await supabaseClient.auth.getSession();
+  if(error){
+    showLogin(error.message);
+    return;
+  }
+
+  await enterSession(data.session);
 }
+
 function page(name){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));const target=document.getElementById(name);if(!target)return;target.classList.add('active');document.querySelectorAll('.nav').forEach(x=>x.classList.remove('active'));const navName=name==='studentProfile'?'students':name;[...document.querySelectorAll('.nav')].find(x=>x.textContent.toLowerCase()===navName)?.classList.add('active');document.getElementById('title').textContent=name==='studentProfile'?'Student Profile':name[0].toUpperCase()+name.slice(1);if(name==='attendance')renderAttendance();if(name==='students')renderStudents();if(name==='payments')renderPayments();if(name==='orders')renderOrders();if(name==='reports')renderReports()}
 function renderAll(){document.getElementById('today').textContent=formatDateClient(isoDate(latestSunday()));document.getElementById('studentCount').textContent=DATA.students.length;document.getElementById('rStudents').textContent=DATA.students.length;renderHome();renderAttendance();renderStudents();renderPayments();renderOrders();renderReports();if(currentProfileId&&document.getElementById('studentProfile')?.classList.contains('active'))renderProfile(currentProfileId)}
 function paymentStateFor(sid){
