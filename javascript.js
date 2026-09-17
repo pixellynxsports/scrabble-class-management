@@ -13,6 +13,7 @@ let PARENT_CONTEXT={account:null,students:[]};
 let parentEntryNoticeShown=false;
 let parentNoticeTimer=null;
 let authInitialised=false;
+const parentPaymentTestMode=new URLSearchParams(window.location.search).get('payment_test')==='1';
 function dbError(error){if(!error)return null;return new Error(error.message||'Supabase request failed.');}
 function nextLocalId(prefix,items,key){let max=0;items.forEach(x=>{const m=String(x[key]||'').match(/(\d+)$/);if(m)max=Math.max(max,Number(m[1]));});return prefix+String(max+1).padStart(3,'0')}
 function studentFromDb(r){return {'Student ID':r.student_id,'Student Name':r.student_name,'School':r.school||'','Age':r.age??'','Scrabble Experience':r.scrabble_experience||'','Parent / Guardian':r.parent_guardian||'','WhatsApp':r.whatsapp||'','Emergency Contact':r.emergency_contact||'','Normal Class Time':r.normal_class_time||'','Email':r.email||'','Registration Date':r.registration_date||'','Active':r.active===false?'No':'Yes','Commitment Confirmed':r.commitment_confirmed||'No','Google Form Row':r.google_form_row??'','Form Source Hash':r.form_source_hash||''}}
@@ -42,28 +43,34 @@ function calculatePaymentState(payments,attendance,sid){
   const present=attendance
     .filter(a=>String(a['Student ID'])===String(sid)&&a.Status==='Present')
     .sort((a,b)=>attendanceDateKey(a.Date).localeCompare(attendanceDateKey(b.Date)));
-  const initialPackages=paid.filter(p=>
+
+  const initialPayment=paid.find(p=>
     String(p['Payment Type']||'').toLowerCase()==='initial 4-class package' ||
     String(p.Prepaid||'').toLowerCase()==='yes'
-  );
-  const initialCapacity=initialPackages.length*4;
+  )||null;
+  const initialCycle=Number(initialPayment?.['Cycle Number'])||1;
   const covered=new Set();
 
-  // Imported initial payments have no Attendance IDs Covered. The earliest
+  // The imported initial package has no attendance IDs. Its first four
   // Present records therefore belong to the prepaid package.
-  present.slice(0,initialCapacity).forEach(a=>{
-    const id=String(a['Attendance ID']||'');
-    if(id)covered.add(id);
-  });
+  if(initialPayment){
+    present.slice(0,4).forEach(a=>{
+      const id=String(a['Attendance ID']||'');
+      if(id)covered.add(id);
+    });
+  }
 
-  // Regular paid cycles identify the attendance records they cover.
+  // Later paid cycles identify the attendance records they cover.
   paid.forEach(p=>String(p['Attendance IDs Covered']||'')
     .split(',').map(x=>x.trim()).filter(Boolean)
     .forEach(id=>covered.add(id)));
 
-  // While the initial prepaid package is being used, show those classes as
-  // the current package instead of treating them as already consumed.
-  if(initialCapacity>0 && present.length<initialCapacity){
+  const latestPayment=paid[paid.length-1]||null;
+  const latestCycle=Number(latestPayment?.['Cycle Number'])||initialCycle;
+
+  // While the initial prepaid package is active, its first four Present
+  // records form the current package.
+  if(initialPayment && latestCycle===initialCycle){
     const classes=present.slice(0,4);
     const progress=classes.length;
     return {
@@ -71,32 +78,19 @@ function calculatePaymentState(payments,attendance,sid){
       progress,
       status:progress>=4?'Payment Due':progress===3?'Almost Due':'Paid',
       coveredIds:covered,
-      currentCycle:initialPackages.length||1,
+      currentCycle:initialCycle,
       paid,
-      activePrepaid:true,
-      lastPayment:paid[paid.length-1]||null
+      activePrepaid:progress<4,
+      lastPayment:latestPayment
     };
   }
 
-  // Exactly the end of the initial prepaid package means payment is due for
-  // the next package. Do not wait for another attendance record.
-  if(initialCapacity>0 && present.length===initialCapacity){
-    return {
-      classes:present.slice(0,4),
-      progress:4,
-      status:'Payment Due',
-      coveredIds:covered,
-      currentCycle:initialPackages.length,
-      paid,
-      activePrepaid:false,
-      lastPayment:paid[paid.length-1]||null
-    };
-  }
-
+  // For later cycles, Present records not covered by a paid payment belong
+  // to the current package. A completed package therefore reaches 4 / 4 and
+  // shows Payment Due until the next payment covers those four records.
   const currentClasses=present.filter(a=>!covered.has(String(a['Attendance ID']||'')));
   const classes=currentClasses.slice(0,4);
   const progress=classes.length;
-  const currentCycle=Number(paid[paid.length-1]?.['Cycle Number'])||1;
   const status=progress>=4?'Payment Due':progress===3?'Almost Due':'Paid';
 
   return {
@@ -104,13 +98,12 @@ function calculatePaymentState(payments,attendance,sid){
     progress,
     status,
     coveredIds:covered,
-    currentCycle,
+    currentCycle:latestCycle,
     paid,
     activePrepaid:false,
-    lastPayment:paid[paid.length-1]||null
+    lastPayment:latestPayment
   };
 }
-
 function parentPaymentState(sid){
   return calculatePaymentState(PARENT_CONTEXT.payments,PARENT_CONTEXT.attendance,sid);
 }
@@ -164,9 +157,44 @@ function openParentPanel(type){
 function closeParentPanel(){document.getElementById('parentDetailModal')?.classList.add('hidden');document.body.classList.remove('modal-open');}
 function openParentClassPayment(){
   const body=document.getElementById('parentDetailBody');if(!body)return;
-  document.getElementById('parentDetailEyebrow').textContent='CLASS PACKAGE PAYMENT';document.getElementById('parentDetailTitle').textContent='Pay RM50';
-  body.innerHTML=`<div class="payment-gateway-card"><div class="payment-gateway-icon">RM</div><div><h3>4-class package payment</h3><p>Your current package is complete. The next package fee is RM50.</p></div><div class="payment-method-row"><span>Payment method</span><strong>FPX</strong></div><div class="payment-gateway-note">FPX payment will open here after the payment gateway connection is configured.</div></div>`;
+  const s=PARENT_CONTEXT.students.find(x=>String(x.student_id)===String(PARENT_CONTEXT.selectedStudentId));
+  if(!s)return;
+  const state=parentPaymentState(s.student_id);
+  if(state.status!=='Payment Due')return;
+  const testBlock=parentPaymentTestMode?`<div class="payment-test-box"><b>Test mode</b><small>This is a simulated FPX payment. No money will be transferred.</small><button class="primary" onclick="simulateParentClassPayment()">Simulate Successful FPX Payment</button></div>`:'';
+  document.getElementById('parentDetailEyebrow').textContent='CLASS PACKAGE PAYMENT';
+  document.getElementById('parentDetailTitle').textContent='Pay RM50';
+  body.innerHTML=`<div class="payment-gateway-card"><div class="payment-gateway-icon">RM</div><div><h3>4-class package payment</h3><p>Student: <strong>${esc(s.student_name)}</strong></p><p>Your current package is complete. The next package fee is RM50.</p></div><div class="payment-method-row"><span>Payment method</span><strong>FPX</strong></div><div class="payment-order-summary"><div><span>Current cycle</span><strong>${esc(state.currentCycle)}</strong></div><div><span>Classes completed</span><strong>${state.progress} / 4</strong></div><div><span>Amount</span><strong>RM50</strong></div></div><div class="payment-gateway-note">The real FPX gateway will be connected in the next payment integration step.</div>${testBlock}</div>`;
   document.getElementById('parentDetailModal')?.classList.remove('hidden');document.body.classList.add('modal-open');
+}
+function simulateParentClassPayment(){
+  if(!parentPaymentTestMode)return;
+  const s=PARENT_CONTEXT.students.find(x=>String(x.student_id)===String(PARENT_CONTEXT.selectedStudentId));
+  if(!s)return;
+  const state=parentPaymentState(s.student_id);
+  if(state.status!=='Payment Due')return;
+  const ids=state.classes.map(a=>String(a['Attendance ID']||'')).filter(Boolean);
+  const nextCycle=(Number(state.currentCycle)||0)+1;
+  const testPayment={
+    'Payment ID':`TEST-${Date.now()}`,
+    'Student ID':String(s.student_id),
+    'Cycle Number':nextCycle,
+    'Amount':50,
+    'Payment Date':isoDate(new Date()),
+    'Classes Covered':`${state.progress} classes from Cycle ${state.currentCycle}`,
+    'Status':'Paid',
+    'Notes':'Simulated FPX payment for testing only',
+    'Attendance IDs Covered':ids.join(','),
+    'Payment Type':'Test FPX Payment',
+    'Prepaid':'No'
+  };
+  PARENT_CONTEXT.payments=[...(PARENT_CONTEXT.payments||[]),testPayment];
+  closeParentPanel();
+  renderParentPortal();
+  setTimeout(()=>{
+    const box=document.getElementById('parentActionRequired');
+    if(box)box.scrollIntoView({behavior:'smooth',block:'start'});
+  },50);
 }
 function openParentOrderDetail(id){
   const order=PARENT_CONTEXT.orders.find(o=>String(o['Order ID'])===String(id));if(!order)return;

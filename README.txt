@@ -68,3 +68,12 @@ Use Reports > Backup & Export to download the current Supabase data as a JSON ba
 
 
 Parent Portal Enhancement: dashboard cards open large detail panels, Action Required package notice, QR order payment view, and FPX-ready class payment view.
+
+
+CLASS PAYMENT TEST FLOW
+-----------------------
+The Parent Portal includes a safe front-end test flow for the future FPX class-package payment.
+To enable the test control, open the Parent Portal with ?payment_test=1 added to the site URL.
+The test control appears only inside the class-package payment screen when the current package is Payment Due.
+Simulating payment does not contact a bank, does not move money, and does not write to Supabase. It creates a temporary in-session paid payment so the package moves to the next cycle for testing.
+Remove ?payment_test=1 for normal parent use.
