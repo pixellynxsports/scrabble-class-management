@@ -12,6 +12,7 @@ let currentUserRole='teacher';
 let PARENT_CONTEXT={account:null,students:[]};
 let parentEntryNoticeShown=false;
 let parentNoticeTimer=null;
+let authInitialised=false;
 function dbError(error){if(!error)return null;return new Error(error.message||'Supabase request failed.');}
 function nextLocalId(prefix,items,key){let max=0;items.forEach(x=>{const m=String(x[key]||'').match(/(\d+)$/);if(m)max=Math.max(max,Number(m[1]));});return prefix+String(max+1).padStart(3,'0')}
 function studentFromDb(r){return {'Student ID':r.student_id,'Student Name':r.student_name,'School':r.school||'','Age':r.age??'','Scrabble Experience':r.scrabble_experience||'','Parent / Guardian':r.parent_guardian||'','WhatsApp':r.whatsapp||'','Emergency Contact':r.emergency_contact||'','Normal Class Time':r.normal_class_time||'','Email':r.email||'','Registration Date':r.registration_date||'','Active':r.active===false?'No':'Yes','Commitment Confirmed':r.commitment_confirmed||'No','Google Form Row':r.google_form_row??'','Form Source Hash':r.form_source_hash||''}}
@@ -34,28 +35,85 @@ async function loadRemoteData(){
 async function refreshOnline(silent=false){if(currentUserRole==='parent'){await loadParentPortal();return;}try{DATA=await loadRemoteData();document.getElementById('connection').textContent='● Online';document.getElementById('connection').classList.remove('off');renderAll();if(!silent)alert('Online data refreshed.')}catch(e){document.getElementById('connection').textContent='● Connection error';document.getElementById('connection').classList.add('off');if(!silent)alert(e.message||e);throw e}}
 async function getCurrentParentAccount(){const {data,error}=await supabaseClient.auth.getUser();if(error)throw dbError(error);const uid=data.user?.id;if(!uid)throw new Error('Your session has expired. Please sign in again.');const {data:account,error:accountError}=await supabaseClient.from('parent_accounts').select('user_id,parent_name,email,whatsapp,active').eq('user_id',uid).maybeSingle();if(accountError)throw dbError(accountError);return account;}
 async function loadParentPortal(){const account=await getCurrentParentAccount();if(!account)throw new Error('This account is not registered as a parent account.');if(account.active===false)throw new Error('This parent account is inactive. Please contact the teacher.');const {data:links,error:linkError}=await supabaseClient.from('parent_students').select('student_id').eq('parent_user_id',account.user_id);if(linkError)throw dbError(linkError);const ids=(links||[]).map(x=>x.student_id).filter(Boolean);let students=[],attendance=[],payments=[],orders=[];if(ids.length){const [s,a,p,o]=await Promise.all([supabaseClient.from('students').select('student_id,student_name,school,age,scrabble_experience,parent_guardian,whatsapp,normal_class_time,email,registration_date,active').in('student_id',ids).order('student_name'),supabaseClient.from('attendance').select('*').in('student_id',ids).order('attendance_date',{ascending:false}),supabaseClient.from('payments').select('*').in('student_id',ids).order('payment_date',{ascending:false}),supabaseClient.from('orders').select('*').in('student_id',ids).order('order_date',{ascending:false})]);for(const result of [s,a,p,o]){if(result.error)throw dbError(result.error)}students=s.data||[];attendance=(a.data||[]).map(attendanceFromDb);payments=(p.data||[]).map(paymentFromDb);orders=(o.data||[]).map(orderFromDb);}PARENT_CONTEXT={account,students,attendance,payments,orders,selectedStudentId:ids[0]||''};renderParentPortal();setConnection('● Online',false);}
-function parentPaymentState(sid){
-  const paid=PARENT_CONTEXT.payments.filter(p=>String(p['Student ID'])===String(sid)&&String(p.Status||'').toLowerCase()==='paid')
-    .sort((a,b)=>new Date(a['Payment Date'])-new Date(b['Payment Date']));
-  const present=PARENT_CONTEXT.attendance.filter(a=>String(a['Student ID'])===String(sid)&&a.Status==='Present')
+function calculatePaymentState(payments,attendance,sid){
+  const paid=payments
+    .filter(p=>String(p['Student ID'])===String(sid)&&String(p.Status||'').toLowerCase()==='paid')
+    .sort((a,b)=>(Number(a['Cycle Number'])||0)-(Number(b['Cycle Number'])||0));
+  const present=attendance
+    .filter(a=>String(a['Student ID'])===String(sid)&&a.Status==='Present')
     .sort((a,b)=>attendanceDateKey(a.Date).localeCompare(attendanceDateKey(b.Date)));
-  const classesPerCycle=4;
+  const initialPackages=paid.filter(p=>
+    String(p['Payment Type']||'').toLowerCase()==='initial 4-class package' ||
+    String(p.Prepaid||'').toLowerCase()==='yes'
+  );
+  const initialCapacity=initialPackages.length*4;
   const covered=new Set();
-  let paidCapacity=0;
-  paid.forEach(p=>{
-    String(p['Attendance IDs Covered']||'').split(',').map(x=>x.trim()).filter(Boolean).forEach(id=>covered.add(id));
-    paidCapacity+=classesPerCycle;
+
+  // Imported initial payments have no Attendance IDs Covered. The earliest
+  // Present records therefore belong to the prepaid package.
+  present.slice(0,initialCapacity).forEach(a=>{
+    const id=String(a['Attendance ID']||'');
+    if(id)covered.add(id);
   });
-  const assignedCount=Math.min(present.length,paidCapacity);
-  present.slice(0,assignedCount).forEach(a=>covered.add(String(a['Attendance ID'])));
-  const currentCycle=Math.floor(assignedCount/classesPerCycle)+1;
-  const classes=present.slice(assignedCount,assignedCount+classesPerCycle);
+
+  // Regular paid cycles identify the attendance records they cover.
+  paid.forEach(p=>String(p['Attendance IDs Covered']||'')
+    .split(',').map(x=>x.trim()).filter(Boolean)
+    .forEach(id=>covered.add(id)));
+
+  // While the initial prepaid package is being used, show those classes as
+  // the current package instead of treating them as already consumed.
+  if(initialCapacity>0 && present.length<initialCapacity){
+    const classes=present.slice(0,4);
+    const progress=classes.length;
+    return {
+      classes,
+      progress,
+      status:progress>=4?'Payment Due':progress===3?'Almost Due':'Paid',
+      coveredIds:covered,
+      currentCycle:initialPackages.length||1,
+      paid,
+      activePrepaid:true,
+      lastPayment:paid[paid.length-1]||null
+    };
+  }
+
+  // Exactly the end of the initial prepaid package means payment is due for
+  // the next package. Do not wait for another attendance record.
+  if(initialCapacity>0 && present.length===initialCapacity){
+    return {
+      classes:present.slice(0,4),
+      progress:4,
+      status:'Payment Due',
+      coveredIds:covered,
+      currentCycle:initialPackages.length,
+      paid,
+      activePrepaid:false,
+      lastPayment:paid[paid.length-1]||null
+    };
+  }
+
+  const currentClasses=present.filter(a=>!covered.has(String(a['Attendance ID']||'')));
+  const classes=currentClasses.slice(0,4);
   const progress=classes.length;
-  const status=progress>=classesPerCycle?'Payment Due':progress===3?'Almost Due':'In Cycle';
-  const lastPayment=paid.slice().sort((a,b)=>new Date(b['Payment Date'])-new Date(a['Payment Date']))[0]||null;
-  return {progress,status,currentCycle,classes,coveredIds:covered,lastPayment,paid,activePrepaid:false};
+  const currentCycle=Number(paid[paid.length-1]?.['Cycle Number'])||1;
+  const status=progress>=4?'Payment Due':progress===3?'Almost Due':'Paid';
+
+  return {
+    classes,
+    progress,
+    status,
+    coveredIds:covered,
+    currentCycle,
+    paid,
+    activePrepaid:false,
+    lastPayment:paid[paid.length-1]||null
+  };
 }
 
+function parentPaymentState(sid){
+  return calculatePaymentState(PARENT_CONTEXT.payments,PARENT_CONTEXT.attendance,sid);
+}
 function parentStatusBadge(state){const cls=state.status==='Payment Due'?'absent':state.status==='Almost Due'?'almost':'present';return `<span class="badge ${cls}">${esc(state.status)}</span>`}
 function selectParentChild(id){PARENT_CONTEXT.selectedStudentId=String(id);renderParentPortal();}
 function parentPackagePaymentButton(state,extraClass=''){
@@ -161,7 +219,7 @@ function hideBoot(){document.getElementById('bootScreen')?.classList.add('hidden
 function showLogin(message=''){document.getElementById('loginScreen')?.classList.remove('hidden');const msg=document.getElementById('loginMessage');if(msg)msg.textContent=message;setConnection('● Sign in required',true)}
 function hideLogin(){document.getElementById('loginScreen')?.classList.add('hidden')}
 function setLoginMode(mode){loginMode=mode==='parent'?'parent':'teacher';const teacher=document.getElementById('teacherLoginMode'),parent=document.getElementById('parentLoginMode'),eyebrow=document.getElementById('loginEyebrow'),title=document.getElementById('loginTitle'),subtitle=document.getElementById('loginSubtitle'),button=document.getElementById('loginButton'),email=document.getElementById('loginEmail'),password=document.getElementById('loginPassword'),msg=document.getElementById('loginMessage');teacher?.classList.toggle('active',loginMode==='teacher');parent?.classList.toggle('active',loginMode==='parent');if(loginMode==='parent'){eyebrow.textContent='PARENT PORTAL';title.textContent='Welcome back';subtitle.textContent="Sign in to view your child's class records.";button.querySelector('span')?.replaceChildren(document.createTextNode('Parent Sign In'));email.placeholder='Parent email';password.placeholder='Enter your password';}else{eyebrow.textContent='TEACHER PORTAL';title.textContent='Welcome back';subtitle.textContent='Sign in to access your online class records.';button.querySelector('span')?.replaceChildren(document.createTextNode('Sign In'));email.placeholder='Your login email';password.placeholder='Enter your password';}msg.textContent='';}
-async function signIn(){const email=document.getElementById('loginEmail').value.trim(),password=document.getElementById('loginPassword').value;const button=document.getElementById('loginButton');const msg=document.getElementById('loginMessage');if(!email||!password){msg.textContent='Enter your email and password.';return}button.disabled=true;msg.textContent='Signing in...';try{const {error}=await supabaseClient.auth.signInWithPassword({email,password});if(error)throw dbError(error);const user=(await supabaseClient.auth.getUser()).data.user;if(loginMode==='parent'){const {data,error:parentError}=await supabaseClient.from('parent_accounts').select('user_id,parent_name,active').eq('user_id',user.id).maybeSingle();if(parentError)throw dbError(parentError);if(!data){await supabaseClient.auth.signOut();throw new Error('This account is not registered as a parent account yet.')}if(data.active===false){await supabaseClient.auth.signOut();throw new Error('This parent account is inactive. Please contact the teacher.')}}msg.textContent='';}catch(e){msg.textContent=e.message||'Sign in failed.'}finally{button.disabled=false}}
+async function signIn(){const email=document.getElementById('loginEmail').value.trim(),password=document.getElementById('loginPassword').value;const button=document.getElementById('loginButton');const msg=document.getElementById('loginMessage');if(!email||!password){msg.textContent='Enter your email and password.';return}button.disabled=true;msg.textContent='Signing in...';try{const {error}=await supabaseClient.auth.signInWithPassword({email,password});if(error)throw dbError(error);const user=(await supabaseClient.auth.getUser()).data.user;const {data:parentAccount,error:parentError}=await supabaseClient.from('parent_accounts').select('user_id,parent_name,active').eq('user_id',user.id).maybeSingle();if(parentError)throw dbError(parentError);const isParent=!!parentAccount;if(loginMode==='parent'){if(!isParent){await supabaseClient.auth.signOut();throw new Error('This account is not registered as a parent account. Please use Teacher Login.')}if(parentAccount.active===false){await supabaseClient.auth.signOut();throw new Error('This parent account is inactive. Please contact the teacher.')}}else{if(isParent){await supabaseClient.auth.signOut();throw new Error('This is a Parent account. Please use Parent Login.')}}msg.textContent='';}catch(e){msg.textContent=e.message||'Sign in failed.'}finally{button.disabled=false}}
 async function signOut(){await supabaseClient.auth.signOut();authReady=false;currentUserRole='teacher';PARENT_CONTEXT={account:null,students:[]};hideParentPortal();showLogin('You have signed out.');}
 async function enterSession(session){
   showBoot();
@@ -225,38 +283,25 @@ async function enterSession(session){
 async function initSupabaseAuth(){
   showBoot();
   supabaseClient.auth.onAuthStateChange((_event,session)=>{
+    if(!authInitialised)return;
     setTimeout(()=>enterSession(session),0);
   });
 
   const {data,error}=await supabaseClient.auth.getSession();
   if(error){
+    authInitialised=true;
+    hideBoot();
     showLogin(error.message);
     return;
   }
 
   await enterSession(data.session);
+  authInitialised=true;
 }
 
 function page(name){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));const target=document.getElementById(name);if(!target)return;target.classList.add('active');document.querySelectorAll('.nav').forEach(x=>x.classList.remove('active'));const navName=name==='studentProfile'?'students':name;[...document.querySelectorAll('.nav')].find(x=>x.textContent.toLowerCase()===navName)?.classList.add('active');document.getElementById('title').textContent=name==='studentProfile'?'Student Profile':name[0].toUpperCase()+name.slice(1);if(name==='attendance')renderAttendance();if(name==='students')renderStudents();if(name==='payments')renderPayments();if(name==='orders')renderOrders();if(name==='reports')renderReports()}
 function renderAll(){document.querySelector('.app')?.classList.remove('hidden');document.getElementById('today').textContent=formatDateClient(isoDate(latestSunday()));document.getElementById('studentCount').textContent=DATA.students.length;document.getElementById('rStudents').textContent=DATA.students.length;renderHome();renderAttendance();renderStudents();renderPayments();renderOrders();renderReports();if(currentProfileId&&document.getElementById('studentProfile')?.classList.contains('active'))renderProfile(currentProfileId)}
-function paymentStateFor(sid){
-  const paid=DATA.payments.filter(p=>String(p['Student ID'])===String(sid)&&String(p.Status||'').toLowerCase()==='paid');
-  const covered=new Set();
-  paid.forEach(p=>String(p['Attendance IDs Covered']||'').split(',').map(x=>x.trim()).filter(Boolean).forEach(id=>covered.add(id)));
-  const present=DATA.attendance.filter(a=>String(a['Student ID'])===String(sid)&&a.Status==='Present').sort((a,b)=>attendanceDateKey(a.Date).localeCompare(attendanceDateKey(b.Date)));
-  const prepaid=paid.filter(p=>String(p['Payment Type']||'').toLowerCase()==='initial 4-class package' || String(p.Prepaid||'').toLowerCase()==='yes');
-  const prepaidCapacity=prepaid.length*4;
-  if(prepaidCapacity>0 && present.length<prepaidCapacity){
-    return {classes:[],progress:present.length%4,status:'Paid',coveredIds:covered,currentCycle:Math.floor(present.length/4)+1,paid,activePrepaid:true,lastPayment:paid.slice().sort((a,b)=>new Date(b['Payment Date'])-new Date(a['Payment Date']))[0]||null};
-  }
-  present.slice(0,prepaidCapacity).forEach(a=>covered.add(String(a['Attendance ID'])));
-  const unpaid=present.filter(a=>!covered.has(String(a['Attendance ID'])));
-  const classes=unpaid.slice(0,4);
-  const normalCoveredCount=present.filter(a=>covered.has(String(a['Attendance ID']))).length-prepaidCapacity;
-  const currentCycle=Math.floor(Math.max(0,prepaidCapacity+normalCoveredCount)/4)+1;
-  const status=classes.length===4?'Payment Due':classes.length===3?'Almost Due':'In Cycle';
-  return {classes,progress:classes.length,status,coveredIds:covered,currentCycle,paid,activePrepaid:false,lastPayment:paid.slice().sort((a,b)=>new Date(b['Payment Date'])-new Date(a['Payment Date']))[0]||null};
-}
+function paymentStateFor(sid){return calculatePaymentState(DATA.payments,DATA.attendance,sid);}
 
 function cycleFor(sid){return paymentStateFor(sid).progress}
 function statusFor(c){return c>=4?'Payment Due':c===3?'Almost Due':'In Cycle'}
