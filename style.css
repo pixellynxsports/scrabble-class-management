@@ -99,3 +99,21 @@ button{transition:transform .1s ease}button:active:not(:disabled){transform:tran
 body.modal-open{overflow:hidden}
 @media(max-width:700px){.parent-detail-modal{padding:12px}.parent-detail-panel{max-height:92vh;border-radius:17px}.parent-detail-header{grid-template-columns:auto 1fr auto;padding:15px 16px;gap:10px}.parent-detail-header h2{font-size:20px}.parent-detail-body{padding:18px}.detail-summary-grid{grid-template-columns:repeat(2,1fr)}.order-info-grid{grid-template-columns:repeat(2,1fr)}.action-required{align-items:flex-start;flex-wrap:wrap}.action-side{width:100%;justify-content:flex-end}.parent-pay-btn{min-height:40px}}
 @media(max-width:500px){.detail-summary-grid,.order-info-grid{grid-template-columns:1fr}.detail-list-row{align-items:flex-start}.detail-right{flex-direction:column;align-items:flex-end}.action-side{justify-content:space-between}.action-side .parent-pay-btn{flex:1}}
+
+/* Teacher Portal refinements */
+.home-action-panel{padding:16px 18px}
+.home-action-panel h3{margin:0}
+#homeActionRequired{display:flex;flex-direction:column;margin-top:8px}
+.action-item{display:flex;align-items:center;justify-content:space-between;gap:15px;width:100%;border:0;border-top:1px solid #edf0f4;background:transparent;padding:12px 2px;text-align:left;color:#172033;cursor:pointer}
+.action-item:first-child{border-top:0}
+.action-item:hover{background:#fafbfc}
+.action-item b{font-size:14px}
+.action-ok-row{padding:12px 2px;color:#067647;font-size:13px}
+.quick-actions{display:flex;gap:10px;flex-wrap:wrap}
+.order-bulkbar{display:flex;align-items:center;justify-content:space-between;gap:15px;margin:10px 0 12px;padding:10px 12px;border:1px solid #e4e7ec;border-radius:10px;background:#fafbfc;min-height:44px}
+.order-bulk-left{display:flex;align-items:center;gap:12px;color:#667085;font-size:12px}
+.order-select-all,.order-select{cursor:pointer}
+#orderSelectedCount{font-weight:700;color:#344054}
+#orderBulkAction:disabled,#orderBulkAction.disabled{opacity:.55;cursor:default}
+.order-select{width:15px;height:15px}
+@media(max-width:650px){.order-bulkbar{align-items:flex-start;flex-direction:column}.quick-actions .secondary{flex:1}}
