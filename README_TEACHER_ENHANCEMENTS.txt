@@ -19,3 +19,6 @@ supabase/sql/20260917_orders_archive_parent_visibility.sql
 This creates a restrictive SELECT policy on public.orders. Teachers keep access to archived orders; parents only receive non-archived orders.
 
 No existing student, attendance, payment, order status, or parent account records are deleted or changed by this update.
+
+
+Version 20260918.1: streamlined Teacher Home. Removed duplicate metrics and recent registrations from Home. Class cards now show counts only; detailed names remain in Attendance.
