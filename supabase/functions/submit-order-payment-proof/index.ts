@@ -128,8 +128,12 @@ Deno.serve(async (req) => {
     if (!order) return json({ error: 'Order not found.' }, 404)
     if (!order.student_id || !studentIds.includes(order.student_id)) return json({ error: 'You are not allowed to submit proof for this order.' }, 403)
     if (String(order.payment_status || '').toLowerCase() === 'paid') return json({ error: 'This order is already marked Paid.' }, 409)
-    if (order.payment_receipt_path || String(order.payment_proof_status || '') === 'Submitted') {
-      return json({ error: 'One payment receipt has already been submitted for this order.' }, 409)
+    const proofStatus = String(order.payment_proof_status || 'Not Submitted')
+    if (proofStatus === 'Submitted') {
+      return json({ error: 'A payment receipt is already awaiting confirmation for this order.' }, 409)
+    }
+    if (String(order.payment_status || '').toLowerCase() === 'paid' || proofStatus === 'Verified') {
+      return json({ error: 'This order is already marked Paid.' }, 409)
     }
 
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(-100) || 'receipt'
@@ -142,20 +146,28 @@ Deno.serve(async (req) => {
     if (uploadError) throw uploadError
 
     const whatsapp = await sendWhatsAppReceipt(admin, order, path, file)
+    const previousPath = order.payment_receipt_path || ''
     const { error: updateError } = await admin
       .from('orders')
       .update({
         payment_proof_status: 'Submitted',
+        payment_status: 'Unpaid',
         payment_receipt_path: path,
         payment_receipt_name: file.name,
         payment_receipt_mime_type: file.type,
         payment_receipt_submitted_at: new Date().toISOString(),
+        payment_verified_at: null,
+        payment_verified_by: null,
+        payment_verification_notes: '',
         whatsapp_notification_status: whatsapp.status
       })
       .eq('order_id', orderId)
     if (updateError) {
       await admin.storage.from('order-payment-receipts').remove([path])
       throw updateError
+    }
+    if (previousPath) {
+      await admin.storage.from('order-payment-receipts').remove([previousPath])
     }
 
     return json({ success: true, order_id: orderId, payment_proof_status: 'Submitted', whatsapp_notification_status: whatsapp.status, whatsapp_error: whatsapp.error || null })
