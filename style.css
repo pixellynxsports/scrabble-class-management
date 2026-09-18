@@ -117,3 +117,14 @@ body.modal-open{overflow:hidden}
 #orderBulkAction:disabled,#orderBulkAction.disabled{opacity:.55;cursor:default}
 .order-select{width:15px;height:15px}
 @media(max-width:650px){.order-bulkbar{align-items:flex-start;flex-direction:column}.quick-actions .secondary{flex:1}}
+
+/* DuitNow order payment proof */
+.qr-order-amount{display:inline-block;padding:9px 13px;border-radius:9px;background:#f7f8fa;border:1px solid #e4e7ec;color:#344054;font-size:12px}
+.receipt-upload-box{margin:18px auto 0;max-width:560px;border:1px dashed #cbd3df;border-radius:13px;padding:17px;text-align:left;background:#fbfcfd}
+.receipt-upload-box label{display:flex;flex-direction:column;gap:5px;color:#172033;cursor:pointer}
+.receipt-upload-box label span{color:#667085;font-size:11px;font-weight:400}
+.receipt-upload-box input{display:block;width:100%;margin-top:12px;padding:9px}
+.payment-proof-pending{margin-top:18px;padding:15px 16px;border-radius:12px;background:#fffaf0;border:1px solid #ead7a4;color:#8a4b08}
+.payment-proof-pending b{display:block;color:#8a4b08}.payment-proof-pending small{display:block;margin-top:4px;color:#667085}.payment-proof-pending.rejected{background:#fff7f7;border-color:#f0caca}.payment-proof-pending.rejected b{color:#b42318}
+.order-proof-panel{margin-top:18px;padding:17px;border:1px solid #e4e7ec;border-radius:13px;background:#fafbfc}
+.order-proof-panel h3{color:#172033}.order-proof-panel .row{align-items:flex-start}

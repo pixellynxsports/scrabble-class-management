@@ -7,3 +7,9 @@ verify_jwt = true
 # The function verifies Billplz's X Signature before changing payment data.
 [functions.billplz-callback]
 verify_jwt = false
+
+[functions.submit-order-payment-proof]
+verify_jwt = true
+
+[functions.get-order-payment-receipt]
+verify_jwt = true
