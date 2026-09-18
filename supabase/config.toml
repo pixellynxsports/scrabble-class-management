@@ -1,0 +1,9 @@
+# Supabase Edge Function configuration for Billplz integration.
+# create-class-payment is called by a signed-in parent.
+[functions.create-class-payment]
+verify_jwt = true
+
+# Billplz calls this endpoint directly and does not send a Supabase JWT.
+# The function verifies Billplz's X Signature before changing payment data.
+[functions.billplz-callback]
+verify_jwt = false

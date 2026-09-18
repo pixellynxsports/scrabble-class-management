@@ -13,7 +13,9 @@ let PARENT_CONTEXT={account:null,students:[]};
 let parentEntryNoticeShown=false;
 let parentNoticeTimer=null;
 let authInitialised=false;
-const parentPaymentTestMode=new URLSearchParams(window.location.search).get('payment_test')==='1';
+const parentPaymentReturn=new URLSearchParams(window.location.search).get('payment_return')==='1';
+let parentPaymentProcessing=false;
+let parentPaymentReturnHandled=false;
 function dbError(error){if(!error)return null;return new Error(error.message||'Supabase request failed.');}
 function nextLocalId(prefix,items,key){let max=0;items.forEach(x=>{const m=String(x[key]||'').match(/(\d+)$/);if(m)max=Math.max(max,Number(m[1]));});return prefix+String(max+1).padStart(3,'0')}
 function studentFromDb(r){return {'Student ID':r.student_id,'Student Name':r.student_name,'School':r.school||'','Age':r.age??'','Scrabble Experience':r.scrabble_experience||'','Parent / Guardian':r.parent_guardian||'','WhatsApp':r.whatsapp||'','Emergency Contact':r.emergency_contact||'','Normal Class Time':r.normal_class_time||'','Email':r.email||'','Registration Date':r.registration_date||'','Active':r.active===false?'No':'Yes','Commitment Confirmed':r.commitment_confirmed||'No','Google Form Row':r.google_form_row??'','Form Source Hash':r.form_source_hash||''}}
@@ -35,7 +37,7 @@ async function loadRemoteData(){
 }
 async function refreshOnline(silent=false){if(currentUserRole==='parent'){await loadParentPortal();return;}try{DATA=await loadRemoteData();document.getElementById('connection').textContent='● Online';document.getElementById('connection').classList.remove('off');renderAll();if(!silent)alert('Online data refreshed.')}catch(e){document.getElementById('connection').textContent='● Connection error';document.getElementById('connection').classList.add('off');if(!silent)alert(e.message||e);throw e}}
 async function getCurrentParentAccount(){const {data,error}=await supabaseClient.auth.getUser();if(error)throw dbError(error);const uid=data.user?.id;if(!uid)throw new Error('Your session has expired. Please sign in again.');const {data:account,error:accountError}=await supabaseClient.from('parent_accounts').select('user_id,parent_name,email,whatsapp,active').eq('user_id',uid).maybeSingle();if(accountError)throw dbError(accountError);return account;}
-async function loadParentPortal(){const account=await getCurrentParentAccount();if(!account)throw new Error('This account is not registered as a parent account.');if(account.active===false)throw new Error('This parent account is inactive. Please contact the teacher.');const {data:links,error:linkError}=await supabaseClient.from('parent_students').select('student_id').eq('parent_user_id',account.user_id);if(linkError)throw dbError(linkError);const ids=(links||[]).map(x=>x.student_id).filter(Boolean);let students=[],attendance=[],payments=[],orders=[];if(ids.length){const [s,a,p,o]=await Promise.all([supabaseClient.from('students').select('student_id,student_name,school,age,scrabble_experience,parent_guardian,whatsapp,normal_class_time,email,registration_date,active').in('student_id',ids).order('student_name'),supabaseClient.from('attendance').select('*').in('student_id',ids).order('attendance_date',{ascending:false}),supabaseClient.from('payments').select('*').in('student_id',ids).order('payment_date',{ascending:false}),supabaseClient.from('orders').select('*').in('student_id',ids).eq('archived',false).order('order_date',{ascending:false})]);for(const result of [s,a,p,o]){if(result.error)throw dbError(result.error)}students=s.data||[];attendance=(a.data||[]).map(attendanceFromDb);payments=(p.data||[]).map(paymentFromDb);orders=(o.data||[]).map(orderFromDb);}PARENT_CONTEXT={account,students,attendance,payments,orders,selectedStudentId:ids[0]||''};renderParentPortal();setConnection('● Online',false);}
+async function loadParentPortal(){const account=await getCurrentParentAccount();if(!account)throw new Error('This account is not registered as a parent account.');if(account.active===false)throw new Error('This parent account is inactive. Please contact the teacher.');const {data:links,error:linkError}=await supabaseClient.from('parent_students').select('student_id').eq('parent_user_id',account.user_id);if(linkError)throw dbError(linkError);const ids=(links||[]).map(x=>x.student_id).filter(Boolean);let students=[],attendance=[],payments=[],orders=[];if(ids.length){const [s,a,p,o]=await Promise.all([supabaseClient.from('students').select('student_id,student_name,school,age,scrabble_experience,parent_guardian,whatsapp,normal_class_time,email,registration_date,active').in('student_id',ids).order('student_name'),supabaseClient.from('attendance').select('*').in('student_id',ids).order('attendance_date',{ascending:false}),supabaseClient.from('payments').select('*').in('student_id',ids).order('payment_date',{ascending:false}),supabaseClient.from('orders').select('*').in('student_id',ids).eq('archived',false).order('order_date',{ascending:false})]);for(const result of [s,a,p,o]){if(result.error)throw dbError(result.error)}students=s.data||[];attendance=(a.data||[]).map(attendanceFromDb);payments=(p.data||[]).map(paymentFromDb);orders=(o.data||[]).map(orderFromDb);}PARENT_CONTEXT={account,students,attendance,payments,orders,selectedStudentId:ids[0]||''};renderParentPortal();setConnection('● Online',false);if(parentPaymentReturn&&!parentPaymentReturnHandled&&!parentPaymentProcessing){parentPaymentReturnHandled=true;checkReturnedPayment();}}
 function calculatePaymentState(payments,attendance,sid){
   const paid=payments
     .filter(p=>String(p['Student ID'])===String(sid)&&String(p.Status||'').toLowerCase()==='paid')
@@ -155,46 +157,78 @@ function openParentPanel(type){
   document.getElementById('parentDetailEyebrow').textContent=eyebrow;document.getElementById('parentDetailTitle').textContent=title;body.innerHTML=content;modal.classList.remove('hidden');document.body.classList.add('modal-open');
 }
 function closeParentPanel(){document.getElementById('parentDetailModal')?.classList.add('hidden');document.body.classList.remove('modal-open');}
-function openParentClassPayment(){
-  const body=document.getElementById('parentDetailBody');if(!body)return;
+async function openParentClassPayment(){
+  const body=document.getElementById('parentDetailBody');
+  if(!body)return;
   const s=PARENT_CONTEXT.students.find(x=>String(x.student_id)===String(PARENT_CONTEXT.selectedStudentId));
   if(!s)return;
   const state=parentPaymentState(s.student_id);
-  if(state.status!=='Payment Due')return;
-  const testBlock=parentPaymentTestMode?`<div class="payment-test-box"><b>Test mode</b><small>This is a simulated FPX payment. No money will be transferred.</small><button class="primary" onclick="simulateParentClassPayment()">Simulate Successful FPX Payment</button></div>`:'';
+  if(state.status!=='Payment Due' || parentPaymentProcessing)return;
   document.getElementById('parentDetailEyebrow').textContent='CLASS PACKAGE PAYMENT';
   document.getElementById('parentDetailTitle').textContent='Pay RM50';
-  body.innerHTML=`<div class="payment-gateway-card"><div class="payment-gateway-icon">RM</div><div><h3>4-class package payment</h3><p>Student: <strong>${esc(s.student_name)}</strong></p><p>Your current package is complete. The next package fee is RM50.</p></div><div class="payment-method-row"><span>Payment method</span><strong>FPX</strong></div><div class="payment-order-summary"><div><span>Current cycle</span><strong>${esc(state.currentCycle)}</strong></div><div><span>Classes completed</span><strong>${state.progress} / 4</strong></div><div><span>Amount</span><strong>RM50</strong></div></div><div class="payment-gateway-note">The real FPX gateway will be connected in the next payment integration step.</div>${testBlock}</div>`;
-  document.getElementById('parentDetailModal')?.classList.remove('hidden');document.body.classList.add('modal-open');
+  body.innerHTML=`<div class="payment-gateway-card">
+    <div class="payment-gateway-icon">RM</div>
+    <div><h3>4-class package payment</h3>
+    <p>Student: <strong>${esc(s.student_name)}</strong></p>
+    <p>Your current package is complete. The next package fee is RM50.</p></div>
+    <div class="payment-method-row"><span>Payment method</span><strong>FPX · Online Banking</strong></div>
+    <div class="payment-order-summary">
+      <div><span>Current cycle</span><strong>${esc(state.currentCycle)}</strong></div>
+      <div><span>Classes completed</span><strong>${state.progress} / 4</strong></div>
+      <div><span>Amount</span><strong>RM50</strong></div>
+    </div>
+    <div class="payment-gateway-note">You will be taken to the secure Billplz payment page to choose your bank and complete the FPX payment.</div>
+    <button class="primary payment-proceed-btn" id="parentRealPayButton" onclick="startParentClassPayment()">Continue to secure payment</button>
+    <div class="payment-security-note">Your Billplz payment is processed on the secure Billplz payment page. Your bank credentials are never entered into this portal.</div>
+  </div>`;
+  document.getElementById('parentDetailModal')?.classList.remove('hidden');
+  document.body.classList.add('modal-open');
 }
-function simulateParentClassPayment(){
-  if(!parentPaymentTestMode)return;
+
+async function startParentClassPayment(){
+  if(parentPaymentProcessing)return;
   const s=PARENT_CONTEXT.students.find(x=>String(x.student_id)===String(PARENT_CONTEXT.selectedStudentId));
   if(!s)return;
   const state=parentPaymentState(s.student_id);
   if(state.status!=='Payment Due')return;
-  const ids=state.classes.map(a=>String(a['Attendance ID']||'')).filter(Boolean);
-  const nextCycle=(Number(state.currentCycle)||0)+1;
-  const testPayment={
-    'Payment ID':`TEST-${Date.now()}`,
-    'Student ID':String(s.student_id),
-    'Cycle Number':nextCycle,
-    'Amount':50,
-    'Payment Date':isoDate(new Date()),
-    'Classes Covered':`${state.progress} classes from Cycle ${state.currentCycle}`,
-    'Status':'Paid',
-    'Notes':'Simulated FPX payment for testing only',
-    'Attendance IDs Covered':ids.join(','),
-    'Payment Type':'Test FPX Payment',
-    'Prepaid':'No'
-  };
-  PARENT_CONTEXT.payments=[...(PARENT_CONTEXT.payments||[]),testPayment];
-  closeParentPanel();
-  renderParentPortal();
-  setTimeout(()=>{
-    const box=document.getElementById('parentActionRequired');
-    if(box)box.scrollIntoView({behavior:'smooth',block:'start'});
-  },50);
+
+  const button=document.getElementById('parentRealPayButton');
+  parentPaymentProcessing=true;
+  if(button){button.disabled=true;button.textContent='Creating secure payment...';}
+
+  try{
+    const redirectUrl=window.location.origin+window.location.pathname+'?payment_return=1';
+    const {data,error}=await supabaseClient.functions.invoke('create-class-payment',{
+      body:{student_id:String(s.student_id),redirect_url:redirectUrl}
+    });
+    if(error)throw new Error(error.message||'Unable to start the payment.');
+    if(!data?.success || !data?.bill_url)throw new Error(data?.error||'Billplz did not return a payment link.');
+    window.location.assign(data.bill_url);
+  }catch(e){
+    parentPaymentProcessing=false;
+    if(button){button.disabled=false;button.textContent='Continue to secure payment';}
+    alert(e.message||'Unable to start the payment. Please try again.');
+  }
+}
+
+function showPaymentReturnNotice(){
+  if(!parentPaymentReturn)return;
+  const box=document.getElementById('parentActionRequired');
+  if(!box)return;
+  box.innerHTML=`<div class="action-required action-payment-return"><div class="action-icon">✓</div><div class="action-copy"><div class="eyebrow">PAYMENT RETURNED</div><h3>We are checking your payment.</h3><p>Billplz has returned you to the Parent Portal. Your payment status will update after the secure confirmation reaches our system.</p></div></div>`;
+  box.classList.remove('hidden');
+}
+
+async function checkReturnedPayment(){
+  if(!parentPaymentReturn || currentUserRole!=='parent')return;
+  showPaymentReturnNotice();
+  for(let i=0;i<4;i++){
+    await new Promise(resolve=>setTimeout(resolve,1500));
+    try{await loadParentPortal();}catch(e){console.error('Payment return refresh failed',e);}
+    const s=PARENT_CONTEXT.students.find(x=>String(x.student_id)===String(PARENT_CONTEXT.selectedStudentId));
+    if(s && parentPaymentState(s.student_id).status!=='Payment Due')break;
+  }
+  try{history.replaceState({},document.title,window.location.pathname);}catch(e){}
 }
 function openParentOrderDetail(id){
   const order=PARENT_CONTEXT.orders.find(o=>String(o['Order ID'])===String(id));if(!order)return;
