@@ -242,14 +242,22 @@ function openParentOrderDetail(id){
 function showOrderQr(orderId){
   const order=PARENT_CONTEXT.orders.find(o=>String(o['Order ID'])===String(orderId));if(!order)return;
   document.getElementById('parentDetailEyebrow').textContent='ORDER PAYMENT';document.getElementById('parentDetailTitle').textContent='DuitNow QR Payment';
-  document.getElementById('parentDetailBody').innerHTML=`<div class="qr-payment-card"><h3>Pay your order</h3><p>Scan the QR code below to make payment to <strong>Pixel Lynx Sports Enterprise</strong>.</p><div class="qr-order-amount">Order ${esc(order['Order ID'])} · <b>RM${esc(order.Total||0)}</b></div><img src="assets/pixel-lynx-duitnow-qr.jpeg" alt="Pixel Lynx Sports Enterprise DuitNow QR"><div class="qr-note">After payment, keep your bank receipt. Upload one receipt below. Your payment will be marked Paid after teacher verification.</div><div class="receipt-upload-box"><label for="orderReceiptInput"><b>Upload payment receipt</b><span>One receipt only · JPG, PNG, WEBP or PDF · up to 10 MB</span></label><input id="orderReceiptInput" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onchange="submitOrderReceipt('${esc(order['Order ID'])}')"><div id="orderReceiptStatus" class="subtle"></div></div></div>`;
+  document.getElementById('parentDetailBody').innerHTML=`<div class="qr-payment-card"><h3>Pay your order</h3><p>Scan the QR code below to make payment to <strong>Pixel Lynx Sports Enterprise</strong>.</p><div class="qr-order-amount">Order ${esc(order['Order ID'])} · <b>RM${esc(order.Total||0)}</b></div><img src="assets/pixel-lynx-duitnow-qr.jpeg" alt="Pixel Lynx Sports Enterprise DuitNow QR"><div class="qr-note">After payment, choose your bank receipt below. Upload one receipt, then click <strong>Complete Payment</strong>. Payment stays pending until the teacher verifies the bank transaction.</div><div class="receipt-upload-box"><label for="orderReceiptInput"><b>Upload payment receipt</b><span>One receipt only · JPG, PNG, WEBP or PDF · up to 10 MB</span></label><input id="orderReceiptInput" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onchange="prepareOrderReceipt()"><button class="primary complete-payment-btn" id="completeOrderPaymentBtn" type="button" disabled onclick="submitOrderReceipt('${esc(order['Order ID'])}')">Complete Payment</button><div id="orderReceiptStatus" class="subtle"></div></div></div>`;
+}
+
+function prepareOrderReceipt(){
+  const input=document.getElementById('orderReceiptInput');const button=document.getElementById('completeOrderPaymentBtn');const status=document.getElementById('orderReceiptStatus');const file=input?.files?.[0];
+  if(!file){if(button)button.disabled=true;if(status)status.textContent='';return;}
+  if(file.size>10*1024*1024){alert('Receipt must be 10 MB or smaller.');input.value='';if(button)button.disabled=true;return;}
+  const allowed=['image/jpeg','image/png','image/webp','application/pdf'];if(!allowed.includes(file.type)){alert('Use JPG, PNG, WEBP or PDF for the receipt.');input.value='';if(button)button.disabled=true;return;}
+  if(button)button.disabled=false;if(status)status.textContent=`Selected: ${file.name}`;
 }
 
 async function submitOrderReceipt(orderId){
-  const input=document.getElementById('orderReceiptInput');const status=document.getElementById('orderReceiptStatus');const file=input?.files?.[0];if(!file)return;
-  if(file.size>10*1024*1024){alert('Receipt must be 10 MB or smaller.');input.value='';return;}
-  const allowed=['image/jpeg','image/png','image/webp','application/pdf'];if(!allowed.includes(file.type)){alert('Use JPG, PNG, WEBP or PDF for the receipt.');input.value='';return;}
-  if(status)status.textContent='Uploading receipt...';if(input)input.disabled=true;
+  const input=document.getElementById('orderReceiptInput');const button=document.getElementById('completeOrderPaymentBtn');const status=document.getElementById('orderReceiptStatus');const file=input?.files?.[0];if(!file)return;
+  if(file.size>10*1024*1024){alert('Receipt must be 10 MB or smaller.');input.value='';if(button)button.disabled=true;return;}
+  const allowed=['image/jpeg','image/png','image/webp','application/pdf'];if(!allowed.includes(file.type)){alert('Use JPG, PNG, WEBP or PDF for the receipt.');input.value='';if(button)button.disabled=true;return;}
+  if(button){button.disabled=true;button.textContent='Submitting...';}if(input)input.disabled=true;if(status)status.textContent='Uploading receipt and submitting payment proof...';
   try{
     const form=new FormData();form.append('order_id',String(orderId));form.append('receipt',file,file.name);
     const {data,error}=await supabaseClient.functions.invoke('submit-order-payment-proof',{body:form});
@@ -258,7 +266,7 @@ async function submitOrderReceipt(orderId){
     await loadParentPortal();
     const fresh=PARENT_CONTEXT.orders.find(o=>String(o['Order ID'])===String(orderId));
     if(fresh)openParentOrderDetail(orderId);
-  }catch(e){if(status)status.textContent='';if(input)input.disabled=false;alert(e.message||'Unable to submit the receipt.');}
+  }catch(e){if(status)status.textContent='';if(input)input.disabled=false;if(button){button.disabled=false;button.textContent='Complete Payment';}alert(e.message||'Unable to submit the receipt.');}
 }
 function renderParentPortal(){
   document.querySelector('.app')?.classList.add('hidden');document.getElementById('parentPortal')?.classList.remove('hidden');

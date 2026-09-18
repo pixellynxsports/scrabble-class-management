@@ -28,6 +28,51 @@ async function sha256(text: string) {
   return Array.from(new Uint8Array(hash)).map(x => x.toString(16).padStart(2, '0')).join('')
 }
 
+function normalizePhone(value: string) {
+  return value.replace(/[^0-9]/g, '')
+}
+
+async function sendWhatsAppReceipt(admin: any, order: any, path: string, file: File) {
+  const accessToken = Deno.env.get('WHATSAPP_ACCESS_TOKEN')
+  const phoneNumberId = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID')
+  const recipientPhone = normalizePhone(Deno.env.get('WHATSAPP_RECIPIENT_PHONE') || '')
+  const graphVersion = Deno.env.get('WHATSAPP_GRAPH_VERSION') || 'v23.0'
+  if (!accessToken || !phoneNumberId || !recipientPhone) {
+    return { status: 'Not Configured' as const, error: 'WhatsApp Cloud API secrets are not configured.' }
+  }
+
+  const { data: signed, error: signedError } = await admin.storage
+    .from('order-payment-receipts')
+    .createSignedUrl(path, 600)
+  if (signedError) throw signedError
+
+  const caption = `Payment receipt received\nOrder: ${order.order_id}\nCustomer: ${order.customer_name || '-'}\nAmount: RM${Number(order.total || 0).toFixed(2)}`
+  const response = await fetch(`https://graph.facebook.com/${graphVersion}/${phoneNumberId}/messages`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      messaging_product: 'whatsapp',
+      to: recipientPhone,
+      type: 'document',
+      document: {
+        link: signed.signedUrl,
+        caption,
+        filename: file.name
+      }
+    })
+  })
+
+  const result = await response.json().catch(() => ({}))
+  if (!response.ok) {
+    console.error('WhatsApp notification failed', result)
+    return { status: 'Failed' as const, error: result?.error?.message || `WhatsApp API returned HTTP ${response.status}.` }
+  }
+  return { status: 'Sent' as const, error: '' }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   if (req.method !== 'POST') return json({ error: 'Method not allowed.' }, 405)
@@ -96,6 +141,7 @@ Deno.serve(async (req) => {
       .upload(path, file, { contentType: file.type, upsert: false })
     if (uploadError) throw uploadError
 
+    const whatsapp = await sendWhatsAppReceipt(admin, order, path, file)
     const { error: updateError } = await admin
       .from('orders')
       .update({
@@ -104,7 +150,7 @@ Deno.serve(async (req) => {
         payment_receipt_name: file.name,
         payment_receipt_mime_type: file.type,
         payment_receipt_submitted_at: new Date().toISOString(),
-        whatsapp_notification_status: 'Not Configured'
+        whatsapp_notification_status: whatsapp.status
       })
       .eq('order_id', orderId)
     if (updateError) {
@@ -112,7 +158,7 @@ Deno.serve(async (req) => {
       throw updateError
     }
 
-    return json({ success: true, order_id: orderId, payment_proof_status: 'Submitted', whatsapp_notification_status: 'Not Configured' })
+    return json({ success: true, order_id: orderId, payment_proof_status: 'Submitted', whatsapp_notification_status: whatsapp.status, whatsapp_error: whatsapp.error || null })
   } catch (error) {
     console.error(error)
     return json({ error: error?.message || 'Unable to submit the payment receipt.' }, 500)
