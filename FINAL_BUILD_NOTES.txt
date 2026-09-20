@@ -1,29 +1,16 @@
-FINAL FIXED BUILD
+FINAL BUILD NOTES
+2026-09-20
 
-Build date: 2026-09-20
+This build restores the original working login HTML and event handling from the last known working project version.
 
-Base strategy
-The last known working application code was restored first. The professional Student Profile, focused Edit Student workspace and structured Add Student workspace were then added as isolated frontend changes. Authentication startup now binds the login controls explicitly after the main script loads and displays a visible startup message if the application script fails to load.
+Student Profile and Edit Student improvements are retained in javascript.js and style.css.
 
-Included
-Student Profile workspace with Overview, Attendance, Payments and Orders tabs.
-Separate focused Edit Student workspace.
-Structured Add Student workspace.
-Professional responsive styling.
-Resend email receipt notification in submit-order-payment-proof.
-Existing private receipt storage and secure receipt viewer preserved.
-Processing order status included in the final consistency migration.
-No Git metadata or Supabase temporary CLI files.
+The login page intentionally uses the original inline handlers and original initSupabaseAuth startup path. No extra login event binding script is included.
 
-Required Supabase secret
-RESEND_API_KEY
+The Parent Login button has one id only.
 
-Optional notification secrets
-PAYMENT_NOTIFICATION_EMAIL
-PAYMENT_NOTIFICATION_FROM
+Cache versions were updated to 20260920.4.
 
-Default notification recipient
-pixellynxsports@gmail.com
+Resend email notification remains in submit-order-payment-proof/index.ts.
 
-Default test sender
-onboarding@resend.dev
+Do not change Supabase Auth settings for this frontend build.
