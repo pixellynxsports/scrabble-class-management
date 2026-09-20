@@ -28,47 +28,54 @@ async function sha256(text: string) {
   return Array.from(new Uint8Array(hash)).map(x => x.toString(16).padStart(2, '0')).join('')
 }
 
-function normalizePhone(value: string) {
-  return value.replace(/[^0-9]/g, '')
-}
-
-async function sendWhatsAppReceipt(admin: any, order: any, path: string, file: File) {
-  const accessToken = Deno.env.get('WHATSAPP_ACCESS_TOKEN')
-  const phoneNumberId = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID')
-  const recipientPhone = normalizePhone(Deno.env.get('WHATSAPP_RECIPIENT_PHONE') || '')
-  const graphVersion = Deno.env.get('WHATSAPP_GRAPH_VERSION') || 'v23.0'
-  if (!accessToken || !phoneNumberId || !recipientPhone) {
-    return { status: 'Not Configured' as const, error: 'WhatsApp Cloud API secrets are not configured.' }
-  }
+async function sendEmailReceipt(admin: any, order: any, path: string, file: File) {
+  const apiKey = Deno.env.get('RESEND_API_KEY')
+  const recipient = Deno.env.get('PAYMENT_NOTIFICATION_EMAIL') || 'pixellynxsports@gmail.com'
+  const sender = Deno.env.get('PAYMENT_NOTIFICATION_FROM') || 'onboarding@resend.dev'
+  if (!apiKey) return { status: 'Not Configured' as const, error: 'RESEND_API_KEY is not configured.' }
 
   const { data: signed, error: signedError } = await admin.storage
     .from('order-payment-receipts')
-    .createSignedUrl(path, 600)
+    .createSignedUrl(path, 86400)
   if (signedError) throw signedError
 
-  const caption = `Payment receipt received\nOrder: ${order.order_id}\nCustomer: ${order.customer_name || '-'}\nAmount: RM${Number(order.total || 0).toFixed(2)}`
-  const response = await fetch(`https://graph.facebook.com/${graphVersion}/${phoneNumberId}/messages`, {
+  const amount = `RM${Number(order.total || 0).toFixed(2)}`
+  const html = `
+    <div style="font-family:Arial,sans-serif;max-width:620px;margin:0 auto;color:#172033">
+      <div style="padding:24px 0;border-bottom:1px solid #e4e7ec">
+        <div style="font-size:12px;font-weight:800;letter-spacing:.08em;color:#175cd3">SCRABBLE CLASS MANAGEMENT</div>
+        <h2 style="margin:8px 0 0">Payment Receipt Submitted</h2>
+      </div>
+      <div style="padding:24px 0">
+        <p>A parent has submitted a payment receipt for an order. Please review the receipt and bank transaction before confirming payment.</p>
+        <table style="width:100%;border-collapse:collapse;margin:18px 0">
+          <tr><td style="padding:8px 0;color:#667085">Order ID</td><td style="padding:8px 0;font-weight:700">${order.order_id}</td></tr>
+          <tr><td style="padding:8px 0;color:#667085">Customer</td><td style="padding:8px 0;font-weight:700">${order.customer_name || '-'}</td></tr>
+          <tr><td style="padding:8px 0;color:#667085">Amount</td><td style="padding:8px 0;font-weight:700">${amount}</td></tr>
+          <tr><td style="padding:8px 0;color:#667085">Receipt</td><td style="padding:8px 0">${file.name}</td></tr>
+        </table>
+        <a href="${signed.signedUrl}" style="display:inline-block;background:#172033;color:#fff;text-decoration:none;padding:12px 18px;border-radius:8px;font-weight:700">View Payment Receipt</a>
+        <p style="margin-top:20px;font-size:12px;color:#667085">The receipt link is secure and expires after 24 hours. Payment is still awaiting teacher confirmation.</p>
+      </div>
+    </div>`
+
+  const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${accessToken}`,
+      Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      messaging_product: 'whatsapp',
-      to: recipientPhone,
-      type: 'document',
-      document: {
-        link: signed.signedUrl,
-        caption,
-        filename: file.name
-      }
+      from: sender,
+      to: [recipient],
+      subject: `Payment Receipt Submitted: ${order.order_id}`,
+      html
     })
   })
-
   const result = await response.json().catch(() => ({}))
   if (!response.ok) {
-    console.error('WhatsApp notification failed', result)
-    return { status: 'Failed' as const, error: result?.error?.message || `WhatsApp API returned HTTP ${response.status}.` }
+    console.error('Email notification failed', result)
+    return { status: 'Failed' as const, error: result?.message || result?.error?.message || `Resend returned HTTP ${response.status}.` }
   }
   return { status: 'Sent' as const, error: '' }
 }
@@ -129,12 +136,8 @@ Deno.serve(async (req) => {
     if (!order.student_id || !studentIds.includes(order.student_id)) return json({ error: 'You are not allowed to submit proof for this order.' }, 403)
     if (String(order.payment_status || '').toLowerCase() === 'paid') return json({ error: 'This order is already marked Paid.' }, 409)
     const proofStatus = String(order.payment_proof_status || 'Not Submitted')
-    if (proofStatus === 'Submitted') {
-      return json({ error: 'A payment receipt is already awaiting confirmation for this order.' }, 409)
-    }
-    if (String(order.payment_status || '').toLowerCase() === 'paid' || proofStatus === 'Verified') {
-      return json({ error: 'This order is already marked Paid.' }, 409)
-    }
+    if (proofStatus === 'Submitted') return json({ error: 'A payment receipt is already awaiting confirmation for this order.' }, 409)
+    if (proofStatus === 'Verified') return json({ error: 'This order is already marked Paid.' }, 409)
 
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(-100) || 'receipt'
     const digest = await sha256(`${orderId}:${userId}:${Date.now()}:${safeName}`)
@@ -145,7 +148,14 @@ Deno.serve(async (req) => {
       .upload(path, file, { contentType: file.type, upsert: false })
     if (uploadError) throw uploadError
 
-    const whatsapp = await sendWhatsAppReceipt(admin, order, path, file)
+    let notification
+    try {
+      notification = await sendEmailReceipt(admin, order, path, file)
+    } catch (notificationError) {
+      console.error('Receipt email exception', notificationError)
+      notification = { status: 'Failed' as const, error: notificationError?.message || 'Email notification failed.' }
+    }
+
     const previousPath = order.payment_receipt_path || ''
     const { error: updateError } = await admin
       .from('orders')
@@ -159,18 +169,22 @@ Deno.serve(async (req) => {
         payment_verified_at: null,
         payment_verified_by: null,
         payment_verification_notes: '',
-        whatsapp_notification_status: whatsapp.status
+        whatsapp_notification_status: notification.status
       })
       .eq('order_id', orderId)
     if (updateError) {
       await admin.storage.from('order-payment-receipts').remove([path])
       throw updateError
     }
-    if (previousPath) {
-      await admin.storage.from('order-payment-receipts').remove([previousPath])
-    }
+    if (previousPath) await admin.storage.from('order-payment-receipts').remove([previousPath])
 
-    return json({ success: true, order_id: orderId, payment_proof_status: 'Submitted', whatsapp_notification_status: whatsapp.status, whatsapp_error: whatsapp.error || null })
+    return json({
+      success: true,
+      order_id: orderId,
+      payment_proof_status: 'Submitted',
+      notification_status: notification.status,
+      notification_error: notification.error || null
+    })
   } catch (error) {
     console.error(error)
     return json({ error: error?.message || 'Unable to submit the payment receipt.' }, 500)

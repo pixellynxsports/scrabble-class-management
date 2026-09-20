@@ -1,0 +1,29 @@
+FINAL FIXED BUILD
+
+Build date: 2026-09-20
+
+Base strategy
+The last known working application code was restored first. The professional Student Profile, focused Edit Student workspace and structured Add Student workspace were then added as isolated frontend changes. Authentication startup now binds the login controls explicitly after the main script loads and displays a visible startup message if the application script fails to load.
+
+Included
+Student Profile workspace with Overview, Attendance, Payments and Orders tabs.
+Separate focused Edit Student workspace.
+Structured Add Student workspace.
+Professional responsive styling.
+Resend email receipt notification in submit-order-payment-proof.
+Existing private receipt storage and secure receipt viewer preserved.
+Processing order status included in the final consistency migration.
+No Git metadata or Supabase temporary CLI files.
+
+Required Supabase secret
+RESEND_API_KEY
+
+Optional notification secrets
+PAYMENT_NOTIFICATION_EMAIL
+PAYMENT_NOTIFICATION_FROM
+
+Default notification recipient
+pixellynxsports@gmail.com
+
+Default test sender
+onboarding@resend.dev

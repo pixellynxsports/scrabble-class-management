@@ -11,7 +11,7 @@ Do not add a Supabase secret key or service role key to this website.
 
 BEFORE FIRST USE
 1. Open Supabase SQL Editor.
-2. Run supabase_update.sql once. This adds the Commitment Confirmed field used by the Add Student form.
+2. Run supabase/sql/20260918_billplz_payment_requests.sql and the other migration files in supabase/sql/ once. This adds the Commitment Confirmed field used by the Add Student form.
 3. Open Supabase Authentication > Users.
 4. Create the teacher login user with an email and password.
 5. Open the website and sign in with the same email and password.

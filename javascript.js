@@ -672,17 +672,55 @@ function renderProfileData(d){
 }
 
 function showStudentForm(){
-  showModal(`<h2>Add Student</h2><div class="subtle" style="margin-bottom:12px">Enter the student's registration details manually. Student ID is generated automatically.</div><div class="form">
-    <div class="formgrid"><div><label>Student Name *</label><input id="sName" required placeholder="Full name"></div><div><label>School</label><input id="sSchool" placeholder="School name"></div></div>
-    <div class="formgrid"><div><label>Age</label><input id="sAge" placeholder="Age"></div><div><label>Scrabble Experience</label><select id="sExperience"><option value="">Choose experience</option><option>Never played before</option><option>Beginner.</option><option>Intermediate.</option></select></div></div>
-    <div class="formgrid"><div><label>Normal Class Time *</label><select id="sClass"><option value="">Choose class</option><option>10:30 AM</option><option>2:00 PM</option></select></div><div><label>Parent / Guardian</label><input id="sParent" placeholder="Parent or guardian name"></div></div>
-    <div class="formgrid"><div><label>WhatsApp Number</label><input id="sWhatsApp" placeholder="Phone / WhatsApp"></div><div><label>Emergency Contact</label><input id="sEmergency" placeholder="Emergency phone number"></div></div>
-    <div class="formgrid"><div><label>Email</label><input id="sEmail" type="email" placeholder="Parent / guardian email"></div><div><label>Registration Date</label><input id="sDate" type="date" value="${isoDate(new Date())}"></div></div>
-    <label>Commitment</label><label style="display:flex;gap:8px;align-items:flex-start"><input id="sCommitment" type="checkbox" style="margin-top:2px"> Parent / guardian confirms the programme attendance, limited seating and photo-use commitments.</label>
-    <div class="actions"><button class="secondary" onclick="closeModal()">Cancel</button><button class="primary" onclick="saveStudentForm()">Save Student</button></div>
+  showModal(`<div class="student-edit-modal student-add-modal">
+    <div class="edit-student-header">
+      <div class="edit-student-identity">
+        <div class="student-avatar small">+</div>
+        <div><div class="eyebrow">NEW STUDENT REGISTRATION</div><h2>Add Student</h2><p>Create a new student record. Student ID and the first package payment are created automatically.</p></div>
+      </div>
+      <span class="badge present">New Registration</span>
+    </div>
+
+    <div class="edit-section">
+      <div class="edit-section-heading"><span>01</span><div><h3>Student information</h3><p>Basic information used throughout the class management system.</p></div></div>
+      <div class="formgrid">
+        <div class="field-block"><label>Student Name *</label><input id="sName" required placeholder="Full name"></div>
+        <div class="field-block"><label>School</label><input id="sSchool" placeholder="School name"></div>
+      </div>
+      <div class="formgrid">
+        <div class="field-block"><label>Age</label><input id="sAge" inputmode="numeric" placeholder="Age"></div>
+        <div class="field-block"><label>Scrabble Experience</label><select id="sExperience"><option value="">Choose experience</option><option>Never played before</option><option>Beginner.</option><option>Intermediate.</option></select></div>
+      </div>
+    </div>
+
+    <div class="edit-section">
+      <div class="edit-section-heading"><span>02</span><div><h3>Class placement</h3><p>Select the student's normal weekly class section.</p></div></div>
+      <div class="formgrid">
+        <div class="field-block"><label>Normal Class Time *</label><select id="sClass"><option value="">Choose class</option><option>10:30 AM</option><option>2:00 PM</option></select></div>
+        <div class="field-block"><label>Registration Date</label><input id="sDate" type="date" value="${isoDate(new Date())}"></div>
+      </div>
+    </div>
+
+    <div class="edit-section">
+      <div class="edit-section-heading"><span>03</span><div><h3>Parent and contact details</h3><p>Keep guardian, WhatsApp and emergency information together.</p></div></div>
+      <div class="formgrid">
+        <div class="field-block"><label>Parent / Guardian</label><input id="sParent" placeholder="Parent or guardian name"></div>
+        <div class="field-block"><label>WhatsApp Number</label><input id="sWhatsApp" placeholder="Phone / WhatsApp"></div>
+      </div>
+      <div class="formgrid">
+        <div class="field-block"><label>Emergency Contact</label><input id="sEmergency" placeholder="Emergency phone number"></div>
+        <div class="field-block"><label>Email</label><input id="sEmail" type="email" placeholder="Parent / guardian email"></div>
+      </div>
+    </div>
+
+    <div class="edit-section edit-confirmation-section">
+      <div class="edit-section-heading"><span>04</span><div><h3>Programme confirmation</h3><p>Record the current parent or guardian commitment.</p></div></div>
+      <label class="commitment-toggle"><input id="sCommitment" type="checkbox"><span><b>Commitment confirmed</b><small>Parent or guardian confirms programme attendance, limited seating and photo use commitments.</small></span></label>
+    </div>
+
+    <div class="edit-student-footer"><div><span class="eyebrow">SYSTEM ACTION</span><b>Create student record</b></div><div class="actions"><button class="secondary" onclick="closeModal()">Cancel</button><button class="primary" onclick="saveStudentForm()">Create Student</button></div></div>
   </div>`);
 }
-
 async function saveStudentForm(){
   const record={studentName:document.getElementById('sName').value,school:document.getElementById('sSchool').value,age:document.getElementById('sAge').value,experience:document.getElementById('sExperience').value,parentGuardian:document.getElementById('sParent').value,whatsapp:document.getElementById('sWhatsApp').value,emergency:document.getElementById('sEmergency').value,normalClassTime:document.getElementById('sClass').value,email:document.getElementById('sEmail').value,registrationDate:document.getElementById('sDate').value,commitment:document.getElementById('sCommitment').checked};
   if(!String(record.studentName).trim())return alert('Student name is required.');
@@ -751,3 +789,9 @@ async function saveEditStudentForm(id){
   if(!record.normalClassTime)return alert('Choose the normal class time.');
   try{DATA=await run('updateStudent',record);closeModal();renderAll();if(document.getElementById('studentProfile')?.classList.contains('active'))openStudent(id);alert('Student information updated successfully.');}catch(e){alert(e.message||e)}
 }
+
+
+// Explicit public handlers used by the login screen.
+window.setLoginMode=setLoginMode;
+window.signIn=signIn;
+window.initSupabaseAuth=initSupabaseAuth;
