@@ -1,0 +1,1 @@
+Login fix: restored the missing renderReports function before the reports renderer override. The missing function caused javascript.js to throw ReferenceError during initial script evaluation, preventing initSupabaseAuth and signIn from loading. Frontend cache version updated to 20260920.4. No Supabase Auth configuration was changed.
