@@ -437,7 +437,6 @@ function studentName(id){return DATA.students.find(s=>String(s['Student ID'])===
 async function changeOrder(id,field,value){try{DATA=await run('updateOrderStatus',id,field,value);renderOrders()}catch(e){alert(e.message||e)}}
 function editOrder(id){const o=DATA.orders.find(x=>String(x['Order ID'])===String(id));if(!o)return;showOrderForm(o)}
 function toggleOrderCustomer(){const other=document.getElementById('oType').value==='other';document.getElementById('studentBox').style.display=other?'none':'block';document.getElementById('otherBox').style.display=other?'block':'none'}
-function renderReports(){const month=document.getElementById('reportMonth').value||`${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;document.getElementById('reportMonth').value=month;const inMonth=value=>String(value||'').slice(0,7)===month;const active=activeStudents();const attendance=DATA.attendance.filter(a=>inMonth(a.Date));const present=attendance.filter(a=>a.Status==='Present');const absent=attendance.filter(a=>a.Status==='Absent');const payments=DATA.payments.filter(p=>inMonth(p['Payment Date']));const paidPayments=payments.filter(p=>String(p.Status||'').toLowerCase()==='paid');const voidPayments=payments.filter(p=>String(p.Status||'').toLowerCase()==='void');const orders=DATA.orders.filter(o=>inMonth(o['Order Date']));const activeOrders=orders.filter(o=>String(o.Archived||'').toLowerCase()!=='yes');document.getElementById('rStudents').textContent=active.length;document.getElementById('rPresent').textContent=present.length;document.getElementById('rPayments').textContent=paidPayments.length;const studentRows=DATA.students.map(s=>{const sid=String(s['Student ID']);const sa=attendance.filter(a=>String(a['Student ID'])===sid);const so=activeOrders.filter(o=>String(o['Student ID'])===sid);const c=cycleFor(sid);const archived=String(s.Active||'').toLowerCase()==='no';return `<tr class="clickable" onclick="openStudentFromReport('${esc(sid)}')"><td><b>${esc(s['Student Name'])}</b>${archived?' <span class="badge absent">Archived</span>':''}</td><td>${esc(sid)}</td><td>${esc(s['Normal Class Time']||'-')}</td><td>${sa.filter(a=>a.Status==='Present').length}</td><td>${sa.filter(a=>a.Status==='Absent').length}</td><td>${badge(c)}</td><td>${so.length}</td></tr>`}).join('');document.getElementById('reportStudents').innerHTML=studentRows||'<tr><td colspan="7" class="empty">No students.</td></tr>';document.getElementById('attendanceSummary').innerHTML=`<p><b>${present.length}</b> Present</p><p><b>${absent.length}</b> Absent</p><p><b>${attendance.length}</b> attendance records</p><p>Selected month: <b>${esc(month)}</b></p>`;const statusCount=status=>activeOrders.filter(o=>o['Order Status']===status).length;const orderSets=activeOrders.filter(o=>o.Product==='Scrabble Set').length;const orderShirts=activeOrders.filter(o=>o.Product==='T Shirt').length;const paidAmount=paidPayments.reduce((sum,p)=>sum+(Number(p.Amount)||0),0);const voidAmount=voidPayments.reduce((sum,p)=>sum+(Number(p.Amount)||0),0);document.getElementById('orderSummary').innerHTML=`<p><b>${activeOrders.length}</b> active orders (${orderSets} Scrabble Sets, ${orderShirts} T Shirts)</p><p>Pending Order: <b>${statusCount('Pending Order')}</b></p><p>Pending Payment: <b>${statusCount('Pending Payment')}</b></p><p>Processing: <b>${statusCount('Processing')}</b></p><p>Order Done: <b>${statusCount('Order Done')}</b></p><p>Paid: <b>${activeOrders.filter(o=>o['Payment Status']==='Paid').length}</b> · Unpaid: <b>${activeOrders.filter(o=>o['Payment Status']==='Unpaid').length}</b></p><p>Not Collected: <b>${activeOrders.filter(o=>o['Collection Status']==='Not Collected').length}</b> · Collected: <b>${activeOrders.filter(o=>o['Collection Status']==='Collected').length}</b></p><p>Payments: <b>${paidPayments.length}</b> paid, RM${paidAmount} · Void: <b>${voidPayments.length}</b>, RM${voidAmount}</p>`}
 const reportsRenderer=renderReports;renderReports=function(){const reportHead=document.querySelector('#reports #reportStudents')?.closest('table')?.querySelector('thead');if(reportHead)reportHead.innerHTML='<tr><th>Student</th><th>ID</th><th>Normal Class</th><th>Present</th><th>Absent</th><th>Payment Status</th><th>Orders</th></tr>';reportsRenderer()}
 let orderView='active';let currentOrderId='';
 function setOrderView(view){orderView=view;selectedOrderIds.clear();renderOrders()}
@@ -480,248 +479,92 @@ async function createBackup(){const button=document.getElementById('backupButton
 const backupButton=document.createElement('button');backupButton.id='backupButton';backupButton.className='secondary';backupButton.textContent='Backup & Export';backupButton.onclick=createBackup;document.querySelector('#reports .toolbar')?.appendChild(backupButton);
 async function voidPaymentAction(paymentId){if(!confirm('Void this payment? The payment history will remain and its four attendance records will become uncovered.'))return;try{DATA=await run('voidPayment',paymentId);renderAll()}catch(e){alert(e.message||e)}}
 let profileReturnPage='students';
-let currentProfileData=null;
-let currentProfileTab='overview';
-
-function openStudent(id){
-  currentProfileId=String(id);
-  profileReturnPage='students';
-  currentProfileTab='overview';
-  page('studentProfile');
-  document.getElementById('profileBack').textContent='← Back to Students';
-  document.getElementById('profileBack').onclick=()=>page('students');
-  document.getElementById('profileContent').innerHTML='<div class="panel">Loading student profile...</div>';
-  run('getStudentDetail',String(id)).then(renderProfileData).catch(e=>{
-    document.getElementById('profileContent').innerHTML='<div class="panel"><h3>Unable to load profile</h3><p>'+esc(e.message||e)+'</p></div>'
-  });
-}
-
-function openStudentFromReport(id){
-  currentProfileId=String(id);
-  profileReturnPage='reports';
-  currentProfileTab='overview';
-  page('studentProfile');
-  document.getElementById('profileBack').textContent='← Back to Reports';
-  document.getElementById('profileBack').onclick=()=>page('reports');
-  document.getElementById('profileContent').innerHTML='<div class="panel">Loading student profile...</div>';
-  run('getStudentDetail',String(id)).then(renderProfileData).catch(e=>{
-    document.getElementById('profileContent').innerHTML='<div class="panel"><h3>Unable to load profile</h3><p>'+esc(e.message||e)+'</p></div>'
-  });
-}
-
-function showStudentProfileTab(tab){
-  currentProfileTab=tab;
-  document.querySelectorAll('.student-profile-tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab));
-  document.querySelectorAll('.student-profile-panel').forEach(x=>x.classList.toggle('active',x.dataset.panel===tab));
-}
-
-function profileOrderPaymentBadge(status){
-  const value=String(status||'Unpaid');
-  const cls=value.toLowerCase()==='paid'?'paid':value.toLowerCase()==='awaiting confirmation'?'almost':'absent';
-  return `<span class="badge ${cls}">${esc(value)}</span>`;
-}
-
+function openStudent(id){currentProfileId=String(id);profileReturnPage='students';page('studentProfile');document.getElementById('profileBack').textContent='← Back to Students';document.getElementById('profileBack').onclick=()=>page('students');document.getElementById('profileContent').innerHTML='<div class="panel">Loading student profile...</div>';run('getStudentDetail',String(id)).then(renderProfileData).catch(e=>{document.getElementById('profileContent').innerHTML='<div class="panel"><h3>Unable to load profile</h3><p>'+esc(e.message||e)+'</p></div>'})}
+function openStudentFromReport(id){currentProfileId=String(id);profileReturnPage='reports';page('studentProfile');document.getElementById('profileBack').textContent='← Back to Reports';document.getElementById('profileBack').onclick=()=>page('reports');document.getElementById('profileContent').innerHTML='<div class="panel">Loading student profile...</div>';run('getStudentDetail',String(id)).then(renderProfileData).catch(e=>{document.getElementById('profileContent').innerHTML='<div class="panel"><h3>Unable to load profile</h3><p>'+esc(e.message||e)+'</p></div>'})}
 function renderProfileData(d){
-  currentProfileData=d;
   const s=d.student||{};
   const attendance=[...(d.attendance||[])].sort((a,b)=>new Date(b.Date)-new Date(a.Date));
   const payments=[...(d.payments||[])].sort((a,b)=>new Date(b['Payment Date'])-new Date(a['Payment Date']));
   const orders=[...(d.orders||[])].sort((a,b)=>new Date(b['Order Date'])-new Date(a['Order Date']));
   const present=attendance.filter(a=>a.Status==='Present').length;
   const absent=attendance.filter(a=>a.Status==='Absent').length;
-  const attendanceRate=attendance.length?Math.round(present/attendance.length*100):0;
   const paymentState=d.paymentStatus||{};
-  const progress=Number(paymentState.progress??0);
-  const status=paymentState.status||statusFor(progress);
+  const cycle=Number(paymentState.progress ?? 0);
+  const status=paymentState.status||statusFor(cycle);
   const currentCycle=Number(paymentState.currentCycle||1);
   const active=String(s.Active||'Yes').toLowerCase()!=='no';
-  const lastPayment=payments[0];
-  const recentAttendance=attendance.slice(0,5);
-  const recentOrders=orders.slice(0,4);
-  const commitment=String(s['Commitment Confirmed']||'No').toLowerCase()==='yes';
-  const profileStatus=active?'Active':'Archived';
-  const statusClass=active?'present':'absent';
-
-  const attendanceRows=attendance.map(a=>`<tr>
-    <td><b>${esc(formatDateClient(a.Date))}</b></td>
-    <td>${esc(a['Actual Class Time']||'-')}</td>
-    <td>${a.Status==='Present'?'<span class="badge present">Present</span>':a.Status==='Absent'?'<span class="badge absent">Absent</span>':'<span class="badge neutral">Not marked</span>'}</td>
-    <td>${esc(a.Notes||'-')}</td>
-  </tr>`).join('')||'<tr><td colspan="4" class="empty">No attendance records.</td></tr>';
-
-  const paymentRows=payments.map(p=>`<tr>
-    <td><b>${esc(p['Payment ID']||'-')}</b></td>
-    <td>Cycle ${esc(p['Cycle Number']||'-')}</td>
-    <td>RM${esc(p.Amount||0)}</td>
-    <td>${esc(formatDateClient(p['Payment Date']))}</td>
-    <td>${esc(p['Classes Covered']||'-')}</td>
-    <td>${String(p.Status||'').toLowerCase()==='paid'?'<span class="badge paid">Paid</span>':'<span class="badge absent">'+esc(p.Status||'')+'</span>'}</td>
-  </tr>`).join('')||'<tr><td colspan="6" class="empty">No payment records.</td></tr>';
-
-  const orderRows=orders.map(o=>`<tr>
-    <td><button class="linkbtn" onclick="openOrder('${esc(o['Order ID'])}')">${esc(o['Order ID'])}</button></td>
-    <td><b>${esc(o.Product||'-')}</b>${o.Product==='T Shirt'?`<div class="subtle">Size ${esc(o.Size||'-')}</div>`:''}</td>
-    <td>${esc(o.Quantity||1)}</td>
-    <td>RM${esc(o.Total||0)}</td>
-    <td><span class="badge neutral">${esc(o['Order Status']||'-')}</span></td>
-    <td>${profileOrderPaymentBadge(o['Payment Status'])}</td>
-    <td>${esc(o['Collection Status']||'-')}</td>
-    <td>${esc(formatDateClient(o['Order Date']))}</td>
-  </tr>`).join('')||'<tr><td colspan="8" class="empty">No linked orders.</td></tr>';
-
-  const recentActivity=[
-    ...recentAttendance.map(a=>({date:new Date(a.Date),html:`<div><b>Attendance marked ${esc(a.Status||'')}</b><small>${esc(formatDateClient(a.Date))} · ${esc(a['Actual Class Time']||'')}</small></div>`})),
-    ...payments.slice(0,3).map(p=>({date:new Date(p['Payment Date']),html:`<div><b>Payment ${esc(p.Status||'')}</b><small>${esc(formatDateClient(p['Payment Date']))} · RM${esc(p.Amount||0)} · Cycle ${esc(p['Cycle Number']||'-')}</small></div>`})),
-    ...orders.slice(0,3).map(o=>({date:new Date(o['Order Date']),html:`<div><b>${esc(o.Product||'Order')} order</b><small>${esc(formatDateClient(o['Order Date']))} · ${esc(o['Order Status']||'-')} · RM${esc(o.Total||0)}</small></div>`}))
-  ].sort((a,b)=>b.date-a.date).slice(0,6);
-
+  const commitment=String(s['Commitment Confirmed']||'').toLowerCase()==='yes';
   document.getElementById('profileContent').innerHTML=`
-    <div class="student-profile-shell">
-      <div class="student-profile-hero">
-        <div class="student-profile-identity">
-          <div class="student-avatar" aria-hidden="true">${esc(String(s['Student Name']||'?').trim().slice(0,1).toUpperCase())}</div>
-          <div>
-            <div class="eyebrow">STUDENT PROFILE · ${esc(s['Student ID']||'')}</div>
-            <h2>${esc(s['Student Name']||'Student')}</h2>
-            <div class="student-profile-meta"><span>${esc(s.School||'School not recorded')}</span><span>•</span><span>${esc(s['Normal Class Time']||'Class time not set')}</span></div>
-          </div>
-        </div>
-        <div class="student-profile-actions">
-          <span class="badge ${statusClass}">${profileStatus}</span>
-          <button class="primary" onclick="editStudent('${esc(s['Student ID'])}')">Edit Student</button>
-          ${active?`<button class="secondary" onclick="archiveStudent('${esc(s['Student ID'])}')">Archive</button>`:`<button class="secondary" onclick="restoreStudent('${esc(s['Student ID'])}')">Restore</button>`}
-        </div>
+    <div class="profile-hero panel">
+      <div class="profile-hero-main">
+        <div class="profile-avatar">${esc(String(s['Student Name']||'?').trim().charAt(0).toUpperCase())}</div>
+        <div><div class="eyebrow">STUDENT PROFILE · ${esc(s['Student ID']||'')}</div><h2 class="profile-name">${esc(s['Student Name']||'')}</h2><div class="profile-meta">${esc(s.School||'School not recorded')} <span>·</span> ${esc(s['Normal Class Time']||'Class time not set')}</div></div>
       </div>
+      <div class="profile-hero-actions"><span class="status-pill ${active?'status-active':'status-archived'}"><span class="status-dot"></span>${active?'Active':'Archived'}</span><button class="primary" onclick="editStudent('${esc(s['Student ID'])}')">Edit Details</button></div>
+    </div>
 
-      <div class="student-profile-metrics">
-        <div class="profile-metric-card"><span>ATTENDANCE RATE</span><strong>${attendanceRate}%</strong><small>${present} present · ${absent} absent</small></div>
-        <div class="profile-metric-card"><span>CURRENT PACKAGE</span><strong>${progress} / 4</strong><small>Cycle ${currentCycle} · ${esc(status)}</small></div>
-        <div class="profile-metric-card"><span>LAST PAYMENT</span><strong>${lastPayment?`RM${esc(lastPayment.Amount||0)}`:'Not recorded'}</strong><small>${lastPayment?esc(formatDateClient(lastPayment['Payment Date'])):'No payment recorded'}</small></div>
-        <div class="profile-metric-card"><span>LINKED ORDERS</span><strong>${orders.length}</strong><small>${orders.filter(o=>String(o['Payment Status']).toLowerCase()==='paid').length} paid orders</small></div>
-      </div>
+    <div class="profile-kpis">
+      <div class="profile-kpi"><span>ATTENDANCE</span><strong>${present}</strong><small>Present records</small></div>
+      <div class="profile-kpi"><span>ABSENCES</span><strong>${absent}</strong><small>Absent records</small></div>
+      <div class="profile-kpi"><span>PACKAGE</span><strong>${cycle} / 4</strong><small>${esc(status)}</small></div>
+      <div class="profile-kpi"><span>ORDERS</span><strong>${orders.length}</strong><small>Linked orders</small></div>
+    </div>
 
-      <div class="student-profile-tabs" role="tablist" aria-label="Student profile sections">
-        <button type="button" class="student-profile-tab ${currentProfileTab==='overview'?'active':''}" data-tab="overview" onclick="showStudentProfileTab('overview')">Overview</button>
-        <button type="button" class="student-profile-tab ${currentProfileTab==='attendance'?'active':''}" data-tab="attendance" onclick="showStudentProfileTab('attendance')">Attendance <span>${attendance.length}</span></button>
-        <button type="button" class="student-profile-tab ${currentProfileTab==='payments'?'active':''}" data-tab="payments" onclick="showStudentProfileTab('payments')">Payments <span>${payments.length}</span></button>
-        <button type="button" class="student-profile-tab ${currentProfileTab==='orders'?'active':''}" data-tab="orders" onclick="showStudentProfileTab('orders')">Orders <span>${orders.length}</span></button>
-      </div>
+    <div class="profile-section-title"><div><div class="eyebrow">RECORD</div><h3>Student Information</h3></div><span class="profile-section-note">ID ${esc(s['Student ID']||'')}</span></div>
+    <div class="profile-info-grid">
+      <div class="profile-info-card"><span>Student ID</span><strong>${esc(s['Student ID']||'-')}</strong></div>
+      <div class="profile-info-card"><span>Student Name</span><strong>${esc(s['Student Name']||'-')}</strong></div>
+      <div class="profile-info-card"><span>School</span><strong>${esc(s.School||'-')}</strong></div>
+      <div class="profile-info-card"><span>Age</span><strong>${esc(s.Age||'-')}</strong></div>
+      <div class="profile-info-card"><span>Scrabble Experience</span><strong>${esc(s['Scrabble Experience']||'-')}</strong></div>
+      <div class="profile-info-card"><span>Normal Class</span><strong>${esc(s['Normal Class Time']||'-')}</strong></div>
+      <div class="profile-info-card"><span>Registration Date</span><strong>${esc(formatDateClient(s['Registration Date'])||'-')}</strong></div>
+      <div class="profile-info-card"><span>Programme Commitment</span><strong class="${commitment?'success':'warning'}">${commitment?'Confirmed':'Not confirmed'}</strong></div>
+    </div>
 
-      <section class="student-profile-panel ${currentProfileTab==='overview'?'active':''}" data-panel="overview">
-        <div class="profile-section-grid">
-          <div class="profile-section-card">
-            <div class="profile-section-heading"><div><span class="eyebrow">STUDENT INFORMATION</span><h3>Personal details</h3></div><button class="linkbtn" onclick="editStudent('${esc(s['Student ID'])}')">Edit</button></div>
-            <div class="profile-detail-grid">
-              <div><small>Student ID</small><b>${esc(s['Student ID']||'-')}</b></div>
-              <div><small>Student Name</small><b>${esc(s['Student Name']||'-')}</b></div>
-              <div><small>School</small><b>${esc(s.School||'-')}</b></div>
-              <div><small>Age</small><b>${esc(s.Age||'-')}</b></div>
-              <div><small>Scrabble Experience</small><b>${esc(s['Scrabble Experience']||'-')}</b></div>
-              <div><small>Registration Date</small><b>${esc(formatDateClient(s['Registration Date'])||'-')}</b></div>
-            </div>
-          </div>
-          <div class="profile-section-card">
-            <div class="profile-section-heading"><div><span class="eyebrow">PARENT / GUARDIAN</span><h3>Contact details</h3></div><button class="linkbtn" onclick="editStudent('${esc(s['Student ID'])}')">Edit</button></div>
-            <div class="profile-detail-grid">
-              <div><small>Parent / Guardian</small><b>${esc(s['Parent / Guardian']||'-')}</b></div>
-              <div><small>WhatsApp</small><b>${esc(s.WhatsApp||'-')}</b></div>
-              <div><small>Emergency Contact</small><b>${esc(s['Emergency Contact']||'-')}</b></div>
-              <div><small>Email</small><b class="profile-email">${esc(s.Email||'-')}</b></div>
-            </div>
-          </div>
-        </div>
-        <div class="profile-section-card profile-status-card">
-          <div class="profile-section-heading"><div><span class="eyebrow">PROGRAMME STATUS</span><h3>Class placement and commitment</h3></div></div>
-          <div class="programme-status-grid">
-            <div><small>Normal Class Time</small><b>${esc(s['Normal Class Time']||'-')}</b></div>
-            <div><small>Commitment</small><b class="${commitment?'success':'warning'}">${commitment?'Confirmed':'Not confirmed'}</b></div>
-            <div><small>Current Cycle</small><b>Cycle ${currentCycle}</b></div>
-            <div><small>Package Status</small>${badge(progress,paymentState)}</div>
-          </div>
-        </div>
-        <div class="profile-section-grid">
-          <div class="profile-section-card">
-            <div class="profile-section-heading"><div><span class="eyebrow">RECENT ACTIVITY</span><h3>Latest records</h3></div></div>
-            <div class="profile-activity-list">${recentActivity.map(x=>`<div class="profile-activity-row"><span class="activity-dot"></span>${x.html}</div>`).join('')||'<div class="empty">No recent activity.</div>'}</div>
-          </div>
-          <div class="profile-section-card">
-            <div class="profile-section-heading"><div><span class="eyebrow">PACKAGE PROGRESS</span><h3>Current 4 class package</h3></div><span class="badge ${progress>=4?'absent':progress===3?'almost':'present'}">${esc(status)}</span></div>
-            <div class="profile-package-number"><strong>${progress}</strong><span>/ 4 classes</span></div>
-            <div class="progress profile-progress-large"><div style="width:${Math.min(100,progress/4*100)}%"></div></div>
-            <div class="profile-progress-caption"><span>${progress} used</span><span>${Math.max(0,4-progress)} remaining</span></div>
-          </div>
-        </div>
-      </section>
+    <div class="profile-section-title"><div><div class="eyebrow">CONTACT</div><h3>Parent / Guardian</h3></div></div>
+    <div class="profile-contact-grid">
+      <div class="profile-contact-card"><span>Parent / Guardian</span><strong>${esc(s['Parent / Guardian']||'-')}</strong></div>
+      <div class="profile-contact-card"><span>WhatsApp</span><strong>${esc(s.WhatsApp||'-')}</strong></div>
+      <div class="profile-contact-card"><span>Emergency Contact</span><strong>${esc(s['Emergency Contact']||'-')}</strong></div>
+      <div class="profile-contact-card"><span>Email</span><strong>${esc(s.Email||'-')}</strong></div>
+    </div>
 
-      <section class="student-profile-panel ${currentProfileTab==='attendance'?'active':''}" data-panel="attendance">
-        <div class="profile-tab-summary"><div><span>Present</span><strong>${present}</strong></div><div><span>Absent</span><strong>${absent}</strong></div><div><span>Attendance Rate</span><strong>${attendanceRate}%</strong></div><div><span>Total Records</span><strong>${attendance.length}</strong></div></div>
-        <div class="profile-section-card table-card"><div class="profile-section-heading"><div><span class="eyebrow">ATTENDANCE HISTORY</span><h3>All attendance records</h3></div></div><div class="scroll"><table><thead><tr><th>Date</th><th>Actual Class</th><th>Status</th><th>Notes</th></tr></thead><tbody>${attendanceRows}</tbody></table></div></div>
-      </section>
+    <div class="profile-section-title"><div><div class="eyebrow">HISTORY</div><h3>Attendance</h3></div><span class="profile-section-note">${attendance.length} record${attendance.length===1?'':'s'}</span></div>
+    <div class="panel profile-table-panel scroll"><table><thead><tr><th>Date</th><th>Normal Class</th><th>Actual Class</th><th>Status</th><th>Notes</th></tr></thead><tbody>${attendance.map(a=>`<tr><td>${esc(formatDateClient(a.Date))}</td><td>${esc(s['Normal Class Time']||'-')}</td><td>${esc(a['Actual Class Time']||'-')}</td><td>${a.Status==='Present'?'<span class="badge present">Present</span>':'<span class="badge absent">Absent</span>'}</td><td>${esc(a.Notes||'')}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">No attendance records.</td></tr>'}</tbody></table></div>
 
-      <section class="student-profile-panel ${currentProfileTab==='payments'?'active':''}" data-panel="payments">
-        <div class="profile-tab-summary"><div><span>Current Cycle</span><strong>${currentCycle}</strong></div><div><span>Package Progress</span><strong>${progress} / 4</strong></div><div><span>Status</span>${badge(progress,paymentState)}</div><div><span>Payment Records</span><strong>${payments.length}</strong></div></div>
-        <div class="profile-section-card current-package-card"><div class="profile-section-heading"><div><span class="eyebrow">CURRENT PACKAGE</span><h3>Cycle ${currentCycle}</h3></div><span class="badge ${progress>=4?'absent':progress===3?'almost':'present'}">${esc(status)}</span></div><div class="progress profile-progress-large"><div style="width:${Math.min(100,progress/4*100)}%"></div></div><div class="profile-progress-caption"><span>${progress} of 4 classes used</span><span>${Math.max(0,4-progress)} remaining</span></div></div>
-        <div class="profile-section-card table-card"><div class="profile-section-heading"><div><span class="eyebrow">PAYMENT HISTORY</span><h3>Recorded payments</h3></div></div><div class="scroll"><table><thead><tr><th>Payment ID</th><th>Cycle</th><th>Amount</th><th>Date</th><th>Classes Covered</th><th>Status</th></tr></thead><tbody>${paymentRows}</tbody></table></div></div>
-      </section>
+    <div class="profile-section-title"><div><div class="eyebrow">FINANCIAL</div><h3>Payment Cycle</h3></div><span class="profile-section-note">Cycle ${currentCycle}</span></div>
+    <div class="profile-payment-card panel"><div class="profile-payment-top"><div><span class="profile-payment-label">Current package progress</span><strong>${cycle} / 4 classes</strong></div><span class="badge ${cycle===4?'absent':cycle===3?'almost':'present'}">${esc(status)}</span></div><div class="profile-progress"><div style="width:${Math.min(100,cycle/4*100)}%"></div></div></div>
+    <div class="panel profile-table-panel scroll"><table><thead><tr><th>Payment ID</th><th>Cycle</th><th>Amount</th><th>Payment Date</th><th>Classes Covered</th><th>Status</th><th>Notes</th></tr></thead><tbody>${payments.map(p=>`<tr><td>${esc(p['Payment ID']||'')}</td><td>${esc(p['Cycle Number']||'')}</td><td>RM${esc(p.Amount||0)}</td><td>${esc(formatDateClient(p['Payment Date']))}</td><td>${esc(p['Classes Covered']||'')}</td><td>${String(p.Status||'').toLowerCase()==='paid'?'<span class="badge paid">Paid</span>':'<span class="badge absent">'+esc(p.Status||'')+'</span>'}</td><td>${esc(p.Notes||'')}</td></tr>`).join('')||'<tr><td colspan="7" class="empty">No payment records.</td></tr>'}</tbody></table></div>
 
-      <section class="student-profile-panel ${currentProfileTab==='orders'?'active':''}" data-panel="orders">
-        <div class="profile-tab-summary"><div><span>Total Orders</span><strong>${orders.length}</strong></div><div><span>Paid</span><strong>${orders.filter(o=>String(o['Payment Status']).toLowerCase()==='paid').length}</strong></div><div><span>Unpaid</span><strong>${orders.filter(o=>String(o['Payment Status']).toLowerCase()!=='paid').length}</strong></div><div><span>Order Value</span><strong>RM${orders.reduce((sum,o)=>sum+(Number(o.Total)||0),0).toFixed(2)}</strong></div></div>
-        <div class="profile-section-card table-card"><div class="profile-section-heading"><div><span class="eyebrow">ORDER HISTORY</span><h3>Linked orders</h3></div><button class="linkbtn" onclick="page('orders')">Open Orders</button></div><div class="scroll"><table><thead><tr><th>Order ID</th><th>Product</th><th>Qty</th><th>Total</th><th>Order Status</th><th>Payment</th><th>Collection</th><th>Date</th></tr></thead><tbody>${orderRows}</tbody></table></div></div>
-      </section>
-    </div>`;
-  showStudentProfileTab(currentProfileTab);
+    <div class="profile-section-title"><div><div class="eyebrow">ORDERS</div><h3>Linked Orders</h3></div><span class="profile-section-note">${orders.length} order${orders.length===1?'':'s'}</span></div>
+    <div class="panel profile-table-panel scroll"><table><thead><tr><th>Order ID</th><th>Product</th><th>Size</th><th>Qty</th><th>Total</th><th>Order Status</th><th>Payment</th><th>Collection</th><th>Date</th></tr></thead><tbody>${orders.map(o=>`<tr><td><button class="linkbtn" onclick="openOrder('${esc(o['Order ID'])}')">${esc(o['Order ID'])}</button></td><td>${esc(o.Product||'')}</td><td>${o.Product==='T Shirt'?esc(o.Size||''):'-'}</td><td>${esc(o.Quantity||1)}</td><td>RM${esc(o.Total||0)}</td><td>${esc(o['Order Status']||'')}</td><td>${esc(String(o['Payment Proof Status']||'')==='Submitted'?'Awaiting Confirmation':o['Payment Status']||'')}</td><td>${esc(o['Collection Status']||'')}</td><td>${esc(formatDateClient(o['Order Date']))}</td></tr>`).join('')||'<tr><td colspan="9" class="empty">No linked orders.</td></tr>'}</tbody></table></div>`;
 }
+function renderReports(){const month=document.getElementById('reportMonth').value||`${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;document.getElementById('reportMonth').value=month;const inMonth=value=>String(value||'').slice(0,7)===month;const active=activeStudents();const attendance=DATA.attendance.filter(a=>inMonth(a.Date));const present=attendance.filter(a=>a.Status==='Present');const absent=attendance.filter(a=>a.Status==='Absent');const payments=DATA.payments.filter(p=>inMonth(p['Payment Date']));const paidPayments=payments.filter(p=>String(p.Status||'').toLowerCase()==='paid');const voidPayments=payments.filter(p=>String(p.Status||'').toLowerCase()==='void');const orders=DATA.orders.filter(o=>inMonth(o['Order Date']));const activeOrders=orders.filter(o=>String(o.Archived||'').toLowerCase()!=='yes');document.getElementById('rStudents').textContent=active.length;document.getElementById('rPresent').textContent=present.length;document.getElementById('rPayments').textContent=paidPayments.length;const studentRows=DATA.students.map(s=>{const sid=String(s['Student ID']);const sa=attendance.filter(a=>String(a['Student ID'])===sid);const so=activeOrders.filter(o=>String(o['Student ID'])===sid);const c=cycleFor(sid);const archived=String(s.Active||'').toLowerCase()==='no';return `<tr class="clickable" onclick="openStudentFromReport('${esc(sid)}')"><td><b>${esc(s['Student Name'])}</b>${archived?' <span class="badge absent">Archived</span>':''}</td><td>${esc(sid)}</td><td>${esc(s['Normal Class Time']||'-')}</td><td>${sa.filter(a=>a.Status==='Present').length}</td><td>${sa.filter(a=>a.Status==='Absent').length}</td><td>${badge(c)}</td><td>${so.length}</td></tr>`}).join('');document.getElementById('reportStudents').innerHTML=studentRows||'<tr><td colspan="7" class="empty">No students.</td></tr>';document.getElementById('attendanceSummary').innerHTML=`<p><b>${present.length}</b> Present</p><p><b>${absent.length}</b> Absent</p><p><b>${attendance.length}</b> attendance records</p><p>Selected month: <b>${esc(month)}</b></p>`;const statusCount=status=>activeOrders.filter(o=>o['Order Status']===status).length;const orderSets=activeOrders.filter(o=>o.Product==='Scrabble Set').length;const orderShirts=activeOrders.filter(o=>o.Product==='T Shirt').length;const paidAmount=paidPayments.reduce((sum,p)=>sum+(Number(p.Amount)||0),0);const voidAmount=voidPayments.reduce((sum,p)=>sum+(Number(p.Amount)||0),0);document.getElementById('orderSummary').innerHTML=`<p><b>${activeOrders.length}</b> active orders (${orderSets} Scrabble Sets, ${orderShirts} T Shirts)</p><p>Pending Order: <b>${statusCount('Pending Order')}</b></p><p>Pending Payment: <b>${statusCount('Pending Payment')}</b></p><p>Processing: <b>${statusCount('Processing')}</b></p><p>Order Done: <b>${statusCount('Order Done')}</b></p><p>Paid: <b>${activeOrders.filter(o=>o['Payment Status']==='Paid').length}</b> · Unpaid: <b>${activeOrders.filter(o=>o['Payment Status']==='Unpaid').length}</b></p><p>Not Collected: <b>${activeOrders.filter(o=>o['Collection Status']==='Not Collected').length}</b> · Collected: <b>${activeOrders.filter(o=>o['Collection Status']==='Collected').length}</b></p><p>Payments: <b>${paidPayments.length}</b> paid, RM${paidAmount} · Void: <b>${voidPayments.length}</b>, RM${voidAmount}</p>`}
+function decoratePaymentHistory(){const table=document.querySelector('#paymentsHistory')?.closest('table');if(!table)return;const header=table.querySelector('thead tr');if(header&&!header.querySelector('[data-payment-action-header]')){const th=document.createElement('th');th.textContent='Action';th.dataset.paymentActionHeader='true';header.appendChild(th)}const rows=[...table.querySelectorAll('tbody tr')];const payments=[...DATA.payments].sort((a,b)=>new Date(b['Payment Date'])-new Date(a['Payment Date']));rows.forEach((row,index)=>{if(row.dataset.paymentActions)return;row.dataset.paymentActions='true';const payment=payments[index];const cell=document.createElement('td');if(payment&&String(payment.Status||'').toLowerCase()==='paid'){const button=document.createElement('button');button.className='secondary';button.textContent='Void Payment';button.onclick=()=>voidPaymentAction(String(payment['Payment ID']||''));cell.appendChild(button)}else cell.textContent='-';row.appendChild(cell)})}
+const paymentHistoryObserver=new MutationObserver(decoratePaymentHistory);paymentHistoryObserver.observe(document.getElementById('paymentsHistory'),{childList:true});
+document.getElementById('attDate').value=isoDate(latestSunday());document.getElementById('attDate').addEventListener('change',()=>{renderAttendance();renderHome()});document.getElementById('reportMonth').value=`${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
+
 
 function showStudentForm(){
-  showModal(`<div class="student-edit-modal student-add-modal">
-    <div class="edit-student-header">
-      <div class="edit-student-identity">
-        <div class="student-avatar small">+</div>
-        <div><div class="eyebrow">NEW STUDENT REGISTRATION</div><h2>Add Student</h2><p>Create a new student record. Student ID and the first package payment are created automatically.</p></div>
-      </div>
-      <span class="badge present">New Registration</span>
+  showModal(`<div class="student-form-modal">
+    <div class="student-form-header"><div><div class="eyebrow">STUDENT MANAGEMENT</div><h2>Add New Student</h2><p>Register a student and assign the initial four class package.</p></div><button class="modal-close" onclick="closeModal()" aria-label="Close">×</button></div>
+    <div class="form-section"><div class="form-section-heading"><span>01</span><div><h3>Student Information</h3><p>Core student details and Scrabble experience.</p></div></div>
+      <div class="formgrid"><div><label>Student Name <em>*</em></label><input id="sName" required placeholder="Full name"></div><div><label>School</label><input id="sSchool" placeholder="School name"></div></div>
+      <div class="formgrid"><div><label>Age</label><input id="sAge" type="number" min="1" max="18" placeholder="Age"></div><div><label>Scrabble Experience</label><select id="sExperience"><option value="">Choose experience</option><option>Never played before</option><option>Beginner.</option><option>Intermediate.</option></select></div></div>
     </div>
-
-    <div class="edit-section">
-      <div class="edit-section-heading"><span>01</span><div><h3>Student information</h3><p>Basic information used throughout the class management system.</p></div></div>
-      <div class="formgrid">
-        <div class="field-block"><label>Student Name *</label><input id="sName" required placeholder="Full name"></div>
-        <div class="field-block"><label>School</label><input id="sSchool" placeholder="School name"></div>
-      </div>
-      <div class="formgrid">
-        <div class="field-block"><label>Age</label><input id="sAge" inputmode="numeric" placeholder="Age"></div>
-        <div class="field-block"><label>Scrabble Experience</label><select id="sExperience"><option value="">Choose experience</option><option>Never played before</option><option>Beginner.</option><option>Intermediate.</option></select></div>
-      </div>
+    <div class="form-section"><div class="form-section-heading"><span>02</span><div><h3>Class & Registration</h3><p>Set the student's regular class and registration date.</p></div></div>
+      <div class="formgrid"><div><label>Normal Class Time <em>*</em></label><select id="sClass"><option value="">Choose class</option><option>10:30 AM</option><option>2:00 PM</option></select></div><div><label>Registration Date</label><input id="sDate" type="date" value="${isoDate(new Date())}"></div></div>
     </div>
-
-    <div class="edit-section">
-      <div class="edit-section-heading"><span>02</span><div><h3>Class placement</h3><p>Select the student's normal weekly class section.</p></div></div>
-      <div class="formgrid">
-        <div class="field-block"><label>Normal Class Time *</label><select id="sClass"><option value="">Choose class</option><option>10:30 AM</option><option>2:00 PM</option></select></div>
-        <div class="field-block"><label>Registration Date</label><input id="sDate" type="date" value="${isoDate(new Date())}"></div>
-      </div>
+    <div class="form-section"><div class="form-section-heading"><span>03</span><div><h3>Parent / Guardian</h3><p>Primary contact and emergency information.</p></div></div>
+      <div class="formgrid"><div><label>Parent / Guardian</label><input id="sParent" placeholder="Parent or guardian name"></div><div><label>Email</label><input id="sEmail" type="email" placeholder="Parent / guardian email"></div></div>
+      <div class="formgrid"><div><label>WhatsApp Number</label><input id="sWhatsApp" placeholder="Phone / WhatsApp"></div><div><label>Emergency Contact</label><input id="sEmergency" placeholder="Emergency phone number"></div></div>
     </div>
-
-    <div class="edit-section">
-      <div class="edit-section-heading"><span>03</span><div><h3>Parent and contact details</h3><p>Keep guardian, WhatsApp and emergency information together.</p></div></div>
-      <div class="formgrid">
-        <div class="field-block"><label>Parent / Guardian</label><input id="sParent" placeholder="Parent or guardian name"></div>
-        <div class="field-block"><label>WhatsApp Number</label><input id="sWhatsApp" placeholder="Phone / WhatsApp"></div>
-      </div>
-      <div class="formgrid">
-        <div class="field-block"><label>Emergency Contact</label><input id="sEmergency" placeholder="Emergency phone number"></div>
-        <div class="field-block"><label>Email</label><input id="sEmail" type="email" placeholder="Parent / guardian email"></div>
-      </div>
-    </div>
-
-    <div class="edit-section edit-confirmation-section">
-      <div class="edit-section-heading"><span>04</span><div><h3>Programme confirmation</h3><p>Record the current parent or guardian commitment.</p></div></div>
-      <label class="commitment-toggle"><input id="sCommitment" type="checkbox"><span><b>Commitment confirmed</b><small>Parent or guardian confirms programme attendance, limited seating and photo use commitments.</small></span></label>
-    </div>
-
-    <div class="edit-student-footer"><div><span class="eyebrow">SYSTEM ACTION</span><b>Create student record</b></div><div class="actions"><button class="secondary" onclick="closeModal()">Cancel</button><button class="primary" onclick="saveStudentForm()">Create Student</button></div></div>
+    <div class="form-section commitment-section"><div class="form-section-heading"><span>04</span><div><h3>Programme Confirmation</h3><p>Record the parent or guardian's programme commitment.</p></div></div><label class="commitment-check"><input id="sCommitment" type="checkbox"><span>Parent / guardian confirms the programme attendance, limited seating and photo use commitments.</span></label></div>
+    <div class="form-actions"><button class="secondary" onclick="closeModal()">Cancel</button><button class="primary" onclick="saveStudentForm()">Create Student</button></div>
   </div>`);
 }
+
 async function saveStudentForm(){
   const record={studentName:document.getElementById('sName').value,school:document.getElementById('sSchool').value,age:document.getElementById('sAge').value,experience:document.getElementById('sExperience').value,parentGuardian:document.getElementById('sParent').value,whatsapp:document.getElementById('sWhatsApp').value,emergency:document.getElementById('sEmergency').value,normalClassTime:document.getElementById('sClass').value,email:document.getElementById('sEmail').value,registrationDate:document.getElementById('sDate').value,commitment:document.getElementById('sCommitment').checked};
   if(!String(record.studentName).trim())return alert('Student name is required.');
@@ -733,54 +576,23 @@ function nextAddedStudentId(record){const matches=DATA.students.filter(s=>String
 function editStudent(id){
   const s=DATA.students.find(x=>String(x['Student ID'])===String(id));
   if(!s)return alert('Student not found.');
-  showModal(`<div class="student-edit-modal">
-    <div class="edit-student-header">
-      <div class="edit-student-identity">
-        <div class="student-avatar small">${esc(String(s['Student Name']||'?').trim().slice(0,1).toUpperCase())}</div>
-        <div><div class="eyebrow">EDIT STUDENT · ${esc(s['Student ID'])}</div><h2>${esc(s['Student Name']||'Student')}</h2><p>Update selected student information without changing attendance, payments or orders.</p></div>
-      </div>
-      <span class="badge ${String(s.Active||'Yes').toLowerCase()==='no'?'absent':'present'}">${String(s.Active||'Yes').toLowerCase()==='no'?'Archived':'Active'}</span>
+  const active=String(s.Active||'Yes').toLowerCase()!=='no';
+  showModal(`<div class="student-form-modal edit-student-modal">
+    <div class="student-form-header"><div><div class="eyebrow">STUDENT RECORD · ${esc(s['Student ID'])}</div><h2>Edit Student Details</h2><p>Update selected information for this existing student record.</p></div><button class="modal-close" onclick="closeModal()" aria-label="Close">×</button></div>
+    <div class="edit-identity-strip"><div><span>Student ID</span><strong>${esc(s['Student ID'])}</strong></div><div><span>Record status</span><strong class="${active?'success':'danger-text'}">${active?'Active':'Archived'}</strong></div><div><span>Registered</span><strong>${esc(formatDateClient(s['Registration Date'])||'-')}</strong></div></div>
+    <div class="form-section"><div class="form-section-heading"><span>01</span><div><h3>Student Details</h3><p>Identity and programme information.</p></div></div>
+      <div class="formgrid"><div><label>Student Name <em>*</em></label><input id="eName" required value="${esc(s['Student Name']||'')}"></div><div><label>School</label><input id="eSchool" value="${esc(s.School||'')}"></div></div>
+      <div class="formgrid"><div><label>Age</label><input id="eAge" type="number" min="1" max="18" value="${esc(s.Age||'')}"></div><div><label>Scrabble Experience</label><select id="eExperience"><option value="">Choose experience</option><option ${s['Scrabble Experience']==='Never played before'?'selected':''}>Never played before</option><option ${s['Scrabble Experience']==='Beginner.'?'selected':''}>Beginner.</option><option ${s['Scrabble Experience']==='Intermediate.'?'selected':''}>Intermediate.</option></select></div></div>
     </div>
-
-    <div class="edit-section">
-      <div class="edit-section-heading"><span>01</span><div><h3>Student information</h3><p>Basic details used across the class management system.</p></div></div>
-      <div class="formgrid">
-        <div class="field-block"><label>Student Name *</label><input id="eName" required value="${esc(s['Student Name']||'')}"></div>
-        <div class="field-block"><label>Student ID</label><div class="readonly-field">${esc(s['Student ID'])}<span>Fixed</span></div></div>
-      </div>
-      <div class="formgrid">
-        <div class="field-block"><label>School</label><input id="eSchool" value="${esc(s.School||'')}"></div>
-        <div class="field-block"><label>Age</label><input id="eAge" inputmode="numeric" value="${esc(s.Age||'')}"></div>
-      </div>
-      <div class="field-block"><label>Scrabble Experience</label><select id="eExperience"><option value="">Choose experience</option><option ${s['Scrabble Experience']==='Never played before'?'selected':''}>Never played before</option><option ${s['Scrabble Experience']==='Beginner.'?'selected':''}>Beginner.</option><option ${s['Scrabble Experience']==='Intermediate.'?'selected':''}>Intermediate.</option></select></div>
+    <div class="form-section"><div class="form-section-heading"><span>02</span><div><h3>Class Placement</h3><p>Manage the student's regular class assignment.</p></div></div>
+      <div class="formgrid"><div><label>Normal Class Time <em>*</em></label><select id="eClass"><option ${s['Normal Class Time']==='10:30 AM'?'selected':''}>10:30 AM</option><option ${s['Normal Class Time']==='2:00 PM'?'selected':''}>2:00 PM</option></select></div><div><label>Registration Date</label><input id="eDate" type="date" value="${esc(String(s['Registration Date']||'').slice(0,10))}"></div></div>
     </div>
-
-    <div class="edit-section">
-      <div class="edit-section-heading"><span>02</span><div><h3>Class placement</h3><p>Programme scheduling and registration information.</p></div></div>
-      <div class="formgrid">
-        <div class="field-block"><label>Normal Class Time *</label><select id="eClass"><option value="10:30 AM" ${s['Normal Class Time']==='10:30 AM'?'selected':''}>10:30 AM</option><option value="2:00 PM" ${s['Normal Class Time']==='2:00 PM'?'selected':''}>2:00 PM</option></select></div>
-        <div class="field-block"><label>Registration Date</label><input id="eDate" type="date" value="${esc(String(s['Registration Date']||'').slice(0,10))}"></div>
-      </div>
+    <div class="form-section"><div class="form-section-heading"><span>03</span><div><h3>Parent / Guardian</h3><p>Keep contact details current for programme communication.</p></div></div>
+      <div class="formgrid"><div><label>Parent / Guardian</label><input id="eParent" value="${esc(s['Parent / Guardian']||'')}"></div><div><label>Email</label><input id="eEmail" type="email" value="${esc(s.Email||'')}"></div></div>
+      <div class="formgrid"><div><label>WhatsApp Number</label><input id="eWhatsApp" value="${esc(s.WhatsApp||'')}"></div><div><label>Emergency Contact</label><input id="eEmergency" value="${esc(s['Emergency Contact']||'')}"></div></div>
     </div>
-
-    <div class="edit-section">
-      <div class="edit-section-heading"><span>03</span><div><h3>Parent and contact details</h3><p>Keep guardian and emergency information current.</p></div></div>
-      <div class="formgrid">
-        <div class="field-block"><label>Parent / Guardian</label><input id="eParent" value="${esc(s['Parent / Guardian']||'')}"></div>
-        <div class="field-block"><label>WhatsApp Number</label><input id="eWhatsApp" value="${esc(s.WhatsApp||'')}"></div>
-      </div>
-      <div class="formgrid">
-        <div class="field-block"><label>Emergency Contact</label><input id="eEmergency" value="${esc(s['Emergency Contact']||'')}"></div>
-        <div class="field-block"><label>Email</label><input id="eEmail" type="email" value="${esc(s.Email||'')}"></div>
-      </div>
-    </div>
-
-    <div class="edit-section edit-confirmation-section">
-      <div class="edit-section-heading"><span>04</span><div><h3>Programme confirmation</h3><p>Record the current parent or guardian commitment.</p></div></div>
-      <label class="commitment-toggle"><input id="eCommitment" type="checkbox" ${String(s['Commitment Confirmed']||'').toLowerCase()==='yes'?'checked':''}><span><b>Commitment confirmed</b><small>Parent or guardian has confirmed programme attendance, limited seating and photo use commitments.</small></span></label>
-    </div>
-
-    <div class="edit-student-footer"><div><span class="eyebrow">STUDENT ID</span><b>${esc(s['Student ID'])}</b></div><div class="actions"><button class="secondary" onclick="closeModal()">Cancel</button><button class="primary" onclick="saveEditStudentForm('${esc(s['Student ID'])}')">Save Changes</button></div></div>
+    <div class="form-section commitment-section"><div class="form-section-heading"><span>04</span><div><h3>Programme Confirmation</h3><p>Review the recorded parent or guardian commitment.</p></div></div><label class="commitment-check"><input id="eCommitment" type="checkbox" ${String(s['Commitment Confirmed']||'').toLowerCase()==='yes'?'checked':''}><span>Parent / guardian confirms the programme attendance, limited seating and photo use commitments.</span></label></div>
+    <div class="form-actions"><button class="secondary" onclick="closeModal()">Cancel</button><button class="primary" onclick="saveEditStudentForm('${esc(s['Student ID'])}')">Save Changes</button></div>
   </div>`);
 }
 
@@ -790,9 +602,3 @@ async function saveEditStudentForm(id){
   if(!record.normalClassTime)return alert('Choose the normal class time.');
   try{DATA=await run('updateStudent',record);closeModal();renderAll();if(document.getElementById('studentProfile')?.classList.contains('active'))openStudent(id);alert('Student information updated successfully.');}catch(e){alert(e.message||e)}
 }
-
-
-// Explicit public handlers used by the login screen.
-window.setLoginMode=setLoginMode;
-window.signIn=signIn;
-window.initSupabaseAuth=initSupabaseAuth;
