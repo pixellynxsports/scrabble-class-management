@@ -1,0 +1,15 @@
+SCRABBLE CLASS MANAGEMENT
+Build: 2026-09-22
+Frontend cache: 20260922.5
+
+index.html -> style.css?v=20260922.5
+index.html -> javascript.js?v=20260922.5
+
+This package combines:
+1. Current uploaded index.html and style.css.
+2. Current frontend javascript.js from the latest prepared project package.
+3. Current payment proof email Edge Function.
+4. Current SQL consistency migration.
+5. Current project documentation.
+
+No secrets or service role keys are included.

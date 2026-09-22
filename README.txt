@@ -11,7 +11,7 @@ Do not add a Supabase secret key or service role key to this website.
 
 BEFORE FIRST USE
 1. Open Supabase SQL Editor.
-2. Run supabase/sql/20260918_billplz_payment_requests.sql and the other migration files in supabase/sql/ once. This adds the Commitment Confirmed field used by the Add Student form.
+2. Run the SQL migration files in supabase/sql/ once.
 3. Open Supabase Authentication > Users.
 4. Create the teacher login user with an email and password.
 5. Open the website and sign in with the same email and password.
@@ -58,22 +58,11 @@ ATTENDANCE RULES
 
 ORDERS
 - Products: Scrabble Set or T Shirt.
-- Order status: Pending Order, Pending Payment, Order Done.
-- Payment status: Unpaid or Paid.
-- Collection status: Not Collected or Collected.
 - Orders are archived rather than deleted.
+- Payment proof supports Submitted, Verified and Rejected states.
+- Verified payment moves the order to Processing.
 
 BACKUP
-Use Reports > Backup & Export to download the current Supabase data as a JSON backup.
-
+Use the available Reports and export tools to keep a current data backup.
 
 Parent Portal Enhancement: dashboard cards open large detail panels, Action Required package notice, QR order payment view, and FPX-ready class payment view.
-
-
-CLASS PAYMENT TEST FLOW
------------------------
-The Parent Portal includes a safe front-end test flow for the future FPX class-package payment.
-To enable the test control, open the Parent Portal with ?payment_test=1 added to the site URL.
-The test control appears only inside the class-package payment screen when the current package is Payment Due.
-Simulating payment does not contact a bank, does not move money, and does not write to Supabase. It creates a temporary in-session paid payment so the package moves to the next cycle for testing.
-Remove ?payment_test=1 for normal parent use.
