@@ -3,7 +3,7 @@
 <head>
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="stylesheet" href="style.css?v=20260922.2">
+<link rel="stylesheet" href="style.css?v=20260922.3">
 </head>
 <body>
 <div id="bootScreen" class="boot-screen">
@@ -16,25 +16,39 @@
 <div id="loginScreen" class="login-screen">
   <div class="login-card">
     <div class="login-brand">
-      <div class="scrabble-mark" aria-hidden="true"><span>S</span><span>C</span></div>
-      <div class="brand">SCRABBLE CLASS<small>Management System</small></div>
+      <div class="login-brand-top">
+        <div class="scrabble-mark" aria-hidden="true"><span>S</span><span>C</span></div>
+        <div class="brand">SCRABBLE CLASS<small>Management System</small></div>
+      </div>
+      <div class="login-brand-copy">
+        <div class="eyebrow">BANTING SCRABBLE ACADEMY</div>
+        <h1>Manage your classes with confidence.</h1>
+        <p>One secure workspace for student records, attendance, payments and orders.</p>
+        <div class="login-feature-list">
+          <div class="login-feature"><span class="login-feature-icon">01</span><span>Student records and class placement</span></div>
+          <div class="login-feature"><span class="login-feature-icon">02</span><span>Attendance and payment tracking</span></div>
+          <div class="login-feature"><span class="login-feature-icon">03</span><span>Orders and payment proof review</span></div>
+        </div>
+      </div>
     </div>
-    <div class="login-heading">
-      <div class="eyebrow" id="loginEyebrow">TEACHER PORTAL</div>
-      <h2 id="loginTitle">Welcome back</h2>
-      <p class="subtle" id="loginSubtitle">Sign in to access your online class records.</p>
+    <div class="login-form-panel">
+      <div class="login-heading">
+        <div class="eyebrow" id="loginEyebrow">TEACHER PORTAL</div>
+        <h2 id="loginTitle">Welcome back</h2>
+        <p class="subtle" id="loginSubtitle">Sign in to access your online class records.</p>
+      </div>
+      <div class="login-mode-buttons" aria-label="Choose login type">
+        <button type="button" class="login-mode active" id="teacherLoginMode" onclick="setLoginMode('teacher')">Teacher Login</button>
+        <button type="button" class="login-mode" id="parentLoginMode" onclick="setLoginMode('parent')">Parent Login</button>
+      </div>
+      <div class="form">
+        <label for="loginEmail">Email</label><input id="loginEmail" type="email" autocomplete="username" placeholder="Your login email">
+        <label for="loginPassword">Password</label><input id="loginPassword" type="password" autocomplete="current-password" placeholder="Enter your password">
+        <button class="primary login-submit" id="loginButton" onclick="signIn()"><span>Sign In</span><span aria-hidden="true">→</span></button>
+        <div id="loginMessage" class="subtle login-message"></div>
+      </div>
+      <div class="login-footer"><span class="login-dot"></span> Secure online class records</div>
     </div>
-    <div class="login-mode-buttons" aria-label="Choose login type">
-      <button type="button" class="login-mode active" id="teacherLoginMode" onclick="setLoginMode('teacher')">Teacher Login</button>
-      <button type="button" class="login-mode" id="parentLoginMode" onclick="setLoginMode('parent')">Parent Login</button>
-    </div>
-    <div class="form">
-      <label for="loginEmail">Email</label><input id="loginEmail" type="email" autocomplete="username" placeholder="Your login email">
-      <label for="loginPassword">Password</label><input id="loginPassword" type="password" autocomplete="current-password" placeholder="Enter your password">
-      <button class="primary login-submit" id="loginButton" onclick="signIn()"><span>Sign In</span><span aria-hidden="true">→</span></button>
-      <div id="loginMessage" class="subtle"></div>
-    </div>
-    <div class="login-footer"><span class="login-dot"></span> Secure online class records</div>
   </div>
 </div>
 <div id="parentPortal" class="parent-portal hidden">
@@ -93,5 +107,5 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
 <script src="data/data.js"></script>
-<script src="javascript.js?v=20260922.2"></script><script>window.addEventListener("DOMContentLoaded",()=>initSupabaseAuth());</script>
+<script src="javascript.js?v=20260922.3"></script><script>window.addEventListener("DOMContentLoaded",()=>initSupabaseAuth());</script>
 </body></html>
