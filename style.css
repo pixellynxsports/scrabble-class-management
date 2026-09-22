@@ -473,3 +473,8 @@ tbody tr:last-child td{border-bottom:0}
   .login-brand-copy h1{font-size:27px}
   .login-form-panel{padding:28px 22px 24px}
 }
+
+/* Login refinement 2026.09.22.4 */
+.login-form-panel .login-heading .subtle:empty{display:none}
+.login-form-panel .login-heading h2{margin-bottom:0}
+.login-form-panel .login-mode-buttons{margin-top:30px}
