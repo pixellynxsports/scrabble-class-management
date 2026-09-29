@@ -1,0 +1,18 @@
+SCRABBLE CLASS MANAGEMENT
+Build: 2026-09-29
+Frontend cache: 20260929.1
+
+Parent first login password change flow added.
+
+Changes:
+1. Parent Login remains part of the existing login screen.
+2. parent_accounts.must_change_password is checked after authentication.
+3. Parents marked true are shown a first login Change Your Password screen.
+4. New password requires at least 8 characters with uppercase, lowercase and a number.
+5. Supabase Auth password is updated securely in the browser session.
+6. parent_accounts.must_change_password is set to false after successful password update.
+7. Parent Portal opens only after the password change is completed.
+8. Teacher Portal, Billplz and order payment files were preserved.
+
+Database migration:
+supabase/sql/20260929_parent_first_login.sql

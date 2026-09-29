@@ -3,7 +3,7 @@
 <head>
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="stylesheet" href="style.css?v=20260922.5">
+<link rel="stylesheet" href="style.css?v=20260929.1">
 </head>
 <body>
 <div id="bootScreen" class="boot-screen">
@@ -35,6 +35,29 @@
       <div id="loginMessage" class="subtle"></div>
     </div>
     <div class="login-footer"><span class="login-dot"></span> Secure online class records</div>
+  </div>
+</div>
+<div id="passwordChangeScreen" class="password-change-screen hidden">
+  <div class="password-change-card">
+    <div class="login-brand">
+      <div class="scrabble-mark" aria-hidden="true"><span>S</span><span>C</span></div>
+      <div class="brand">SCRABBLE CLASS<small>Management System</small></div>
+    </div>
+    <div class="login-heading">
+      <div class="eyebrow">FIRST LOGIN</div>
+      <h2>Change your password</h2>
+      <p class="subtle">For security, please replace your temporary password before entering the Parent Portal.</p>
+    </div>
+    <div class="form password-change-form">
+      <label for="newPassword">New Password</label>
+      <input id="newPassword" type="password" autocomplete="new-password" placeholder="Enter a new password">
+      <label for="confirmNewPassword">Confirm New Password</label>
+      <input id="confirmNewPassword" type="password" autocomplete="new-password" placeholder="Re-enter your new password">
+      <div id="passwordRequirements" class="password-requirements">Use at least 8 characters with uppercase, lowercase and a number.</div>
+      <button class="primary login-submit" id="changePasswordButton" onclick="changeParentPassword()"><span>Update Password</span><span aria-hidden="true">→</span></button>
+      <div id="passwordChangeMessage" class="subtle"></div>
+      <button type="button" class="secondary password-signout" onclick="signOut()">Sign Out</button>
+    </div>
   </div>
 </div>
 <div id="parentPortal" class="parent-portal hidden">
@@ -93,5 +116,5 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
 <script src="data/data.js"></script>
-<script src="javascript.js?v=20260922.5"></script><script>window.addEventListener("DOMContentLoaded",()=>initSupabaseAuth());</script>
+<script src="javascript.js?v=20260929.1"></script><script>window.addEventListener("DOMContentLoaded",()=>initSupabaseAuth());</script>
 </body></html>

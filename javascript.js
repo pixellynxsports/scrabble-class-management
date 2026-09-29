@@ -12,6 +12,7 @@ let currentUserRole='teacher';
 let PARENT_CONTEXT={account:null,students:[]};
 let parentEntryNoticeShown=false;
 let parentNoticeTimer=null;
+let passwordChangeInProgress=false;
 let authInitialised=false;
 const parentPaymentReturn=new URLSearchParams(window.location.search).get('payment_return')==='1';
 let parentPaymentProcessing=false;
@@ -36,7 +37,7 @@ async function loadRemoteData(){
   return {students:(s.data||[]).map(studentFromDb),attendance:(a.data||[]).map(attendanceFromDb),payments:(p.data||[]).map(paymentFromDb),orders:(o.data||[]).map(orderFromDb),config:cfg};
 }
 async function refreshOnline(silent=false){if(currentUserRole==='parent'){await loadParentPortal();return;}try{DATA=await loadRemoteData();document.getElementById('connection').textContent='● Online';document.getElementById('connection').classList.remove('off');renderAll();if(!silent)alert('Online data refreshed.')}catch(e){document.getElementById('connection').textContent='● Connection error';document.getElementById('connection').classList.add('off');if(!silent)alert(e.message||e);throw e}}
-async function getCurrentParentAccount(){const {data,error}=await supabaseClient.auth.getUser();if(error)throw dbError(error);const uid=data.user?.id;if(!uid)throw new Error('Your session has expired. Please sign in again.');const {data:account,error:accountError}=await supabaseClient.from('parent_accounts').select('user_id,parent_name,email,whatsapp,active').eq('user_id',uid).maybeSingle();if(accountError)throw dbError(accountError);return account;}
+async function getCurrentParentAccount(){const {data,error}=await supabaseClient.auth.getUser();if(error)throw dbError(error);const uid=data.user?.id;if(!uid)throw new Error('Your session has expired. Please sign in again.');const {data:account,error:accountError}=await supabaseClient.from('parent_accounts').select('user_id,parent_name,email,whatsapp,active,must_change_password').eq('user_id',uid).maybeSingle();if(accountError)throw dbError(accountError);return account;}
 async function loadParentPortal(){const account=await getCurrentParentAccount();if(!account)throw new Error('This account is not registered as a parent account.');if(account.active===false)throw new Error('This parent account is inactive. Please contact the teacher.');const {data:links,error:linkError}=await supabaseClient.from('parent_students').select('student_id').eq('parent_user_id',account.user_id);if(linkError)throw dbError(linkError);const ids=(links||[]).map(x=>x.student_id).filter(Boolean);let students=[],attendance=[],payments=[],orders=[];if(ids.length){const [s,a,p,o]=await Promise.all([supabaseClient.from('students').select('student_id,student_name,school,age,scrabble_experience,parent_guardian,whatsapp,normal_class_time,email,registration_date,active').in('student_id',ids).order('student_name'),supabaseClient.from('attendance').select('*').in('student_id',ids).order('attendance_date',{ascending:false}),supabaseClient.from('payments').select('*').in('student_id',ids).order('payment_date',{ascending:false}),supabaseClient.from('orders').select('*').in('student_id',ids).eq('archived',false).order('order_date',{ascending:false})]);for(const result of [s,a,p,o]){if(result.error)throw dbError(result.error)}students=s.data||[];attendance=(a.data||[]).map(attendanceFromDb);payments=(p.data||[]).map(paymentFromDb);orders=(o.data||[]).map(orderFromDb);}PARENT_CONTEXT={account,students,attendance,payments,orders,selectedStudentId:ids[0]||''};renderParentPortal();setConnection('● Online',false);if(parentPaymentReturn&&!parentPaymentReturnHandled&&!parentPaymentProcessing){parentPaymentReturnHandled=true;checkReturnedPayment();}}
 function calculatePaymentState(payments,attendance,sid){
   const paid=payments
@@ -322,8 +323,12 @@ function hideBoot(){document.getElementById('bootScreen')?.classList.add('hidden
 function showLogin(message=''){document.getElementById('loginScreen')?.classList.remove('hidden');const msg=document.getElementById('loginMessage');if(msg)msg.textContent=message;setConnection('● Sign in required',true)}
 function hideLogin(){document.getElementById('loginScreen')?.classList.add('hidden')}
 function setLoginMode(mode){loginMode=mode==='parent'?'parent':'teacher';const teacher=document.getElementById('teacherLoginMode'),parent=document.getElementById('parentLoginMode'),eyebrow=document.getElementById('loginEyebrow'),title=document.getElementById('loginTitle'),subtitle=document.getElementById('loginSubtitle'),button=document.getElementById('loginButton'),email=document.getElementById('loginEmail'),password=document.getElementById('loginPassword'),msg=document.getElementById('loginMessage');teacher?.classList.toggle('active',loginMode==='teacher');parent?.classList.toggle('active',loginMode==='parent');if(loginMode==='parent'){eyebrow.textContent='PARENT PORTAL';title.textContent='Welcome back';subtitle.textContent="Sign in to view your child's class records.";button.querySelector('span')?.replaceChildren(document.createTextNode('Parent Sign In'));email.placeholder='Parent email';password.placeholder='Enter your password';}else{eyebrow.textContent='TEACHER PORTAL';title.textContent='Welcome back';subtitle.textContent='Sign in to access your online class records.';button.querySelector('span')?.replaceChildren(document.createTextNode('Sign In'));email.placeholder='Your login email';password.placeholder='Enter your password';}msg.textContent='';}
-async function signIn(){const email=document.getElementById('loginEmail').value.trim(),password=document.getElementById('loginPassword').value;const button=document.getElementById('loginButton');const msg=document.getElementById('loginMessage');if(!email||!password){msg.textContent='Enter your email and password.';return}button.disabled=true;msg.textContent='Signing in...';try{const {error}=await supabaseClient.auth.signInWithPassword({email,password});if(error)throw dbError(error);const user=(await supabaseClient.auth.getUser()).data.user;const {data:parentAccount,error:parentError}=await supabaseClient.from('parent_accounts').select('user_id,parent_name,active').eq('user_id',user.id).maybeSingle();if(parentError)throw dbError(parentError);const isParent=!!parentAccount;if(loginMode==='parent'){if(!isParent){await supabaseClient.auth.signOut();throw new Error('This account is not registered as a parent account. Please use Teacher Login.')}if(parentAccount.active===false){await supabaseClient.auth.signOut();throw new Error('This parent account is inactive. Please contact the teacher.')}}else{if(isParent){await supabaseClient.auth.signOut();throw new Error('This is a Parent account. Please use Parent Login.')}}msg.textContent='';}catch(e){msg.textContent=e.message||'Sign in failed.'}finally{button.disabled=false}}
-async function signOut(){await supabaseClient.auth.signOut();authReady=false;currentUserRole='teacher';PARENT_CONTEXT={account:null,students:[]};hideParentPortal();showLogin('You have signed out.');}
+async function signIn(){const email=document.getElementById('loginEmail').value.trim(),password=document.getElementById('loginPassword').value;const button=document.getElementById('loginButton');const msg=document.getElementById('loginMessage');if(!email||!password){msg.textContent='Enter your email and password.';return}button.disabled=true;msg.textContent='Signing in...';try{const {error}=await supabaseClient.auth.signInWithPassword({email,password});if(error)throw dbError(error);const user=(await supabaseClient.auth.getUser()).data.user;const {data:parentAccount,error:parentError}=await supabaseClient.from('parent_accounts').select('user_id,parent_name,active,must_change_password').eq('user_id',user.id).maybeSingle();if(parentError)throw dbError(parentError);const isParent=!!parentAccount;if(loginMode==='parent'){if(!isParent){await supabaseClient.auth.signOut();throw new Error('This account is not registered as a parent account. Please use Teacher Login.')}if(parentAccount.active===false){await supabaseClient.auth.signOut();throw new Error('This parent account is inactive. Please contact the teacher.')}}else{if(isParent){await supabaseClient.auth.signOut();throw new Error('This is a Parent account. Please use Parent Login.')}}msg.textContent='';}catch(e){msg.textContent=e.message||'Sign in failed.'}finally{button.disabled=false}}
+function showPasswordChangeScreen(message=''){document.getElementById('passwordChangeScreen')?.classList.remove('hidden');document.getElementById('parentPortal')?.classList.add('hidden');document.querySelector('.app')?.classList.add('hidden');const msg=document.getElementById('passwordChangeMessage');if(msg)msg.textContent=message;const a=document.getElementById('newPassword');const b=document.getElementById('confirmNewPassword');if(a)a.focus();}
+function hidePasswordChangeScreen(){document.getElementById('passwordChangeScreen')?.classList.add('hidden');}
+function validateParentPassword(value){return value.length>=8&&/[A-Z]/.test(value)&&/[a-z]/.test(value)&&/[0-9]/.test(value);}
+async function changeParentPassword(){if(passwordChangeInProgress)return;const newPassword=document.getElementById('newPassword')?.value||'',confirmPassword=document.getElementById('confirmNewPassword')?.value||'',button=document.getElementById('changePasswordButton'),msg=document.getElementById('passwordChangeMessage');if(!validateParentPassword(newPassword)){msg.textContent='Use at least 8 characters with uppercase, lowercase and a number.';return}if(newPassword!==confirmPassword){msg.textContent='The passwords do not match.';return}passwordChangeInProgress=true;if(button)button.disabled=true;msg.textContent='Updating password...';try{const {data,error}=await supabaseClient.auth.updateUser({password:newPassword,user_metadata:{must_change_password:false}});if(error)throw dbError(error);const uid=data.user?.id;if(!uid)throw new Error('Your session has expired. Please sign in again.');const {error:dbUpdateError}=await supabaseClient.rpc('complete_parent_first_login');if(dbUpdateError)throw dbError(dbUpdateError);msg.textContent='Password updated successfully.';document.getElementById('newPassword').value='';document.getElementById('confirmNewPassword').value='';await new Promise(resolve=>setTimeout(resolve,700));hidePasswordChangeScreen();await loadParentPortal();hideBoot();}catch(e){msg.textContent=e.message||'Unable to update your password.';}finally{passwordChangeInProgress=false;if(button)button.disabled=false;}}
+async function signOut(){await supabaseClient.auth.signOut();authReady=false;currentUserRole='teacher';PARENT_CONTEXT={account:null,students:[]};hidePasswordChangeScreen();hideParentPortal();showLogin('You have signed out.');}
 async function enterSession(session){
   showBoot();
 
@@ -332,6 +337,7 @@ async function enterSession(session){
     currentUserRole='teacher';
     PARENT_CONTEXT={account:null,students:[]};
     hideParentPortal();
+    hidePasswordChangeScreen();
     hideBoot();
     showLogin();
     return;
@@ -351,6 +357,7 @@ async function enterSession(session){
         currentUserRole='teacher';
         PARENT_CONTEXT={account:null,students:[]};
         hideParentPortal();
+        hidePasswordChangeScreen();
         hideBoot();
         showLogin('This parent account is inactive. Please contact the teacher.');
         return;
@@ -358,6 +365,13 @@ async function enterSession(session){
 
       currentUserRole='parent';
       parentEntryNoticeShown=true;
+      if(account.must_change_password===true){
+        hideLogin();
+        hideParentPortal();
+        showPasswordChangeScreen();
+        hideBoot();
+        return;
+      }
       hideLogin();
       await loadParentPortal();
       hideBoot();
@@ -377,6 +391,7 @@ async function enterSession(session){
     currentUserRole='teacher';
     PARENT_CONTEXT={account:null,students:[]};
     hideParentPortal();
+    hidePasswordChangeScreen();
     await supabaseClient.auth.signOut();
     hideBoot();
     showLogin((loginMode==='parent'?'Parent login failed: ':'Online database connection failed: ')+(e.message||e));
