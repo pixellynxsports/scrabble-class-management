@@ -531,7 +531,7 @@ function renderProfileData(d){
         <div class="profile-avatar">${esc(String(s['Student Name']||'?').trim().charAt(0).toUpperCase())}</div>
         <div><div class="eyebrow">STUDENT PROFILE · ${esc(s['Student ID']||'')}</div><h2 class="profile-name">${esc(s['Student Name']||'')}</h2><div class="profile-meta">${esc(s.School||'School not recorded')} <span>·</span> ${esc(s['Normal Class Time']||'Class time not set')}</div></div>
       </div>
-      <div class="profile-hero-actions"><span class="status-pill ${active?'status-active':'status-archived'}"><span class="status-dot"></span>${active?'Active':'Archived'}</span><button class="secondary" id="sendParentLoginEmailButton" onclick="sendParentLoginEmail('${esc(s['Student ID'])}')">Send Parent Login Email</button><button class="primary" onclick="editStudent('${esc(s['Student ID'])}')">Edit Details</button></div>
+      <div class="profile-hero-actions"><span class="status-pill ${active?'status-active':'status-archived'}"><span class="status-dot"></span>${active?'Active':'Archived'}</span><button class="secondary" id="generateParentLoginButton" onclick="generateParentLoginDetails('${esc(s['Student ID'])}')">Generate Parent Login Details</button><button class="primary" onclick="editStudent('${esc(s['Student ID'])}')">Edit Details</button></div>
     </div>
 
     <div class="profile-kpis">
