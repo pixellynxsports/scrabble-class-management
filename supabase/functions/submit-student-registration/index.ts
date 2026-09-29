@@ -44,6 +44,7 @@ Deno.serve(async (req) => {
     const age = body.age ? Number(body.age) : null;
     const experience = String(body.scrabble_experience || "").trim();
     const classTime = String(body.preferred_class_time || "").trim();
+    const emergency = String(body.emergency_contact || "").trim();
 
     if (!parentName || !email || !studentName || !classTime) return json({ error: "Please complete all required fields." }, 400);
     if (!/^\S+@\S+\.\S+$/.test(email)) return json({ error: "Enter a valid email address." }, 400);
@@ -87,6 +88,7 @@ Deno.serve(async (req) => {
       parent_name: parentName,
       parent_email: email,
       parent_whatsapp: whatsapp || null,
+      emergency_contact: emergency || null,
       student_name: studentName,
       school: school || null,
       age,
