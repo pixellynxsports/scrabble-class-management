@@ -16,3 +16,5 @@ create policy "Teacher can update registrations" on public.student_registrations
 create or replace function public.next_student_id_for_registration() returns text language plpgsql security definer set search_path = public as $$ declare next_number integer; begin perform pg_advisory_xact_lock(839023); select coalesce(max((substring(student_id from 3))::integer),22)+1 into next_number from public.students where student_id ~ '^SC[0-9]+$'; return 'SC' || lpad(next_number::text,3,'0'); end; $$;
 revoke all on function public.next_student_id_for_registration() from public;
 grant execute on function public.next_student_id_for_registration() to service_role;
+
+alter table public.student_registrations add column if not exists emergency_contact text;
