@@ -13,3 +13,12 @@ verify_jwt = true
 
 [functions.get-order-payment-receipt]
 verify_jwt = true
+
+
+# Public registration submission. The function validates new parent data and existing parent sessions itself.
+[functions.submit-student-registration]
+verify_jwt = false
+
+# Teacher-only registration review. The function validates the caller against parent_accounts.
+[functions.review-student-registration]
+verify_jwt = true
