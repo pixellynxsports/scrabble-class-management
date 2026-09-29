@@ -11,12 +11,18 @@ async function generateParentLoginDetails(studentId){
 
   const ok=confirm(
     "Generate a new temporary Parent Portal password for "+parentName+
-    "?\n\nThe current parent password will be replaced and the parent will be required to change it at the next login.\n\nNo email will be sent."
+    "?\n\nThe current parent password will be replaced and the parent will be required to change it at the next login."
   );
 
   if(!ok)return;
 
+  let emailWindow=null;
+
   try{
+    // Open the Gmail tab while the teacher click is still active.
+    // The tab stays blank until the secure password generation finishes.
+    emailWindow=window.open("about:blank","_blank");
+
     const button=document.getElementById("generateParentLoginButton");
 
     if(button){
@@ -41,17 +47,59 @@ async function generateParentLoginDetails(studentId){
       .map(c=>c.student_name+" ("+c.student_id+")")
       .join("\n");
 
-    alert(
-      "PARENT PORTAL LOGIN DETAILS\n\n"+
-      "Parent: "+(data.parent_name||parentName)+"\n"+
+    const subject="Banting Scrabble Academy | Parent Portal Login Details";
+
+    const body=
+      "Dear "+(data.parent_name||parentName)+",\n\n"+
+      "We are pleased to inform you that the Banting Scrabble Academy Parent Portal is now available.\n\n"+
+      "Parent Portal:\n"+
+      "https://pixellynxsports.github.io/scrabble-class-management/\n\n"+
       "Login Email: "+data.email+"\n"+
       "Temporary Password: "+data.password+"\n\n"+
       "Registered Student(s):\n"+
-      children+
-      "\n\nThe parent must change this password at first login.\n\n"+
-      "Please copy or save these details securely before closing this message."
+      children+"\n\n"+
+      "First Login:\n"+
+      "1. Open the Parent Portal.\n"+
+      "2. Select Parent Login.\n"+
+      "3. Enter the login email and temporary password above.\n"+
+      "4. The system will ask you to create a new password.\n"+
+      "5. Save your new password for future logins.\n\n"+
+      "Please keep your login details private.\n\n"+
+      "Thank you.\n"+
+      "Banting Scrabble Academy";
+
+    const gmailUrl=
+      "https://mail.google.com/mail/?view=cm&fs=1&tf=1"+
+      "&to="+encodeURIComponent(data.email)+
+      "&su="+encodeURIComponent(subject)+
+      "&body="+encodeURIComponent(body);
+
+    if(emailWindow&&!emailWindow.closed){
+      emailWindow.location.href=gmailUrl;
+    }else{
+      alert(
+        "PARENT PORTAL LOGIN DETAILS\n\n"+
+        "Parent: "+(data.parent_name||parentName)+"\n"+
+        "Login Email: "+data.email+"\n"+
+        "Temporary Password: "+data.password+"\n\n"+
+        "Registered Student(s):\n"+
+        children+
+        "\n\nThe Gmail window was blocked. Please use your normal email service and send these details manually."
+      );
+    }
+
+    const saved=confirm(
+      "Parent login details generated successfully.\n\n"+
+      "A Gmail compose window has been opened with the email prepared.\n\n"+
+      "Send the email, then do not generate another password for this parent."
     );
+
+    if(!saved){
+      // The teacher chose not to send yet. The Gmail draft stays open.
+    }
   }catch(error){
+    if(emailWindow&&!emailWindow.closed)emailWindow.close();
+
     alert(
       error?.message||
       "Unable to generate the parent login details."
