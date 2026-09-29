@@ -10,6 +10,8 @@ let authReady=false;
 let loginMode='teacher';
 let currentUserRole='teacher';
 let PARENT_CONTEXT={account:null,students:[]};
+let REGISTRATIONS=[];
+let registrationView='Pending Review';
 let parentEntryNoticeShown=false;
 let parentNoticeTimer=null;
 let passwordChangeInProgress=false;
@@ -284,7 +286,7 @@ function renderParentPortal(){
   const selector=document.getElementById('parentChildren'),dashboard=document.getElementById('parentDashboard');if(!selector||!dashboard)return;
   if(!PARENT_CONTEXT.students.length){selector.innerHTML='';dashboard.innerHTML='<div class="parent-card"><div class="empty">No student is linked to this parent account yet. Please contact the teacher.</div></div>';return;}
   if(!PARENT_CONTEXT.students.some(s=>String(s.student_id)===String(PARENT_CONTEXT.selectedStudentId)))PARENT_CONTEXT.selectedStudentId=PARENT_CONTEXT.students[0].student_id;
-  selector.innerHTML=`<div class="parent-card"><div class="eyebrow">MY CHILDREN</div><h2>Select a child</h2><div class="parent-child-tabs">${PARENT_CONTEXT.students.map(s=>{const active=String(s.student_id)===String(PARENT_CONTEXT.selectedStudentId);return `<button class="parent-child-tab ${active?'active':''}" onclick="selectParentChild('${esc(s.student_id)}')"><span>${esc(s.student_name)}</span><small>${esc(s.student_id)} · ${esc(s.normal_class_time||'Class time not recorded')}</small></button>`}).join('')}</div></div>`;
+  selector.innerHTML=`<div class="parent-card"><div class="eyebrow">MY CHILDREN</div><div class="parent-selector-heading"><h2>Select a child</h2><button class="secondary" onclick="openExistingParentRegistration()">+ Register New Student</button></div><div class="parent-child-tabs">${PARENT_CONTEXT.students.map(s=>{const active=String(s.student_id)===String(PARENT_CONTEXT.selectedStudentId);return `<button class="parent-child-tab ${active?'active':''}" onclick="selectParentChild('${esc(s.student_id)}')"><span>${esc(s.student_name)}</span><small>${esc(s.student_id)} · ${esc(s.normal_class_time||'Class time not recorded')}</small></button>`}).join('')}</div></div>`;
   const s=PARENT_CONTEXT.students.find(x=>String(x.student_id)===String(PARENT_CONTEXT.selectedStudentId));if(!s){dashboard.innerHTML='';return;}
   const sid=String(s.student_id);const attendance=PARENT_CONTEXT.attendance.filter(a=>String(a['Student ID'])===sid).sort((a,b)=>attendanceDateKey(b.Date).localeCompare(attendanceDateKey(a.Date)));const payments=PARENT_CONTEXT.payments.filter(p=>String(p['Student ID'])===sid).sort((a,b)=>new Date(b['Payment Date'])-new Date(a['Payment Date']));const orders=PARENT_CONTEXT.orders.filter(o=>String(o['Student ID'])===sid&&!['yes','true'].includes(String(o.Archived||'').toLowerCase())).sort((a,b)=>new Date(b['Order Date'])-new Date(a['Order Date']));const state=parentPaymentState(sid);const present=attendance.filter(a=>a.Status==='Present').length;const absent=attendance.filter(a=>a.Status==='Absent').length;const attendanceRate=attendance.length?Math.round(present/attendance.length*100):0;const progressWidth=Math.min(100,Math.round(state.progress/4*100));
   const packageClasses=state.classes.slice(0,4).map((a,i)=>`<div class="parent-package-row"><span class="package-number">${i+1}</span><div><b>${esc(formatDateClient(a.Date))}</b><small>${esc(a['Actual Class Time']||'')}</small></div><span class="badge present">Present</span></div>`).join('')||'<div class="empty">No Present classes in the current package yet.</div>';
@@ -383,6 +385,7 @@ async function enterSession(session){
     hideParentPortal();
     hideLogin();
     DATA=await loadRemoteData();
+    await loadRegistrations(false);
     setConnection('● Online',false);
     renderAll();
     hideBoot();
@@ -417,7 +420,7 @@ async function initSupabaseAuth(){
   authInitialised=true;
 }
 
-function page(name){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));const target=document.getElementById(name);if(!target)return;target.classList.add('active');document.querySelectorAll('.nav').forEach(x=>x.classList.remove('active'));const navName=name==='studentProfile'?'students':name;[...document.querySelectorAll('.nav')].find(x=>x.textContent.toLowerCase()===navName)?.classList.add('active');document.getElementById('title').textContent=name==='studentProfile'?'Student Profile':name[0].toUpperCase()+name.slice(1);if(name==='attendance')renderAttendance();if(name==='students')renderStudents();if(name==='payments')renderPayments();if(name==='orders')renderOrders();if(name==='reports')renderReports()}
+function page(name){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));const target=document.getElementById(name);if(!target)return;target.classList.add('active');document.querySelectorAll('.nav').forEach(x=>x.classList.remove('active'));const navName=name==='studentProfile'?'students':name;[...document.querySelectorAll('.nav')].find(x=>x.textContent.toLowerCase()===navName)?.classList.add('active');document.getElementById('title').textContent=name==='studentProfile'?'Student Profile':name[0].toUpperCase()+name.slice(1);if(name==='attendance')renderAttendance();if(name==='students')renderStudents();if(name==='registrations')renderRegistrations();if(name==='payments')renderPayments();if(name==='orders')renderOrders();if(name==='reports')renderReports()}
 function renderAll(){document.querySelector('.app')?.classList.remove('hidden');document.getElementById('today').textContent=formatDateClient(isoDate(latestSunday()));document.getElementById('rStudents').textContent=DATA.students.length;renderHome();renderAttendance();renderStudents();renderPayments();renderOrders();renderReports();if(currentProfileId&&document.getElementById('studentProfile')?.classList.contains('active'))renderProfile(currentProfileId)}
 function paymentStateFor(sid){return calculatePaymentState(DATA.payments,DATA.attendance,sid);}
 
@@ -617,3 +620,115 @@ async function saveEditStudentForm(id){
   if(!record.normalClassTime)return alert('Choose the normal class time.');
   try{DATA=await run('updateStudent',record);closeModal();renderAll();if(document.getElementById('studentProfile')?.classList.contains('active'))openStudent(id);alert('Student information updated successfully.');}catch(e){alert(e.message||e)}
 }
+
+async function loadRegistrations(showMessage=false){
+  try{
+    const r=await supabaseClient.from('student_registrations').select('*').order('submitted_at',{ascending:false});
+    if(r.error)throw dbError(r.error);
+    REGISTRATIONS=r.data||[];
+    renderRegistrations();
+    if(showMessage)alert('Registration data refreshed.');
+  }catch(e){
+    REGISTRATIONS=[];
+    renderRegistrations();
+    if(showMessage)alert(e.message||'Unable to load registrations.');
+  }
+}
+function setRegistrationView(view){
+  registrationView=view;
+  ['Pending Review','Approved','Rejected'].forEach((v,i)=>{
+    const id=['registrationPendingBtn','registrationApprovedBtn','registrationRejectedBtn'][i];
+    document.getElementById(id)?.classList.toggle('active',v===view);
+  });
+  renderRegistrations();
+}
+function renderRegistrations(){
+  const box=document.getElementById('registrationsList');
+  if(!box)return;
+  const rows=REGISTRATIONS.filter(r=>r.status===registrationView);
+  if(!rows.length){box.innerHTML='<div class="panel"><div class="empty">No registrations in this section.</div></div>';return;}
+  box.innerHTML=rows.map(function(r){
+    const type=r.registration_type==='new_parent'?'New Parent':'Existing Parent';
+    const action=r.status==='Pending Review'
+      ?'<div class="registration-actions"><button class="primary" onclick="reviewRegistration('+Number(r.registration_id)+',\'approve\')">Approve</button><button class="secondary danger-button" onclick="reviewRegistration('+Number(r.registration_id)+',\'reject\')">Reject</button></div>'
+      :'<span class="badge '+(r.status==='Approved'?'paid':'absent')+'">'+esc(r.status)+'</span>';
+    return '<div class="registration-card"><div class="registration-card-top"><div><div class="eyebrow">'+esc(type)+'</div><h3>'+esc(r.student_name)+'</h3><p class="subtle">'+esc(r.parent_name)+' · '+esc(r.parent_email)+'</p></div><div class="registration-id">REG '+esc(r.registration_id)+'</div></div><div class="registration-grid"><div><small>School</small><strong>'+esc(r.school||'Not provided')+'</strong></div><div><small>Age</small><strong>'+esc(r.age||'Not provided')+'</strong></div><div><small>Experience</small><strong>'+esc(r.scrabble_experience||'Not provided')+'</strong></div><div><small>Preferred Class</small><strong>'+esc(r.preferred_class_time)+'</strong></div><div><small>WhatsApp</small><strong>'+esc(r.parent_whatsapp||'Not provided')+'</strong></div><div><small>Submitted</small><strong>'+esc(formatDateClient(r.submitted_at))+'</strong></div></div>'+(r.rejection_reason?'<div class="registration-reason"><b>Rejection reason:</b> '+esc(r.rejection_reason)+'</div>':'')+'<div class="registration-card-bottom">'+(r.student_id?'<span class="badge blue">'+esc(r.student_id)+'</span>':'')+action+'</div></div>';
+  }).join('');
+}
+async function reviewRegistration(id,action){
+  let reason='';
+  if(action==='reject'){
+    reason=(prompt('Enter the reason for rejecting this registration:')||'').trim();
+    if(!reason)return;
+  }else if(!confirm('Approve this registration? A Student ID will be generated and the parent will receive an email.'))return;
+  try{
+    const r=await supabaseClient.functions.invoke('review-student-registration',{body:{registration_id:id,action:action,rejection_reason:reason}});
+    if(r.error)throw dbError(r.error);
+    if(!r.data?.success)throw new Error(r.data?.error||'Unable to process registration.');
+    await loadRegistrations(false);
+    DATA=await loadRemoteData();
+    renderAll();
+    alert(action==='approve'?'Registration approved. Student ID: '+r.data.student_id:'Registration rejected.');
+  }catch(e){alert(e.message||'Unable to process registration.');}
+}
+function registrationPasswordValid(v){return v.length>=8&&/[A-Z]/.test(v)&&/[a-z]/.test(v)&&/[0-9]/.test(v);}
+function openRegistrationChoice(){
+  const modal=document.getElementById('registrationModal'),body=document.getElementById('registrationBody');
+  if(!modal||!body)return;
+  document.getElementById('registrationTitle').textContent='Register New Student';
+  document.getElementById('registrationSubtitle').textContent='Choose the account type to continue.';
+  body.innerHTML='<div class="registration-choice-grid"><button class="registration-choice" onclick="openNewParentRegistration()"><span class="registration-choice-icon">+</span><strong>New Parent</strong><small>I do not have a Parent Portal account.</small></button><button class="registration-choice" onclick="openExistingParentRegistration()"><span class="registration-choice-icon">↗</span><strong>Existing Parent</strong><small>I already have a Parent Portal account.</small></button></div>';
+  modal.classList.remove('hidden');
+}
+function openNewParentRegistration(){
+  const body=document.getElementById('registrationBody');
+  document.getElementById('registrationTitle').textContent='New Parent Registration';
+  document.getElementById('registrationSubtitle').textContent='Create your own Parent Portal password and register your student.';
+  body.innerHTML='<div class="registration-form"><div class="registration-form-section"><div class="eyebrow">01 · PARENT ACCOUNT</div><div class="formgrid"><div><label>Parent / Guardian Name <em>*</em></label><input id="regParentName" placeholder="Full name"></div><div><label>Email <em>*</em></label><input id="regParentEmail" type="email" placeholder="Email address"></div></div><div class="formgrid"><div><label>WhatsApp Number</label><input id="regWhatsApp" placeholder="Phone / WhatsApp"></div><div><label>Emergency Contact</label><input id="regEmergency" placeholder="Emergency phone number"></div></div><div class="formgrid"><div><label>Create Password <em>*</em></label><input id="regPassword" type="password" autocomplete="new-password" placeholder="At least 8 characters"></div><div><label>Confirm Password <em>*</em></label><input id="regPassword2" type="password" autocomplete="new-password" placeholder="Re-enter password"></div></div><div class="subtle">Use at least 8 characters with uppercase, lowercase and a number.</div></div><div class="registration-form-section"><div class="eyebrow">02 · STUDENT</div><div class="formgrid"><div><label>Student Name <em>*</em></label><input id="regStudentName" placeholder="Full name"></div><div><label>School</label><input id="regSchool" placeholder="School name"></div></div><div class="formgrid"><div><label>Age</label><input id="regAge" type="number" min="1" max="18" placeholder="Age"></div><div><label>Scrabble Experience</label><select id="regExperience"><option value="">Choose experience</option><option>Never played before</option><option>Beginner.</option><option>Intermediate.</option></select></div></div><div><label>Preferred Class <em>*</em></label><select id="regClass"><option value="">Choose class</option><option>10:30 AM</option><option>2:00 PM</option></select></div></div><label class="commitment-check"><input id="regDeclaration" type="checkbox"><span>I confirm the information provided is correct and agree to the registration being reviewed by the teacher.</span></label><div id="registrationMessage" class="subtle"></div><div class="form-actions"><button class="secondary" onclick="openRegistrationChoice()">Back</button><button class="primary" id="submitRegistrationButton" onclick="submitNewParentRegistration()">Submit Registration</button></div></div>';
+}
+function openExistingParentRegistration(){
+  closeRegistrationModal();
+  if(currentUserRole==='parent'){openExistingParentRegistrationForm();return;}
+  setLoginMode('parent');
+  const msg=document.getElementById('loginMessage');
+  if(msg)msg.textContent='Sign in first. Then use Register New Student inside the Parent Portal.';
+  document.getElementById('loginEmail')?.focus();
+}
+function openExistingParentRegistrationForm(){
+  const modal=document.getElementById('registrationModal'),body=document.getElementById('registrationBody');
+  if(!modal||!body)return;
+  document.getElementById('registrationTitle').textContent='Add New Student';
+  document.getElementById('registrationSubtitle').textContent='Your existing Parent account will remain the same.';
+  body.innerHTML='<div class="registration-form"><div class="registration-form-section"><div class="eyebrow">NEW STUDENT</div><div class="formgrid"><div><label>Student Name <em>*</em></label><input id="regStudentName" placeholder="Full name"></div><div><label>School</label><input id="regSchool" placeholder="School name"></div></div><div class="formgrid"><div><label>Age</label><input id="regAge" type="number" min="1" max="18" placeholder="Age"></div><div><label>Scrabble Experience</label><select id="regExperience"><option value="">Choose experience</option><option>Never played before</option><option>Beginner.</option><option>Intermediate.</option></select></div></div><div><label>Preferred Class <em>*</em></label><select id="regClass"><option value="">Choose class</option><option>10:30 AM</option><option>2:00 PM</option></select></div></div><label class="commitment-check"><input id="regDeclaration" type="checkbox"><span>I confirm the information provided is correct and agree to the registration being reviewed by the teacher.</span></label><div id="registrationMessage" class="subtle"></div><div class="form-actions"><button class="secondary" onclick="closeRegistrationModal()">Cancel</button><button class="primary" onclick="submitExistingParentRegistration()">Submit Registration</button></div></div>';
+  modal.classList.remove('hidden');
+}
+async function submitNewParentRegistration(){
+  const parentName=document.getElementById('regParentName')?.value.trim(),email=document.getElementById('regParentEmail')?.value.trim(),password=document.getElementById('regPassword')?.value||'',password2=document.getElementById('regPassword2')?.value||'',studentName=document.getElementById('regStudentName')?.value.trim(),classTime=document.getElementById('regClass')?.value,declared=document.getElementById('regDeclaration')?.checked;
+  const message=document.getElementById('registrationMessage'),button=document.getElementById('submitRegistrationButton');
+  if(!parentName||!email||!studentName||!classTime)return message.textContent='Complete all required fields.';
+  if(!registrationPasswordValid(password))return message.textContent='Use at least 8 characters with uppercase, lowercase and a number.';
+  if(password!==password2)return message.textContent='The passwords do not match.';
+  if(!declared)return message.textContent='Please confirm the declaration.';
+  button.disabled=true;message.textContent='Submitting registration...';
+  try{
+    const r=await supabaseClient.functions.invoke('submit-student-registration',{body:{registration_type:'new_parent',parent_name:parentName,parent_email:email,parent_whatsapp:document.getElementById('regWhatsApp')?.value.trim()||'',emergency_contact:document.getElementById('regEmergency')?.value.trim()||'',student_name:studentName,school:document.getElementById('regSchool')?.value.trim()||'',age:document.getElementById('regAge')?.value||null,scrabble_experience:document.getElementById('regExperience')?.value||'',preferred_class_time:classTime,password:password}});
+    if(r.error)throw dbError(r.error);if(!r.data?.success)throw new Error(r.data?.error||'Unable to submit registration.');
+    document.getElementById('registrationTitle').textContent='Registration Submitted';
+    document.getElementById('registrationSubtitle').textContent='Your registration is now pending teacher review.';
+    message.textContent='We sent a confirmation email to '+email+'. You will receive another email after teacher approval.';
+    document.querySelector('#registrationBody .form-actions').innerHTML='<button class="primary" onclick="closeRegistrationModal()">Done</button>';
+  }catch(e){message.textContent=e.message||'Unable to submit registration.';button.disabled=false;}
+}
+async function submitExistingParentRegistration(){
+  const s=document.getElementById('regStudentName')?.value.trim(),classTime=document.getElementById('regClass')?.value,declared=document.getElementById('regDeclaration')?.checked;
+  const message=document.getElementById('registrationMessage'),button=document.querySelector('#registrationBody .form-actions .primary'),account=PARENT_CONTEXT.account||{};
+  if(!s||!classTime)return message.textContent='Complete all required fields.';
+  if(!declared)return message.textContent='Please confirm the declaration.';
+  button.disabled=true;message.textContent='Submitting registration...';
+  try{
+    const r=await supabaseClient.functions.invoke('submit-student-registration',{body:{registration_type:'existing_parent',parent_name:account.parent_name,parent_email:account.email,parent_whatsapp:account.whatsapp||'',student_name:s,school:document.getElementById('regSchool')?.value.trim()||'',age:document.getElementById('regAge')?.value||null,scrabble_experience:document.getElementById('regExperience')?.value||'',preferred_class_time:classTime}});
+    if(r.error)throw dbError(r.error);if(!r.data?.success)throw new Error(r.data?.error||'Unable to submit registration.');
+    closeRegistrationModal();alert('Registration submitted. The teacher will review the new student before approval.');
+  }catch(e){message.textContent=e.message||'Unable to submit registration.';button.disabled=false;}
+}
+function closeRegistrationModal(){document.getElementById('registrationModal')?.classList.add('hidden');}
