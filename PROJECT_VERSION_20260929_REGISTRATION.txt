@@ -1,0 +1,4 @@
+Scrabble Class Management registration workflow
+
+This package includes the parent login project plus the new student registration workflow.
+Frontend entry points are in registration.js. Supabase migration and Edge Functions are under supabase/.
