@@ -19,12 +19,9 @@ async function generateParentLoginDetails(studentId){
   let emailWindow=null;
 
   try{
-    // Open the Gmail tab while the teacher click is still active.
-    // The tab stays blank until the secure password generation finishes.
     emailWindow=window.open("about:blank","_blank");
 
     const button=document.getElementById("generateParentLoginButton");
-
     if(button){
       button.disabled=true;
       button.textContent="Generating...";
@@ -38,9 +35,7 @@ async function generateParentLoginDetails(studentId){
     if(error)throw error;
 
     if(!data?.success){
-      throw new Error(
-        data?.error||"Unable to generate the parent login details."
-      );
+      throw new Error(data?.error||"Unable to generate the parent login details.");
     }
 
     const children=(data.children||[])
@@ -48,7 +43,6 @@ async function generateParentLoginDetails(studentId){
       .join("\n");
 
     const subject="Banting Scrabble Academy | Parent Portal Login Details";
-
     const body=
       "Dear "+(data.parent_name||parentName)+",\n\n"+
       "We are pleased to inform you that the Banting Scrabble Academy Parent Portal is now available.\n\n"+
@@ -56,8 +50,7 @@ async function generateParentLoginDetails(studentId){
       "https://pixellynxsports.github.io/scrabble-class-management/\n\n"+
       "Login Email: "+data.email+"\n"+
       "Temporary Password: "+data.password+"\n\n"+
-      "Registered Student(s):\n"+
-      children+"\n\n"+
+      "Registered Student(s):\n"+children+"\n\n"+
       "First Login:\n"+
       "1. Open the Parent Portal.\n"+
       "2. Select Parent Login.\n"+
@@ -82,31 +75,22 @@ async function generateParentLoginDetails(studentId){
         "Parent: "+(data.parent_name||parentName)+"\n"+
         "Login Email: "+data.email+"\n"+
         "Temporary Password: "+data.password+"\n\n"+
-        "Registered Student(s):\n"+
-        children+
+        "Registered Student(s):\n"+children+
         "\n\nThe Gmail window was blocked. Please use your normal email service and send these details manually."
       );
     }
 
-    const saved=confirm(
+    confirm(
       "Parent login details generated successfully.\n\n"+
       "A Gmail compose window has been opened with the email prepared.\n\n"+
       "Send the email, then do not generate another password for this parent."
     );
 
-    if(!saved){
-      // The teacher chose not to send yet. The Gmail draft stays open.
-    }
   }catch(error){
     if(emailWindow&&!emailWindow.closed)emailWindow.close();
-
-    alert(
-      error?.message||
-      "Unable to generate the parent login details."
-    );
+    alert(error?.message||"Unable to generate the parent login details.");
   }finally{
     const button=document.getElementById("generateParentLoginButton");
-
     if(button){
       button.disabled=false;
       button.textContent="Generate Parent Login Details";

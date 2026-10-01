@@ -1,0 +1,8 @@
+Banting Scrabble Academy Scrabble Class Management
+Version: 2026-10-01 Teacher Preview Fix
+
+Changes:
+1. Fixed Teacher Preview data mapping so Parent Portal receives student_id, student_name, school and normal_class_time fields correctly.
+2. Preserved linked children, attendance, payments and orders in Teacher Preview.
+3. Preserved Parent Login Gmail helper.
+4. Updated javascript cache version to 20261001.3.

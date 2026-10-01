@@ -298,41 +298,134 @@ function renderParentPortal(){
 
 async function openTeacherParentPreview(studentId){
   const sid=String(studentId||'').trim();
-  const student=DATA.students.find(s=>String(s['Student ID'])===sid);
-  if(!student){alert('Student not found.');return;}
+  const teacherStudent=DATA.students.find(
+    s=>String(s['Student ID'])===sid
+  );
+
+  if(!teacherStudent){
+    alert('Student not found.');
+    return;
+  }
+
   try{
-    teacherPreviewPreviousPage=document.querySelector('.page.active')?.id||'students';
+    teacherPreviewPreviousPage=
+      document.querySelector('.page.active')?.id||'students';
+
     let account=null;
     let childIds=[sid];
-    const {data:link,error:linkError}=await supabaseClient.from('parent_students').select('parent_user_id').eq('student_id',sid).maybeSingle();
+
+    const {
+      data:link,
+      error:linkError
+    }=await supabaseClient
+      .from('parent_students')
+      .select('parent_user_id')
+      .eq('student_id',sid)
+      .maybeSingle();
+
     if(linkError)throw dbError(linkError);
+
     if(link?.parent_user_id){
-      const {data:parentAccount,error:parentError}=await supabaseClient.from('parent_accounts').select('user_id,parent_name,email,whatsapp,active').eq('user_id',link.parent_user_id).maybeSingle();
+      const {
+        data:parentAccount,
+        error:parentError
+      }=await supabaseClient
+        .from('parent_accounts')
+        .select('user_id,parent_name,email,whatsapp,active')
+        .eq('user_id',link.parent_user_id)
+        .maybeSingle();
+
       if(parentError)throw dbError(parentError);
+
       account=parentAccount||null;
-      const {data:links,error:childrenError}=await supabaseClient.from('parent_students').select('student_id').eq('parent_user_id',link.parent_user_id);
+
+      const {
+        data:links,
+        error:childrenError
+      }=await supabaseClient
+        .from('parent_students')
+        .select('student_id')
+        .eq('parent_user_id',link.parent_user_id);
+
       if(childrenError)throw dbError(childrenError);
-      childIds=(links||[]).map(x=>String(x.student_id)).filter(Boolean);
+
+      childIds=(links||[])
+        .map(x=>String(x.student_id))
+        .filter(Boolean);
     }
-    const students=DATA.students.filter(s=>childIds.includes(String(s['Student ID'])));
-    if(!students.length)students.push(student);
+
+    const students=DATA.students
+      .filter(s=>childIds.includes(String(s['Student ID'])))
+      .map(s=>({
+        student_id:s['Student ID'],
+        student_name:s['Student Name'],
+        school:s.School||'',
+        age:s.Age||'',
+        scrabble_experience:s['Scrabble Experience']||'',
+        parent_guardian:s['Parent / Guardian']||'',
+        whatsapp:s.WhatsApp||'',
+        normal_class_time:s['Normal Class Time']||'',
+        email:s.Email||'',
+        registration_date:s['Registration Date']||'',
+        active:String(s.Active||'Yes').toLowerCase()!=='no'
+      }));
+
+    if(!students.length){
+      students.push({
+        student_id:teacherStudent['Student ID'],
+        student_name:teacherStudent['Student Name'],
+        school:teacherStudent.School||'',
+        age:teacherStudent.Age||'',
+        scrabble_experience:teacherStudent['Scrabble Experience']||'',
+        parent_guardian:teacherStudent['Parent / Guardian']||'',
+        whatsapp:teacherStudent.WhatsApp||'',
+        normal_class_time:teacherStudent['Normal Class Time']||'',
+        email:teacherStudent.Email||'',
+        registration_date:teacherStudent['Registration Date']||'',
+        active:String(teacherStudent.Active||'Yes').toLowerCase()!=='no'
+      });
+    }
+
     PARENT_CONTEXT={
-      account:account||{parent_name:student['Parent / Guardian']||'Parent',email:student.Email||'',active:true},
+      account:account||{
+        parent_name:teacherStudent['Parent / Guardian']||'Parent',
+        email:teacherStudent.Email||'',
+        active:true
+      },
       students,
-      attendance:DATA.attendance.filter(a=>childIds.includes(String(a['Student ID']))),
-      payments:DATA.payments.filter(p=>childIds.includes(String(p['Student ID']))),
-      orders:DATA.orders.filter(o=>childIds.includes(String(o['Student ID'])) && !['yes','true'].includes(String(o.Archived||'').toLowerCase())),
+      attendance:DATA.attendance.filter(
+        a=>childIds.includes(String(a['Student ID']))
+      ),
+      payments:DATA.payments.filter(
+        p=>childIds.includes(String(p['Student ID']))
+      ),
+      orders:DATA.orders.filter(
+        o=>childIds.includes(String(o['Student ID'])) &&
+        !['yes','true'].includes(String(o.Archived||'').toLowerCase())
+      ),
       selectedStudentId:sid
     };
+
     teacherPreviewMode=true;
-    document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+
+    document
+      .querySelectorAll('.page')
+      .forEach(x=>x.classList.remove('active'));
+
     renderParentPortal();
+
     const banner=document.getElementById('teacherPreviewBanner');
     if(banner)banner.classList.remove('hidden');
-    const text=document.getElementById('teacherPreviewText');
-    if(text)text.textContent=`Viewing ${student['Student Name']} and the children linked to this parent account.`;
+
+    const previewText=document.getElementById('teacherPreviewText');
+    if(previewText){
+      previewText.textContent=
+        `Viewing ${teacherStudent['Student Name']} and the children linked to this parent account.`;
+    }
+
     const exit=document.getElementById('parentPortalExitButton');
     if(exit)exit.textContent='Back to Teacher Portal';
+
   }catch(error){
     alert(error?.message||'Unable to open Teacher Preview.');
   }
@@ -572,7 +665,7 @@ function renderProfileData(d){
         <div class="profile-avatar">${esc(String(s['Student Name']||'?').trim().charAt(0).toUpperCase())}</div>
         <div><div class="eyebrow">STUDENT PROFILE · ${esc(s['Student ID']||'')}</div><h2 class="profile-name">${esc(s['Student Name']||'')}</h2><div class="profile-meta">${esc(s.School||'School not recorded')} <span>·</span> ${esc(s['Normal Class Time']||'Class time not set')}</div></div>
       </div>
-      <div class="profile-hero-actions"><span class="status-pill ${active?'status-active':'status-archived'}"><span class="status-dot"></span>${active?'Active':'Archived'}</span><button class="secondary" id="generateParentLoginButton" onclick="generateParentLoginDetails('${esc(s['Student ID'])}')">Generate Parent Login Details</button><button class="primary" onclick="editStudent('${esc(s['Student ID'])}')">Edit Details</button></div>
+      <div class="profile-hero-actions"><span class="status-pill ${active?'status-active':'status-archived'}"><span class="status-dot"></span>${active?'Active':'Archived'}</span><button class="primary" onclick="editStudent('${esc(s['Student ID'])}')">Edit Details</button></div>
     </div>
 
     <div class="profile-kpis">

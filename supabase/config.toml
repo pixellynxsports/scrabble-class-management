@@ -19,6 +19,3 @@ verify_jwt = false
 
 [functions.review-student-registration]
 verify_jwt = true
-
-[functions.send-parent-login-email]
-verify_jwt = true
