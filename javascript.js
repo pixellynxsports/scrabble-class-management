@@ -10,6 +10,8 @@ let authReady=false;
 let loginMode='teacher';
 let currentUserRole='teacher';
 let PARENT_CONTEXT={account:null,students:[]};
+let teacherPreviewMode=false;
+let teacherPreviewPreviousPage='students';
 let parentEntryNoticeShown=false;
 let parentNoticeTimer=null;
 let passwordChangeInProgress=false;
@@ -71,21 +73,6 @@ function calculatePaymentState(payments,attendance,sid){
   const latestPayment=paid[paid.length-1]||null;
   const latestCycle=Number(latestPayment?.['Cycle Number'])||initialCycle;
 
-  // A newly approved student has no payment record yet. Do not label the
-  // student as Paid simply because they have attended zero classes.
-  if(!latestPayment){
-    return {
-      classes:present.slice(0,4),
-      progress:present.length,
-      status:'Payment Due',
-      coveredIds:covered,
-      currentCycle:1,
-      paid,
-      activePrepaid:false,
-      lastPayment:null
-    };
-  }
-
   // While the initial prepaid package is active, its first four Present
   // records form the current package.
   if(initialPayment && latestCycle===initialCycle){
@@ -129,14 +116,14 @@ function parentStatusBadge(state){const cls=state.status==='Payment Due'?'absent
 function selectParentChild(id){PARENT_CONTEXT.selectedStudentId=String(id);renderParentPortal();}
 function parentPackagePaymentButton(state,extraClass=''){
   const active=state.status==='Payment Due';
+  if(teacherPreviewMode)return `<button class="parent-pay-btn ghost ${extraClass}" disabled>Preview Only</button>`;
   return `<button class="parent-pay-btn ${active?'active':'ghost'} ${extraClass}" ${active?`onclick="openParentClassPayment()"`:'disabled'}>Pay</button>`;
 }
 function renderActionRequired(state){
   const box=document.getElementById('parentActionRequired');
   if(!box)return;
   if(state.status==='Payment Due'){
-    const firstPayment=!state.lastPayment;
-    box.innerHTML=`<div class="action-required action-due"><div class="action-icon">!</div><div class="action-copy"><div class="eyebrow">ACTION REQUIRED</div><h3>${firstPayment?'Class package payment required.':'Your 4-class package is complete.'}</h3><p>${firstPayment?'Please make payment for your first 4-class package.':'Please make payment for the next 4-class package.'}</p></div><div class="action-side"><strong>RM50</strong>${parentPackagePaymentButton(state,'action-pay')}</div></div>`;
+    box.innerHTML=`<div class="action-required action-due"><div class="action-icon">!</div><div class="action-copy"><div class="eyebrow">ACTION REQUIRED</div><h3>Your 4-class package is complete.</h3><p>Please make payment for the next 4-class package.</p></div><div class="action-side"><strong>RM50</strong>${parentPackagePaymentButton(state,'action-pay')}</div></div>`;
     box.classList.remove('hidden');
     if(parentNoticeTimer){clearTimeout(parentNoticeTimer);parentNoticeTimer=null;}
     return;
@@ -266,6 +253,7 @@ function openParentOrderDetail(id){
 }
 
 function showOrderQr(orderId){
+  if(teacherPreviewMode){alert('Teacher Preview is read only.');return;}
   const order=PARENT_CONTEXT.orders.find(o=>String(o['Order ID'])===String(orderId));if(!order)return;
   document.getElementById('parentDetailEyebrow').textContent='ORDER PAYMENT';document.getElementById('parentDetailTitle').textContent='DuitNow QR Payment';
   document.getElementById('parentDetailBody').innerHTML=`<div class="qr-payment-card"><h3>Pay your order</h3><p>Scan the QR code below to make payment to <strong>Pixel Lynx Sports Enterprise</strong>.</p><div class="qr-order-amount">Order ${esc(order['Order ID'])} · <b>RM${esc(order.Total||0)}</b></div><img src="assets/pixel-lynx-duitnow-qr.jpeg" alt="Pixel Lynx Sports Enterprise DuitNow QR"><div class="qr-note">After payment, choose your bank receipt below. Upload one receipt, then click <strong>Complete Payment</strong>. Payment stays pending until the teacher verifies the bank transaction.</div><div class="receipt-upload-box"><label for="orderReceiptInput"><b>Upload payment receipt</b><span>One receipt only · JPG, PNG, WEBP or PDF · up to 10 MB</span></label><input id="orderReceiptInput" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onchange="prepareOrderReceipt()"><button class="primary complete-payment-btn" id="completeOrderPaymentBtn" type="button" disabled onclick="submitOrderReceipt('${esc(order['Order ID'])}')">Complete Payment</button><div id="orderReceiptStatus" class="subtle"></div></div></div>`;
@@ -308,6 +296,59 @@ function renderParentPortal(){
   renderActionRequired(state);
 }
 
+async function openTeacherParentPreview(studentId){
+  const sid=String(studentId||'').trim();
+  const student=DATA.students.find(s=>String(s['Student ID'])===sid);
+  if(!student){alert('Student not found.');return;}
+  try{
+    teacherPreviewPreviousPage=document.querySelector('.page.active')?.id||'students';
+    let account=null;
+    let childIds=[sid];
+    const {data:link,error:linkError}=await supabaseClient.from('parent_students').select('parent_user_id').eq('student_id',sid).maybeSingle();
+    if(linkError)throw dbError(linkError);
+    if(link?.parent_user_id){
+      const {data:parentAccount,error:parentError}=await supabaseClient.from('parent_accounts').select('user_id,parent_name,email,whatsapp,active').eq('user_id',link.parent_user_id).maybeSingle();
+      if(parentError)throw dbError(parentError);
+      account=parentAccount||null;
+      const {data:links,error:childrenError}=await supabaseClient.from('parent_students').select('student_id').eq('parent_user_id',link.parent_user_id);
+      if(childrenError)throw dbError(childrenError);
+      childIds=(links||[]).map(x=>String(x.student_id)).filter(Boolean);
+    }
+    const students=DATA.students.filter(s=>childIds.includes(String(s['Student ID'])));
+    if(!students.length)students.push(student);
+    PARENT_CONTEXT={
+      account:account||{parent_name:student['Parent / Guardian']||'Parent',email:student.Email||'',active:true},
+      students,
+      attendance:DATA.attendance.filter(a=>childIds.includes(String(a['Student ID']))),
+      payments:DATA.payments.filter(p=>childIds.includes(String(p['Student ID']))),
+      orders:DATA.orders.filter(o=>childIds.includes(String(o['Student ID'])) && !['yes','true'].includes(String(o.Archived||'').toLowerCase())),
+      selectedStudentId:sid
+    };
+    teacherPreviewMode=true;
+    document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+    renderParentPortal();
+    const banner=document.getElementById('teacherPreviewBanner');
+    if(banner)banner.classList.remove('hidden');
+    const text=document.getElementById('teacherPreviewText');
+    if(text)text.textContent=`Viewing ${student['Student Name']} and the children linked to this parent account.`;
+    const exit=document.getElementById('parentPortalExitButton');
+    if(exit)exit.textContent='Back to Teacher Portal';
+  }catch(error){
+    alert(error?.message||'Unable to open Teacher Preview.');
+  }
+}
+
+function closeTeacherParentPreview(){
+  if(!teacherPreviewMode)return;
+  teacherPreviewMode=false;
+  closeParentPanel();
+  document.getElementById('teacherPreviewBanner')?.classList.add('hidden');
+  const exit=document.getElementById('parentPortalExitButton');
+  if(exit)exit.textContent='Sign Out';
+  hideParentPortal();
+  page(teacherPreviewPreviousPage||'students');
+}
+
 function hideParentPortal(){document.getElementById('parentPortal')?.classList.add('hidden');document.querySelector('.app')?.classList.remove('hidden');}
 async function run(fn,...args){
   if(!authReady)throw new Error('Please sign in first.');
@@ -344,7 +385,7 @@ function showPasswordChangeScreen(message=''){document.getElementById('passwordC
 function hidePasswordChangeScreen(){document.getElementById('passwordChangeScreen')?.classList.add('hidden');}
 function validateParentPassword(value){return value.length>=8&&/[A-Z]/.test(value)&&/[a-z]/.test(value)&&/[0-9]/.test(value);}
 async function changeParentPassword(){if(passwordChangeInProgress)return;const newPassword=document.getElementById('newPassword')?.value||'',confirmPassword=document.getElementById('confirmNewPassword')?.value||'',button=document.getElementById('changePasswordButton'),msg=document.getElementById('passwordChangeMessage');if(!validateParentPassword(newPassword)){msg.textContent='Use at least 8 characters with uppercase, lowercase and a number.';return}if(newPassword!==confirmPassword){msg.textContent='The passwords do not match.';return}passwordChangeInProgress=true;if(button)button.disabled=true;msg.textContent='Updating password...';try{const {data,error}=await supabaseClient.auth.updateUser({password:newPassword,user_metadata:{must_change_password:false}});if(error)throw dbError(error);const uid=data.user?.id;if(!uid)throw new Error('Your session has expired. Please sign in again.');const {error:dbUpdateError}=await supabaseClient.rpc('complete_parent_first_login');if(dbUpdateError)throw dbError(dbUpdateError);msg.textContent='Password updated successfully.';document.getElementById('newPassword').value='';document.getElementById('confirmNewPassword').value='';await new Promise(resolve=>setTimeout(resolve,700));hidePasswordChangeScreen();await loadParentPortal();hideBoot();}catch(e){msg.textContent=e.message||'Unable to update your password.';}finally{passwordChangeInProgress=false;if(button)button.disabled=false;}}
-async function signOut(){await supabaseClient.auth.signOut();authReady=false;currentUserRole='teacher';PARENT_CONTEXT={account:null,students:[]};hidePasswordChangeScreen();hideParentPortal();showLogin('You have signed out.');}
+async function signOut(){if(teacherPreviewMode){closeTeacherParentPreview();return;}await supabaseClient.auth.signOut();authReady=false;currentUserRole='teacher';PARENT_CONTEXT={account:null,students:[]};hidePasswordChangeScreen();hideParentPortal();showLogin('You have signed out.');}
 async function enterSession(session){
   showBoot();
 
@@ -456,11 +497,11 @@ function attendanceRow(s,date){const a=DATA.attendance.find(x=>String(x['Student
 async function setAttendance(studentId,date,classTime,status){const existing=DATA.attendance.find(a=>String(a['Student ID'])===String(studentId)&&attendanceDateKey(a.Date)===date);try{await run('saveAttendance',{attendanceId:existing?.['Attendance ID']||'',studentId,date,classTime,status,notes:''});DATA=await run('getData');renderAll()}catch(e){alert(e.message||e)}}
 async function resetAttendanceAction(studentId,date){try{DATA=await run('resetAttendance',studentId,date);renderAll()}catch(e){alert(e.message||e)}}
 function setStudentView(view){studentView=view;document.getElementById('activeStudentsBtn')?.classList.toggle('active',view==='active');document.getElementById('archivedStudentsBtn')?.classList.toggle('active',view==='archived');renderStudents()}
-function renderStudents(){const q=(document.getElementById('studentSearch')?.value||'').toLowerCase();const rows=DATA.students.filter(s=>(studentView==='archived'?String(s.Active||'').toLowerCase()==='no':String(s.Active||'yes').toLowerCase()!=='no')).filter(s=>Object.values(s).some(v=>String(v).toLowerCase().includes(q))).sort((a,b)=>String(a['Student Name']).localeCompare(String(b['Student Name']))).map(s=>{const c=cycleFor(s['Student ID']);const archived=String(s.Active||'').toLowerCase()==='no';const action=archived?`<button class="secondary" onclick="event.stopPropagation();editStudent('${esc(s['Student ID'])}')">Edit</button><button class="secondary" onclick="event.stopPropagation();restoreStudent('${esc(s['Student ID'])}')">Restore</button>`:`<button class="secondary" onclick="event.stopPropagation();editStudent('${esc(s['Student ID'])}')">Edit</button><button class="secondary" onclick="event.stopPropagation();archiveStudent('${esc(s['Student ID'])}')">Archive</button>`;return `<tr class="clickable" onclick="openStudent('${esc(s['Student ID'])}')"><td>${esc(s['Student ID'])}</td><td><b>${esc(s['Student Name'])}</b></td><td>${esc(s.School||'')}</td><td>${esc(s['Normal Class Time']||'')}</td><td>${c} / 4</td><td>${badge(c)}</td><td>${esc(formatDateClient(s['Registration Date']))}</td><td><div class="actions inline-actions">${action}</div></td></tr>`}).join('');document.getElementById('studentsBody').innerHTML=rows||'<tr><td colspan="8" class="empty">No students found.</td></tr>'}
+function renderStudents(){const q=(document.getElementById('studentSearch')?.value||'').toLowerCase();const rows=DATA.students.filter(s=>(studentView==='archived'?String(s.Active||'').toLowerCase()==='no':String(s.Active||'yes').toLowerCase()!=='no')).filter(s=>Object.values(s).some(v=>String(v).toLowerCase().includes(q))).sort((a,b)=>String(a['Student Name']).localeCompare(String(b['Student Name']))).map(s=>{const c=cycleFor(s['Student ID']);const archived=String(s.Active||'').toLowerCase()==='no';const action=archived?`<button class="secondary" onclick="event.stopPropagation();editStudent('${esc(s['Student ID'])}')">Edit</button><button class="secondary" onclick="event.stopPropagation();openTeacherParentPreview('${esc(s['Student ID'])}')">View Parent Portal</button><button class="secondary" onclick="event.stopPropagation();restoreStudent('${esc(s['Student ID'])}')">Restore</button>`:`<button class="secondary" onclick="event.stopPropagation();editStudent('${esc(s['Student ID'])}')">Edit</button><button class="secondary" onclick="event.stopPropagation();openTeacherParentPreview('${esc(s['Student ID'])}')">View Parent Portal</button><button class="secondary" onclick="event.stopPropagation();archiveStudent('${esc(s['Student ID'])}')">Archive</button>`;return `<tr class="clickable" onclick="openStudent('${esc(s['Student ID'])}')"><td>${esc(s['Student ID'])}</td><td><b>${esc(s['Student Name'])}</b></td><td>${esc(s.School||'')}</td><td>${esc(s['Normal Class Time']||'')}</td><td>${c} / 4</td><td>${badge(c)}</td><td>${esc(formatDateClient(s['Registration Date']))}</td><td><div class="actions inline-actions">${action}</div></td></tr>`}).join('');document.getElementById('studentsBody').innerHTML=rows||'<tr><td colspan="8" class="empty">No students found.</td></tr>'}
 async function archiveStudent(id){if(!confirm('Archive this student? Historical records will be preserved.'))return;try{DATA=await run('archiveStudent',id);renderAll()}catch(e){alert(e.message||e)}}
 async function restoreStudent(id){try{DATA=await run('restoreStudent',id);renderAll()}catch(e){alert(e.message||e)}}
 function renderProfile(id){if(document.getElementById('studentProfile').classList.contains('active'))openStudent(id)}
-function renderPayments(){const active=activeStudents();const states=active.map(s=>({s,state:paymentStateFor(s['Student ID'])}));const due=states.filter(x=>x.state.progress===4&&x.state.status==='Payment Due');const almost=states.filter(x=>x.state.progress===3&&x.state.status==='Almost Due');document.getElementById('payDueCount').textContent=due.length;document.getElementById('payAlmostCount').textContent=almost.length;document.getElementById('payHistoryCount').textContent=DATA.payments.filter(p=>String(p.Status||'').toLowerCase()==='paid').length;document.getElementById('dueBadge').textContent=due.length;document.getElementById('paymentStudentCount').textContent=active.length;document.getElementById('paymentStudents').innerHTML=states.map(({s,state})=>{const cycle=state.currentCycle||1;const amount=state.activePrepaid?'RM50':state.progress===4?'RM50':'-';const action=state.status==='Payment Due'&&state.progress===4?`<button class="primary" onclick="pay('${esc(s['Student ID'])}')">Record Payment</button>`:state.status==='Payment Due'?'<span class="badge absent">Payment Required</span>':'<span class="badge paid">Paid</span>';return `<tr><td><button class="linkbtn" onclick="openStudent('${esc(s['Student ID'])}')">${esc(s['Student Name'])}</button></td><td>${esc(s['Student ID'])}</td><td>${cycle}</td><td>${state.progress} / 4</td><td>${badge(state.progress,state)}</td><td>${amount}</td><td>${esc(state.lastPayment?formatDateClient(state.lastPayment['Payment Date']):'-')}</td><td>${action}</td></tr>`}).join('')||'<tr><td colspan="8" class="empty">No active students.</td></tr>';document.getElementById('paymentsDue').innerHTML=due.map(({s})=>`<div class="pay-row"><div><button class="linkbtn" onclick="openStudent('${esc(s['Student ID'])}')">${esc(s['Student Name'])}</button><div class="subtle">${esc(s['Student ID'])} · 4 / 4 attended</div></div><b>RM50</b><button class="primary" onclick="pay('${esc(s['Student ID'])}')">Record Payment</button></div>`).join('')||'<div class="empty">No payments due.</div>';document.getElementById('paymentsAlmost').innerHTML=almost.map(({s})=>`<div class="pay-row"><div><button class="linkbtn" onclick="openStudent('${esc(s['Student ID'])}')">${esc(s['Student Name'])}</button><div class="subtle">${esc(s['Student ID'])} · 3 / 4 attended</div></div><span class="badge almost">Almost Due</span><button class="secondary" onclick="openStudent('${esc(s['Student ID'])}')">View</button></div>`).join('')||'<div class="empty">No students are almost due.</div>';const rows=[...DATA.payments].sort((a,b)=>new Date(b['Payment Date'])-new Date(a['Payment Date'])).map(p=>{const st=DATA.students.find(x=>String(x['Student ID'])===String(p['Student ID']));return `<tr><td><button class="linkbtn" onclick="openStudent('${esc(p['Student ID'])}')">${esc(st?.['Student Name']||p['Student ID'])}</button></td><td>${esc(p['Cycle Number'])}</td><td>RM${esc(p.Amount)}</td><td>${esc(formatDateClient(p['Payment Date']))}</td><td>${String(p.Status||'').toLowerCase()==='paid'?'<span class="badge paid">Paid</span>':'<span class="badge absent">'+esc(p.Status||'')+'</span>'}</td><td>${esc(p['Classes Covered']||'')}</td></tr>`}).join('');document.getElementById('paymentsHistory').innerHTML=rows||'<tr><td colspan="6" class="empty">No payments recorded.</td></tr>'}
+function renderPayments(){const active=activeStudents();const states=active.map(s=>({s,state:paymentStateFor(s['Student ID'])}));const due=states.filter(x=>x.state.progress===4&&x.state.status==='Payment Due');const almost=states.filter(x=>x.state.progress===3&&x.state.status==='Almost Due');document.getElementById('payDueCount').textContent=due.length;document.getElementById('payAlmostCount').textContent=almost.length;document.getElementById('payHistoryCount').textContent=DATA.payments.filter(p=>String(p.Status||'').toLowerCase()==='paid').length;document.getElementById('dueBadge').textContent=due.length;document.getElementById('paymentStudentCount').textContent=active.length;document.getElementById('paymentStudents').innerHTML=states.map(({s,state})=>{const cycle=state.currentCycle||1;const amount=state.activePrepaid?'RM50':state.progress===4?'RM50':'-';const action=state.progress===4&&state.status==='Payment Due'?`<button class="primary" onclick="pay('${esc(s['Student ID'])}')">Record Payment</button>`:'<span class="badge paid">Paid</span>';return `<tr><td><button class="linkbtn" onclick="openStudent('${esc(s['Student ID'])}')">${esc(s['Student Name'])}</button></td><td>${esc(s['Student ID'])}</td><td>${cycle}</td><td>${state.progress} / 4</td><td>${badge(state.progress,state)}</td><td>${amount}</td><td>${esc(state.lastPayment?formatDateClient(state.lastPayment['Payment Date']):'-')}</td><td>${action}</td></tr>`}).join('')||'<tr><td colspan="8" class="empty">No active students.</td></tr>';document.getElementById('paymentsDue').innerHTML=due.map(({s})=>`<div class="pay-row"><div><button class="linkbtn" onclick="openStudent('${esc(s['Student ID'])}')">${esc(s['Student Name'])}</button><div class="subtle">${esc(s['Student ID'])} · 4 / 4 attended</div></div><b>RM50</b><button class="primary" onclick="pay('${esc(s['Student ID'])}')">Record Payment</button></div>`).join('')||'<div class="empty">No payments due.</div>';document.getElementById('paymentsAlmost').innerHTML=almost.map(({s})=>`<div class="pay-row"><div><button class="linkbtn" onclick="openStudent('${esc(s['Student ID'])}')">${esc(s['Student Name'])}</button><div class="subtle">${esc(s['Student ID'])} · 3 / 4 attended</div></div><span class="badge almost">Almost Due</span><button class="secondary" onclick="openStudent('${esc(s['Student ID'])}')">View</button></div>`).join('')||'<div class="empty">No students are almost due.</div>';const rows=[...DATA.payments].sort((a,b)=>new Date(b['Payment Date'])-new Date(a['Payment Date'])).map(p=>{const st=DATA.students.find(x=>String(x['Student ID'])===String(p['Student ID']));return `<tr><td><button class="linkbtn" onclick="openStudent('${esc(p['Student ID'])}')">${esc(st?.['Student Name']||p['Student ID'])}</button></td><td>${esc(p['Cycle Number'])}</td><td>RM${esc(p.Amount)}</td><td>${esc(formatDateClient(p['Payment Date']))}</td><td>${String(p.Status||'').toLowerCase()==='paid'?'<span class="badge paid">Paid</span>':'<span class="badge absent">'+esc(p.Status||'')+'</span>'}</td><td>${esc(p['Classes Covered']||'')}</td></tr>`}).join('');document.getElementById('paymentsHistory').innerHTML=rows||'<tr><td colspan="6" class="empty">No payments recorded.</td></tr>'}
 
 async function pay(id){if(!confirm('Confirm RM50 payment received? This payment will cover the oldest 4 unpaid Present classes.'))return;try{DATA=await run('markPaymentReceived',id,50,isoDate(new Date()));renderAll()}catch(e){alert(e.message||e)}}
 function setOrderTab(product){orderTab=product;selectedOrderIds.clear();document.getElementById('tabSets').classList.toggle('active',product==='Scrabble Set');document.getElementById('tabShirts').classList.toggle('active',product==='T Shirt');document.getElementById('orderTitle').textContent=product==='Scrabble Set'?'Scrabble Sets':'T Shirts';renderOrders()}
