@@ -780,19 +780,50 @@ function renderProfileData(d){
     <div class="panel profile-table-panel scroll"><table><thead><tr><th>Order ID</th><th>Product</th><th>Size</th><th>Qty</th><th>Total</th><th>Order Status</th><th>Payment</th><th>Collection</th><th>Date</th></tr></thead><tbody>${orders.map(o=>`<tr><td><button class="linkbtn" onclick="openOrder('${esc(o['Order ID'])}')">${esc(o['Order ID'])}</button></td><td>${esc(o.Product||'')}</td><td>${o.Product==='T Shirt'?esc(o.Size||''):'-'}</td><td>${esc(o.Quantity||1)}</td><td>RM${esc(o.Total||0)}</td><td>${esc(o['Order Status']||'')}</td><td>${esc(String(o['Payment Proof Status']||'')==='Submitted'?'Awaiting Confirmation':o['Payment Status']||'')}</td><td>${esc(o['Collection Status']||'')}</td><td>${esc(formatDateClient(o['Order Date']))}</td></tr>`).join('')||'<tr><td colspan="9" class="empty">No linked orders.</td></tr>'}</tbody></table></div>`;
 }
 /* ===== REPORTS ===== */
+function getReportPeriod(){
+  const mode=document.getElementById('reportRange')?.value||'month';
+  const month=document.getElementById('reportMonth')?.value||`2026-${String(new Date().getMonth()+1).padStart(2,'0')}`;
+  const [y,m]=month.split('-').map(Number);
+  let start=`${y}-${String(m).padStart(2,'0')}-01`;
+  let end=`${y}-${String(m).padStart(2,'0')}-31`;
+  if(mode==='lastMonth'){
+    const d=new Date(y,m-2,1); const ey=d.getFullYear(),em=d.getMonth()+1;
+    start=`${ey}-${String(em).padStart(2,'0')}-01`;
+    end=new Date(ey,em,0).toISOString().slice(0,10);
+  }else if(mode==='quarter'){
+    const qm=Math.floor((m-1)/3)*3+1;
+    start=`${y}-${String(qm).padStart(2,'0')}-01`;
+    end=new Date(y,qm+2,0).toISOString().slice(0,10);
+  }else if(mode==='year'){
+    start=`${y}-01-01`; end=`${y}-12-31`;
+  }else if(mode==='custom'){
+    start=document.getElementById('reportStartDate')?.value||start;
+    end=document.getElementById('reportEndDate')?.value||end;
+  }else{
+    end=new Date(y,m,0).toISOString().slice(0,10);
+  }
+  if(start>end)[start,end]=[end,start];
+  return {mode,month,start,end,label:mode==='custom'?`${start} to ${end}`:mode==='year'?String(y):mode==='quarter'?`Q${Math.floor((m-1)/3)+1} ${y}`:mode==='lastMonth'?new Date(y,m-2,1).toLocaleDateString('en-MY',{month:'long',year:'numeric'}):new Date(y,m-1,1).toLocaleDateString('en-MY',{month:'long',year:'numeric'})};
+}
+function setReportRange(){
+  const mode=document.getElementById('reportRange')?.value||'month';
+  document.getElementById('reportCustomRange')?.classList.toggle('hidden',mode!=='custom');
+  renderReports();
+}
 function renderReports(){
-  const month=document.getElementById('reportMonth').value||`2026-${String(new Date().getMonth()+1).padStart(2,'0')}`;
+  const period=getReportPeriod();
+  const {month,start,end}=period;
   document.getElementById('reportMonth').value=month;
-  const inMonth=value=>String(value||'').slice(0,7)===month;
+  const inRange=value=>{const v=String(value||'').slice(0,10);return v>=start&&v<=end;};
   const active=activeStudents();
-  const attendance=DATA.attendance.filter(a=>inMonth(a.Date));
+  const attendance=DATA.attendance.filter(a=>inRange(a.Date));
   const present=attendance.filter(a=>a.Status==='Present');
   const absent=attendance.filter(a=>a.Status==='Absent');
   const marked=present.length+absent.length;
   const attendanceRate=marked?Math.round(present.length/marked*100):0;
-  const payments=DATA.payments.filter(p=>inMonth(p['Payment Date']));
+  const payments=DATA.payments.filter(p=>inRange(p['Payment Date']));
   const paidPayments=payments.filter(p=>String(p.Status||'').toLowerCase()==='paid');
-  const orders=DATA.orders.filter(o=>inMonth(o['Order Date'])&&String(o.Archived||'').toLowerCase()!=='yes');
+  const orders=DATA.orders.filter(o=>inRange(o['Order Date'])&&String(o.Archived||'').toLowerCase()!=='yes');
   const paidAmount=paidPayments.reduce((sum,p)=>sum+(Number(p.Amount)||0),0);
   const orderRevenue=orders.reduce((sum,o)=>sum+(Number(o.Total)||0),0);
   const states=active.map(s=>({s,state:paymentStateFor(s['Student ID'])}));
@@ -811,7 +842,7 @@ function renderReports(){
   document.getElementById('rPayments').textContent=paidPayments.length+' paid payments';
   document.getElementById('rOrderRevenue').textContent='RM'+orderRevenue.toFixed(2);
   document.getElementById('rOrderCount').textContent=orders.length+' active orders';
-  document.getElementById('rMonthBadge').textContent=month;
+  document.getElementById('rMonthBadge').textContent=period.label;
   document.getElementById('rPaymentBadge').textContent=due.length+' due';
   document.getElementById('rOrderBadge').textContent=orders.length;
   document.getElementById('rStudentBadge').textContent=active.length;
