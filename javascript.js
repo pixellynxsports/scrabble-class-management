@@ -870,7 +870,9 @@ function renderReports(){
     const sa=attendance.filter(a=>String(a['Student ID'])===sid);
     const so=orders.filter(o=>String(o['Student ID'])===sid);
     const state=paymentStateFor(sid);
-    return `<tr class="clickable" onclick="openStudentFromReport('${esc(sid)}')"><td><b>${esc(s['Student Name'])}</b></td><td>${esc(sid)}</td><td>${esc(s['Normal Class Time']||'-')}</td><td><span class="badge present">${sa.filter(a=>a.Status==='Present').length}</span></td><td><span class="badge absent">${sa.filter(a=>a.Status==='Absent').length}</span></td><td>${esc(state.currentCycle)}</td><td>${esc(state.progress)} / 4</td><td>${so.length}</td></tr>`;
+    const sp=sa.filter(a=>['Present','Absent'].includes(a.Status)).length;
+    const sr=sp?Math.round(sa.filter(a=>a.Status==='Present').length/sp*100):0;
+    return `<tr class="clickable report-student-row" data-student-name="${esc(String(s['Student Name']).toLowerCase())}" data-student-id="${esc(sid.toLowerCase())}" data-attendance="${sr}" data-payment-status="${esc(state.status)}" onclick="openStudentFromReport('${esc(sid)}')"><td><b>${esc(s['Student Name'])}</b></td><td>${esc(sid)}</td><td>${esc(s['Normal Class Time']||'-')}</td><td><span class="badge present">${sa.filter(a=>a.Status==='Present').length}</span></td><td><span class="badge absent">${sa.filter(a=>a.Status==='Absent').length}</span></td><td>${esc(state.currentCycle)}</td><td>${esc(state.progress)} / 4</td><td>${so.length}</td></tr>`;
   }).join('');
   document.getElementById('reportStudents').innerHTML=studentRows||'<tr><td colspan="8" class="empty">No active students.</td></tr>';
 
@@ -915,11 +917,25 @@ function renderReports(){
   }).sort((a,b)=>b.rate-a.rate||b.p-a.p||String(a.name).localeCompare(String(b.name)));
   document.getElementById('reportStudentGrowth').innerHTML=growthRows.length?growthRows.map(x=>`<button class="student-growth-card" onclick="openStudentFromReport('${esc(x.sid)}')"><div class="student-growth-head"><span>${esc(x.name)}</span><strong>${x.rate}%</strong></div><div class="report-bar-track"><div style="width:${x.rate}%"></div></div><small>${x.p} present · ${x.abs} absent</small></button>`).join(''):'<div class="empty">No active students.</div>';
 }
+function filterReportStudents(){
+  const query=String(document.getElementById('reportStudentSearch')?.value||'').trim().toLowerCase();
+  const filter=document.getElementById('reportPerformanceFilter')?.value||'all';
+  document.querySelectorAll('#reportStudents .report-student-row').forEach(row=>{
+    const matchesText=!query||row.dataset.studentName.includes(query)||row.dataset.studentId.includes(query);
+    const rate=Number(row.dataset.attendance||0);
+    const status=row.dataset.paymentStatus||'';
+    const matchesFilter=filter==='all'||(filter==='attendance'&&rate>=75)||(filter==='low'&&rate<75)||(filter==='due'&&status==='Payment Due');
+    row.style.display=matchesText&&matchesFilter?'':'none';
+  });
+}
+
 function exportReportCsv(){
-  const month=document.getElementById('reportMonth').value;
+  const period=getReportPeriod();
+  const {start,end}=period;
   const active=activeStudents();
-  const attendance=DATA.attendance.filter(a=>String(a.Date||'').slice(0,7)===month);
-  const orders=DATA.orders.filter(o=>String(o['Order Date']||'').slice(0,7)===month&&String(o.Archived||'').toLowerCase()!=='yes');
+  const inRange=value=>{const v=String(value||'').slice(0,10);return v>=start&&v<=end;};
+  const attendance=DATA.attendance.filter(a=>inRange(a.Date));
+  const orders=DATA.orders.filter(o=>inRange(o['Order Date'])&&String(o.Archived||'').toLowerCase()!=='yes');
   const rows=active.map(s=>{
     const sid=String(s['Student ID']);
     const sa=attendance.filter(a=>String(a['Student ID'])===sid);
@@ -930,7 +946,7 @@ function exportReportCsv(){
   const csv=[['Student','ID','Normal Time','Present','Absent','Cycle','Package','Orders'],...rows].map(row=>row.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
   const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');a.href=url;a.download=`scrabble-report-${month||'report'}.csv`;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+  const a=document.createElement('a');a.href=url;a.download=`scrabble-report-${start}-to-${end}.csv`;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
 }
 function printReport(){window.print();}
 
