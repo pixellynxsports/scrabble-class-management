@@ -745,3 +745,22 @@ body{background:#eef2f6}
  table{font-size:10px!important}
  th,td{padding:7px 8px!important}
 }
+
+/* Reports Phase 3 */
+.report-controls-phase3{align-items:end}
+.report-controls-phase3>select{min-width:145px;min-height:40px}
+.report-custom-range{display:flex;align-items:center;gap:6px}
+.report-custom-range input{min-height:40px}
+.report-custom-range span{font-size:11px;color:#667085}
+.report-student-filters{display:flex;gap:8px;align-items:center;margin-top:12px;margin-bottom:2px}
+.report-student-filters .search{min-height:38px}
+.report-student-filters select{min-height:38px;min-width:180px}
+@media(max-width:650px){
+ .report-controls-phase3{display:grid;grid-template-columns:1fr 1fr}
+ .report-controls-phase3>label{grid-column:1/-1}
+ .report-controls-phase3>select{width:100%}
+ .report-custom-range{grid-column:1/-1;display:grid;grid-template-columns:1fr auto 1fr}
+ .report-custom-range input{width:100%}
+ .report-student-filters{display:grid;grid-template-columns:1fr}
+ .report-student-filters select{width:100%}
+}
