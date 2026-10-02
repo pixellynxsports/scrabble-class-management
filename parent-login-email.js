@@ -1,4 +1,4 @@
-async function generateParentLoginDetails(studentId){
+async function generateParentLoginDetails(studentId,button){
   if(!studentId)return;
 
   const student=DATA.students.find(
@@ -21,7 +21,6 @@ async function generateParentLoginDetails(studentId){
   try{
     emailWindow=window.open("about:blank","_blank");
 
-    const button=document.getElementById("generateParentLoginButton");
     if(button){
       button.disabled=true;
       button.textContent="Generating...";
