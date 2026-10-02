@@ -316,3 +316,31 @@ tbody tr:hover td{background:#fafcff}
   .top-actions{width:100%;justify-content:space-between}
   .panel,.class-card,.metric{border-radius:13px}
 }
+
+/* 2026-10-02 sidebar overlap fix */
+.side{
+  position:fixed;
+  left:0;
+  top:0;
+  bottom:0;
+  width:248px;
+  background:#ffffff;
+  border-right:1px solid #e6eaf0;
+  z-index:1000;
+  opacity:1;
+  isolation:isolate;
+}
+.main{
+  margin-left:248px;
+  width:calc(100% - 248px);
+  max-width:none;
+  min-width:0;
+}
+@media(max-width:850px){
+  .side{width:205px}
+  .main{margin-left:205px;width:calc(100% - 205px)}
+}
+@media(max-width:650px){
+  .side{position:static;width:100%;height:auto}
+  .main{margin-left:0;width:100%}
+}
