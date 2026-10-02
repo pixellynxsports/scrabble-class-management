@@ -388,3 +388,16 @@ body{background:#eef2f6}
 @media(max-width:650px){
   body,.app,.main{background:#eef2f6}
 }
+
+/* Sidebar logo contrast fix */
+.side-mark span{
+  background:#f1f3f7;
+  color:#172033;
+  border:1px solid #dfe4ec;
+  box-shadow:0 2px 5px rgba(15,23,42,.05);
+}
+.side-mark span:last-child{
+  background:#dbe3ff;
+  color:#1f3fa8;
+  border-color:#c8d5ff;
+}
