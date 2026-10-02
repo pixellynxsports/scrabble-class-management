@@ -401,3 +401,31 @@ body{background:#eef2f6}
   color:#1f3fa8;
   border-color:#c8d5ff;
 }
+
+/* Sidebar logo: S dark tile, C light tile */
+.side-mark{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex:none;
+}
+.side-mark span{
+  width:36px;
+  height:36px;
+  display:grid;
+  place-items:center;
+  border-radius:9px;
+  background:#172033;
+  color:#fff;
+  border:1px solid #172033;
+  box-shadow:0 3px 8px rgba(23,32,51,.14);
+  font-size:16px;
+  font-weight:900;
+}
+.side-mark span:last-child{
+  transform:translateY(5px);
+  background:#f1f3f7;
+  color:#172033;
+  border:1px solid #d7dde7;
+  box-shadow:0 2px 6px rgba(15,23,42,.06);
+}
