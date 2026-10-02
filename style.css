@@ -344,3 +344,47 @@ tbody tr:hover td{background:#fafcff}
   .side{position:static;width:100%;height:auto}
   .main{margin-left:0;width:100%}
 }
+
+/* 2026-10-02 visual depth refinement */
+body{background:#eef2f6}
+.app{background:#eef2f6}
+.main{background:#eef2f6}
+.top{border-bottom:1px solid #dfe5ec}
+.side{background:#fff}
+.nav.active{background:#172033;color:#fff;border-color:#172033;box-shadow:0 5px 14px rgba(23,32,51,.12),inset 3px 0 0 #7b91ff}
+.nav.active .nav-icon{color:#b9c5ff}
+.panel,.class-card,.metric{
+  background:#fff;
+  border-color:#dfe5ec;
+  box-shadow:0 4px 18px rgba(15,23,42,.045)
+}
+.panel:hover,.class-card:hover,.metric:hover{
+  border-color:#d6dde7;
+  box-shadow:0 8px 24px rgba(15,23,42,.07)
+}
+.page-intro{padding-bottom:2px}
+.toolbar{background:transparent}
+.student-toolbar{
+  background:#fff;
+  border-color:#dfe5ec;
+  box-shadow:0 3px 12px rgba(15,23,42,.035)
+}
+.tabs{
+  background:#e5eaf0;
+  border-color:#d9e0e8
+}
+.tab{color:#475467}
+.tab.active{background:#172033;color:#fff}
+.registration-page,.registration-review,.registration-card{
+  background:transparent
+}
+.registration-card{
+  border-color:#dfe5ec;
+  box-shadow:0 5px 20px rgba(15,23,42,.05)
+}
+.empty{
+  color:#667085
+}
+@media(max-width:650px){
+  body,.app,.main{background:#eef2f6}
+}
