@@ -202,3 +202,15 @@ table{font-size:12px}th{font-size:9px;letter-spacing:.07em;color:#667085;backgro
 @media(max-width:650px){.registration-choice-grid,.registration-grid{grid-template-columns:1fr}.registration-card{padding:18px}.registration-actions{width:100%}.registration-actions button{flex:1}}
 
 .teacher-preview-banner{display:flex;justify-content:space-between;align-items:center;gap:18px;margin-bottom:18px;padding:15px 18px;background:#fff8e7;border:1px solid #f0d58a;border-radius:14px;color:#624b10}.teacher-preview-banner strong{display:block;font-size:12px;letter-spacing:.08em}.teacher-preview-banner span{display:block;margin-top:4px;font-size:13px;color:#7a641f}.teacher-preview-banner .secondary{flex:none}@media(max-width:650px){.teacher-preview-banner{align-items:flex-start;flex-direction:column;width:100%}}
+
+/* Student table action menu */
+.student-action-wrap{position:relative;display:inline-flex;align-items:center;justify-content:center}
+.student-action-trigger{width:38px;height:38px;border:1px solid var(--border,#d9dee8);border-radius:10px;background:#fff;color:#162033;font-size:22px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 1px 2px rgba(15,23,42,.04)}
+.student-action-trigger:hover{background:#f5f7fb;border-color:#c7ceda}
+.student-action-menu{position:absolute;right:0;top:calc(100% + 7px);z-index:1000;min-width:220px;padding:6px;border:1px solid var(--border,#d9dee8);border-radius:12px;background:#fff;box-shadow:0 14px 30px rgba(15,23,42,.14);display:none}
+.student-action-menu.show{display:block}
+.student-action-menu button{display:block;width:100%;padding:10px 12px;border:0;border-radius:8px;background:transparent;color:#162033;text-align:left;font:inherit;font-size:13px;cursor:pointer}
+.student-action-menu button:hover{background:#f3f6fb}
+.student-action-menu button.danger{color:#b42318}
+.student-action-menu button.danger:hover{background:#fff1f0}
+.student-action-divider{height:1px;margin:5px 4px;background:#e7eaf0}
