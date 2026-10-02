@@ -89,10 +89,9 @@ async function generateParentLoginDetails(studentId,button){
     if(emailWindow&&!emailWindow.closed)emailWindow.close();
     alert(error?.message||"Unable to generate the parent login details.");
   }finally{
-    const button=document.getElementById("generateParentLoginButton");
     if(button){
       button.disabled=false;
-      button.textContent="Generate Parent Login Details";
+      button.textContent="Generate Password & Email";
     }
   }
 }
