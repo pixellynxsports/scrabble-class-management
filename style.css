@@ -659,3 +659,32 @@ body{background:#eef2f6}
   .report-student-panel table{min-width:680px}
   .side{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+
+/* Reports Phase 1 */
+.report-attention{overflow:hidden}
+.attention-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}
+.attention-card{border:1px solid #e3e7ed;background:#fff;border-radius:12px;padding:13px;text-align:left;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:9px;cursor:pointer;transition:.15s ease}
+.attention-card:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(15,23,42,.07)}
+.attention-card strong{font-size:24px;color:#172033}
+.attention-card span{font-size:12px;font-weight:700;color:#475467}
+.attention-card b{font-size:10px;color:#667085}
+.attention-card.danger{border-left:4px solid #b42318}
+.attention-card.warning{border-left:4px solid #b54708}
+.attention-card.info{border-left:4px solid #175cd3}
+.attention-clear{display:flex;align-items:center;gap:10px;padding:13px;border-radius:10px;background:#f3faf6;color:#17663a;font-size:13px}
+.package-distribution{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-top:14px}
+.package-bar{min-width:0}
+.package-label{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:#667085;margin-bottom:7px}
+.package-label strong{color:#172033}
+.package-track{height:9px;border-radius:99px;background:#edf0f4;overflow:hidden}
+.package-track>div{height:100%;border-radius:99px;background:#172033}
+@media(max-width:900px){
+ .attention-grid{grid-template-columns:repeat(2,1fr)}
+ .package-distribution{grid-template-columns:repeat(3,1fr)}
+}
+@media(max-width:650px){
+ .attention-grid{grid-template-columns:1fr}
+ .attention-card{min-height:54px}
+ .package-distribution{grid-template-columns:1fr}
+ .package-bar{padding:4px 0}
+}
