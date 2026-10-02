@@ -780,7 +780,129 @@ function renderProfileData(d){
     <div class="panel profile-table-panel scroll"><table><thead><tr><th>Order ID</th><th>Product</th><th>Size</th><th>Qty</th><th>Total</th><th>Order Status</th><th>Payment</th><th>Collection</th><th>Date</th></tr></thead><tbody>${orders.map(o=>`<tr><td><button class="linkbtn" onclick="openOrder('${esc(o['Order ID'])}')">${esc(o['Order ID'])}</button></td><td>${esc(o.Product||'')}</td><td>${o.Product==='T Shirt'?esc(o.Size||''):'-'}</td><td>${esc(o.Quantity||1)}</td><td>RM${esc(o.Total||0)}</td><td>${esc(o['Order Status']||'')}</td><td>${esc(String(o['Payment Proof Status']||'')==='Submitted'?'Awaiting Confirmation':o['Payment Status']||'')}</td><td>${esc(o['Collection Status']||'')}</td><td>${esc(formatDateClient(o['Order Date']))}</td></tr>`).join('')||'<tr><td colspan="9" class="empty">No linked orders.</td></tr>'}</tbody></table></div>`;
 }
 /* ===== REPORTS ===== */
-function renderReports(){const month=document.getElementById('reportMonth').value||`2026-${String(new Date().getMonth()+1).padStart(2,'0')}`;document.getElementById('reportMonth').value=month;const inMonth=value=>String(value||'').slice(0,7)===month;const active=activeStudents();const attendance=DATA.attendance.filter(a=>inMonth(a.Date));const present=attendance.filter(a=>a.Status==='Present');const absent=attendance.filter(a=>a.Status==='Absent');const marked=present.length+absent.length;const attendanceRate=marked?Math.round(present.length/marked*100):0;const payments=DATA.payments.filter(p=>inMonth(p['Payment Date']));const paidPayments=payments.filter(p=>String(p.Status||'').toLowerCase()==='paid');const voidPayments=payments.filter(p=>String(p.Status||'').toLowerCase()==='void');const orders=DATA.orders.filter(o=>inMonth(o['Order Date'])&&String(o.Archived||'').toLowerCase()!=='yes');const paidAmount=paidPayments.reduce((sum,p)=>sum+(Number(p.Amount)||0),0);const orderRevenue=orders.reduce((sum,o)=>sum+(Number(o.Total)||0),0);const states=active.map(s=>({s,state:paymentStateFor(s['Student ID'])}));const due=states.filter(x=>x.state.status==='Payment Due');const almost=states.filter(x=>x.state.status==='Almost Due');const lowAttendance=active.filter(s=>{const sa=attendance.filter(a=>String(a['Student ID'])===String(s['Student ID']));const m=sa.filter(a=>['Present','Absent'].includes(a.Status));return m.length>=2&&sa.filter(a=>a.Status==='Present').length/m.length<.75});const pendingOrders=orders.filter(o=>['Pending Order','Pending Payment','Processing'].includes(o['Order Status'])).length;document.getElementById('rStudents').textContent=active.length;document.getElementById('rAttendanceRate').textContent=attendanceRate+'%';document.getElementById('rAttendanceDetail').textContent=present.length+' present of '+marked+' marked';document.getElementById('rPaymentRevenue').textContent='RM'+paidAmount.toFixed(2);document.getElementById('rPayments').textContent=paidPayments.length+' paid payments';document.getElementById('rOrderRevenue').textContent='RM'+orderRevenue.toFixed(2);document.getElementById('rOrderCount').textContent=orders.length+' active orders';document.getElementById('rMonthBadge').textContent=month;document.getElementById('rPaymentBadge').textContent=due.length+' due';document.getElementById('rOrderBadge').textContent=orders.length;document.getElementById('rStudentBadge').textContent=active.length;const attention=[{count:due.length,label:'Payment due',action:"page('payments')",cls:'danger'},{count:almost.length,label:'Almost due',action:"page('payments')",cls:'warning'},{count:lowAttendance.length,label:'Low attendance',action:"page('attendance')",cls:'warning'},{count:pendingOrders,label:'Pending orders',action:"page('orders')",cls:'info'}].filter(x=>x.count>0);document.getElementById('rAttentionCount').textContent=attention.reduce((n,x)=>n+x.count,0);document.getElementById('rNeedsAttention').innerHTML=attention.length?attention.map(x=>`<button class="attention-card ${x.cls}" onclick="${x.action}"><strong>${x.count}</strong><span>${esc(x.label)}</span><b>View →</b></button>`).join(''):'<div class="attention-clear"><strong>✓</strong><span>Nothing needs attention right now.</span></div>';document.getElementById('attendanceSummary').innerHTML=`<div class="report-stat-row"><span>Present</span><strong>${present.length}</strong></div><div class="report-stat-row"><span>Absent</span><strong>${absent.length}</strong></div><div class="report-stat-row"><span>Marked</span><strong>${marked}</strong></div><div class="report-progress"><div style="width:${attendanceRate}%"></div></div><div class="subtle">${attendanceRate}% attendance rate for marked records.</div>`;const paymentDueValue=due.length*50;document.getElementById('paymentSummary').innerHTML=`<div class="report-stat-row"><span>Paid packages</span><strong>${paidPayments.length}</strong></div><div class="report-stat-row"><span>Collected</span><strong>RM${paidAmount.toFixed(2)}</strong></div><div class="report-stat-row"><span>Payment due</span><strong>${due.length}</strong></div><div class="report-stat-row"><span>Potential due value</span><strong>RM${paymentDueValue.toFixed(2)}</strong></div><div class="report-stat-row"><span>Almost due</span><strong>${almost.length}</strong></div>`;const buckets=[0,0,0,0,0];states.forEach(x=>buckets[Math.min(4,Math.max(0,Number(x.state.progress)||0))]++);document.getElementById('packageSummary').innerHTML=buckets.map((n,i)=>`<div class="package-bar"><div class="package-label"><span>${i} / 4 classes</span><strong>${n}</strong></div><div class="package-track"><div style="width:${active.length?Math.round(n/active.length*100):0}%"></div></div></div>`).join('');const statusCount=status=>orders.filter(o=>o['Order Status']===status).length;const orderSets=orders.filter(o=>o.Product==='Scrabble Set').reduce((n,o)=>n+(Number(o.Quantity)||1),0);const orderShirts=orders.filter(o=>o.Product==='T Shirt').reduce((n,o)=>n+(Number(o.Quantity)||1),0);document.getElementById('orderSummary').innerHTML=`<div class="report-stat-row"><span>Scrabble Sets</span><strong>${orderSets}</strong></div><div class="report-stat-row"><span>T Shirts</span><strong>${orderShirts}</strong></div><div class="report-stat-row"><span>Pending / Processing</span><strong>${pendingOrders}</strong></div><div class="report-stat-row"><span>Order Done</span><strong>${statusCount('Order Done')}</strong></div><div class="report-stat-row"><span>Collected</span><strong>${orders.filter(o=>o['Collection Status']==='Collected').length}</strong></div><div class="report-stat-row"><span>Sales value</span><strong>RM${orderRevenue.toFixed(2)}</strong></div>`;document.getElementById('reportSnapshot').innerHTML=`<div class="report-stat-row"><span>Attendance records</span><strong>${attendance.length}</strong></div><div class="report-stat-row"><span>New payment records</span><strong>${payments.length}</strong></div><div class="report-stat-row"><span>Orders placed</span><strong>${orders.length}</strong></div><div class="report-stat-row"><span>Students needing payment</span><strong>${due.length}</strong></div>`;const studentRows=active.map(s=>{const sid=String(s['Student ID']);const sa=attendance.filter(a=>String(a['Student ID'])===sid);const so=orders.filter(o=>String(o['Student ID'])===sid);const state=paymentStateFor(sid);return `<tr class="clickable" onclick="openStudentFromReport('${esc(sid)}')"><td><b>${esc(s['Student Name'])}</b></td><td>${esc(sid)}</td><td>${esc(s['Normal Class Time']||'-')}</td><td><span class="badge present">${sa.filter(a=>a.Status==='Present').length}</span></td><td><span class="badge absent">${sa.filter(a=>a.Status==='Absent').length}</span></td><td>${esc(state.currentCycle)}</td><td>${esc(state.progress)} / 4</td><td>${so.length}</td></tr>`}).join('');document.getElementById('reportStudents').innerHTML=studentRows||'<tr><td colspan="8" class="empty">No active students.</td></tr>';}
+function renderReports(){
+  const month=document.getElementById('reportMonth').value||`2026-${String(new Date().getMonth()+1).padStart(2,'0')}`;
+  document.getElementById('reportMonth').value=month;
+  const inMonth=value=>String(value||'').slice(0,7)===month;
+  const active=activeStudents();
+  const attendance=DATA.attendance.filter(a=>inMonth(a.Date));
+  const present=attendance.filter(a=>a.Status==='Present');
+  const absent=attendance.filter(a=>a.Status==='Absent');
+  const marked=present.length+absent.length;
+  const attendanceRate=marked?Math.round(present.length/marked*100):0;
+  const payments=DATA.payments.filter(p=>inMonth(p['Payment Date']));
+  const paidPayments=payments.filter(p=>String(p.Status||'').toLowerCase()==='paid');
+  const orders=DATA.orders.filter(o=>inMonth(o['Order Date'])&&String(o.Archived||'').toLowerCase()!=='yes');
+  const paidAmount=paidPayments.reduce((sum,p)=>sum+(Number(p.Amount)||0),0);
+  const orderRevenue=orders.reduce((sum,o)=>sum+(Number(o.Total)||0),0);
+  const states=active.map(s=>({s,state:paymentStateFor(s['Student ID'])}));
+  const due=states.filter(x=>x.state.status==='Payment Due');
+  const almost=states.filter(x=>x.state.status==='Almost Due');
+  const lowAttendance=active.filter(s=>{
+    const sa=attendance.filter(a=>String(a['Student ID'])===String(s['Student ID']));
+    const m=sa.filter(a=>['Present','Absent'].includes(a.Status));
+    return m.length>=2&&sa.filter(a=>a.Status==='Present').length/m.length<.75;
+  });
+  const pendingOrders=orders.filter(o=>['Pending Order','Pending Payment','Processing'].includes(o['Order Status'])).length;
+  document.getElementById('rStudents').textContent=active.length;
+  document.getElementById('rAttendanceRate').textContent=attendanceRate+'%';
+  document.getElementById('rAttendanceDetail').textContent=present.length+' present of '+marked+' marked';
+  document.getElementById('rPaymentRevenue').textContent='RM'+paidAmount.toFixed(2);
+  document.getElementById('rPayments').textContent=paidPayments.length+' paid payments';
+  document.getElementById('rOrderRevenue').textContent='RM'+orderRevenue.toFixed(2);
+  document.getElementById('rOrderCount').textContent=orders.length+' active orders';
+  document.getElementById('rMonthBadge').textContent=month;
+  document.getElementById('rPaymentBadge').textContent=due.length+' due';
+  document.getElementById('rOrderBadge').textContent=orders.length;
+  document.getElementById('rStudentBadge').textContent=active.length;
+  const attention=[
+    {count:due.length,label:'Payment due',action:"page('payments')",cls:'danger'},
+    {count:almost.length,label:'Almost due',action:"page('payments')",cls:'warning'},
+    {count:lowAttendance.length,label:'Low attendance',action:"page('attendance')",cls:'warning'},
+    {count:pendingOrders,label:'Pending orders',action:"page('orders')",cls:'info'}
+  ].filter(x=>x.count>0);
+  document.getElementById('rAttentionCount').textContent=attention.reduce((n,x)=>n+x.count,0);
+  document.getElementById('rNeedsAttention').innerHTML=attention.length?attention.map(x=>`<button class="attention-card ${x.cls}" onclick="${x.action}"><strong>${x.count}</strong><span>${esc(x.label)}</span><b>View →</b></button>`).join(''):'<div class="attention-clear"><strong>✓</strong><span>Nothing needs attention right now.</span></div>';
+  document.getElementById('attendanceSummary').innerHTML=`<div class="report-stat-row"><span>Present</span><strong>${present.length}</strong></div><div class="report-stat-row"><span>Absent</span><strong>${absent.length}</strong></div><div class="report-stat-row"><span>Marked</span><strong>${marked}</strong></div><div class="report-progress"><div style="width:${attendanceRate}%"></div></div><div class="subtle">${attendanceRate}% attendance rate for marked records.</div>`;
+  const paymentDueValue=due.length*50;
+  document.getElementById('paymentSummary').innerHTML=`<div class="report-stat-row"><span>Paid packages</span><strong>${paidPayments.length}</strong></div><div class="report-stat-row"><span>Collected</span><strong>RM${paidAmount.toFixed(2)}</strong></div><div class="report-stat-row"><span>Payment due</span><strong>${due.length}</strong></div><div class="report-stat-row"><span>Potential due value</span><strong>RM${paymentDueValue.toFixed(2)}</strong></div><div class="report-stat-row"><span>Almost due</span><strong>${almost.length}</strong></div>`;
+  const buckets=[0,0,0,0,0];
+  states.forEach(x=>buckets[Math.min(4,Math.max(0,Number(x.state.progress)||0))]++);
+  document.getElementById('packageSummary').innerHTML=buckets.map((n,i)=>`<div class="package-bar"><div class="package-label"><span>${i} / 4 classes</span><strong>${n}</strong></div><div class="package-track"><div style="width:${active.length?Math.round(n/active.length*100):0}%"></div></div></div>`).join('');
+  const statusCount=status=>orders.filter(o=>o['Order Status']===status).length;
+  const orderSets=orders.filter(o=>o.Product==='Scrabble Set').reduce((n,o)=>n+(Number(o.Quantity)||1),0);
+  const orderShirts=orders.filter(o=>o.Product==='T Shirt').reduce((n,o)=>n+(Number(o.Quantity)||1),0);
+  document.getElementById('orderSummary').innerHTML=`<div class="report-stat-row"><span>Scrabble Sets</span><strong>${orderSets}</strong></div><div class="report-stat-row"><span>T Shirts</span><strong>${orderShirts}</strong></div><div class="report-stat-row"><span>Pending / Processing</span><strong>${pendingOrders}</strong></div><div class="report-stat-row"><span>Order Done</span><strong>${statusCount('Order Done')}</strong></div><div class="report-stat-row"><span>Collected</span><strong>${orders.filter(o=>o['Collection Status']==='Collected').length}</strong></div><div class="report-stat-row"><span>Sales value</span><strong>RM${orderRevenue.toFixed(2)}</strong></div>`;
+  document.getElementById('reportSnapshot').innerHTML=`<div class="report-stat-row"><span>Attendance records</span><strong>${attendance.length}</strong></div><div class="report-stat-row"><span>New payment records</span><strong>${payments.length}</strong></div><div class="report-stat-row"><span>Orders placed</span><strong>${orders.length}</strong></div><div class="report-stat-row"><span>Students needing payment</span><strong>${due.length}</strong></div>`;
+  const studentRows=active.map(s=>{
+    const sid=String(s['Student ID']);
+    const sa=attendance.filter(a=>String(a['Student ID'])===sid);
+    const so=orders.filter(o=>String(o['Student ID'])===sid);
+    const state=paymentStateFor(sid);
+    return `<tr class="clickable" onclick="openStudentFromReport('${esc(sid)}')"><td><b>${esc(s['Student Name'])}</b></td><td>${esc(sid)}</td><td>${esc(s['Normal Class Time']||'-')}</td><td><span class="badge present">${sa.filter(a=>a.Status==='Present').length}</span></td><td><span class="badge absent">${sa.filter(a=>a.Status==='Absent').length}</span></td><td>${esc(state.currentCycle)}</td><td>${esc(state.progress)} / 4</td><td>${so.length}</td></tr>`;
+  }).join('');
+  document.getElementById('reportStudents').innerHTML=studentRows||'<tr><td colspan="8" class="empty">No active students.</td></tr>';
+
+  const shiftMonth=(ym,delta)=>{
+    const [y,m]=ym.split('-').map(Number);
+    const d=new Date(y,m-1+delta,1);
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  };
+  const monthLabel=ym=>{
+    const [y,m]=ym.split('-').map(Number);
+    return new Date(y,m-1,1).toLocaleDateString('en-MY',{month:'short',year:'2-digit'});
+  };
+  const trendMonths=Array.from({length:6},(_,i)=>shiftMonth(month,-5+i));
+  const trend=trendMonths.map(m=>{
+    const a=DATA.attendance.filter(x=>String(x.Date||'').slice(0,7)===m);
+    const p=a.filter(x=>x.Status==='Present').length;
+    const md=a.filter(x=>['Present','Absent'].includes(x.Status)).length;
+    const ps=DATA.payments.filter(x=>String(x['Payment Date']||'').slice(0,7)===m&&String(x.Status||'').toLowerCase()==='paid');
+    const os=DATA.orders.filter(x=>String(x['Order Date']||'').slice(0,7)===m&&String(x.Archived||'').toLowerCase()!=='yes');
+    return {m,p,rate:md?Math.round(p/md*100):0,payment:ps.reduce((n,x)=>n+(Number(x.Amount)||0),0),orders:os.reduce((n,x)=>n+(Number(x.Total)||0),0)};
+  });
+  const maxMoney=Math.max(1,...trend.map(x=>Math.max(x.payment,x.orders)));
+  document.getElementById('reportMonthlyTrend').innerHTML=trend.map(x=>`<div class="trend-row"><div class="trend-label"><strong>${monthLabel(x.m)}</strong><span>${x.rate}% attendance</span></div><div class="trend-bars"><div class="trend-track"><div class="trend-payment" style="width:${Math.round(x.payment/maxMoney*100)}%"></div><div class="trend-orders" style="width:${Math.round(x.orders/maxMoney*100)}%"></div></div><small>RM${x.payment.toFixed(0)} payments · RM${x.orders.toFixed(0)} orders</small></div></div>`).join('')||'<div class="empty">No monthly data.</div>';
+
+  const classTimes=[...new Set(active.map(s=>s['Normal Class Time']).filter(Boolean))];
+  document.getElementById('rClassTimeBadge').textContent=classTimes.length+' sections';
+  const classRows=classTimes.map(time=>{
+    const ids=new Set(active.filter(s=>s['Normal Class Time']===time).map(s=>String(s['Student ID'])));
+    const a=attendance.filter(x=>ids.has(String(x['Student ID'])));
+    const p=a.filter(x=>x.Status==='Present').length;
+    const md=a.filter(x=>['Present','Absent'].includes(x.Status)).length;
+    return {time,count:ids.size,p,rate:md?Math.round(p/md*100):0};
+  });
+  document.getElementById('reportClassTimes').innerHTML=classRows.length?classRows.map(x=>`<div class="report-bar-row"><div class="row"><span>${esc(x.time)}</span><strong>${x.rate}%</strong></div><div class="report-bar-track"><div style="width:${x.rate}%"></div></div><small>${x.p} present · ${x.count} active students</small></div>`).join(''):'<div class="empty">No class sections configured.</div>';
+
+  const growthRows=active.map(s=>{
+    const sid=String(s['Student ID']);
+    const sa=attendance.filter(a=>String(a['Student ID'])===sid);
+    const p=sa.filter(a=>a.Status==='Present').length;
+    const md=sa.filter(a=>['Present','Absent'].includes(a.Status)).length;
+    return {name:s['Student Name'],sid,p,abs:sa.filter(a=>a.Status==='Absent').length,rate:md?Math.round(p/md*100):0};
+  }).sort((a,b)=>b.rate-a.rate||b.p-a.p||String(a.name).localeCompare(String(b.name)));
+  document.getElementById('reportStudentGrowth').innerHTML=growthRows.length?growthRows.map(x=>`<button class="student-growth-card" onclick="openStudentFromReport('${esc(x.sid)}')"><div class="student-growth-head"><span>${esc(x.name)}</span><strong>${x.rate}%</strong></div><div class="report-bar-track"><div style="width:${x.rate}%"></div></div><small>${x.p} present · ${x.abs} absent</small></button>`).join(''):'<div class="empty">No active students.</div>';
+}
+function exportReportCsv(){
+  const month=document.getElementById('reportMonth').value;
+  const active=activeStudents();
+  const attendance=DATA.attendance.filter(a=>String(a.Date||'').slice(0,7)===month);
+  const orders=DATA.orders.filter(o=>String(o['Order Date']||'').slice(0,7)===month&&String(o.Archived||'').toLowerCase()!=='yes');
+  const rows=active.map(s=>{
+    const sid=String(s['Student ID']);
+    const sa=attendance.filter(a=>String(a['Student ID'])===sid);
+    const state=paymentStateFor(sid);
+    const so=orders.filter(o=>String(o['Student ID'])===sid);
+    return [s['Student Name'],sid,s['Normal Class Time']||'',sa.filter(a=>a.Status==='Present').length,sa.filter(a=>a.Status==='Absent').length,state.currentCycle,state.progress+'/4',so.length];
+  });
+  const csv=[['Student','ID','Normal Time','Present','Absent','Cycle','Package','Orders'],...rows].map(row=>row.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=`scrabble-report-${month||'report'}.csv`;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+}
+function printReport(){window.print();}
+
 function showStudentForm(){
   showModal(`<div class="student-form-modal">
     <div class="student-form-header"><div><div class="eyebrow">STUDENT MANAGEMENT</div><h2>Add New Student</h2><p>Register a student and assign the initial four class package.</p></div><button class="modal-close" onclick="closeModal()" aria-label="Close">×</button></div>
