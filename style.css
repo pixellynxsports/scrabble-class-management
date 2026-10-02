@@ -609,3 +609,53 @@ body{background:#eef2f6}
   .quick-actions{grid-template-columns:1fr}
   .att-actions{grid-template-columns:1fr 1fr 1fr}
 }
+
+/* 2026-10-03 reports and navigation polish */
+.report-controls{
+  display:flex;
+  align-items:end;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.report-controls input{min-height:40px}
+.report-metrics{grid-template-columns:repeat(4,1fr)}
+.report-main-grid{grid-template-columns:1fr 1fr}
+.report-summary{margin-top:12px}
+.report-stat-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  padding:11px 0;
+  border-bottom:1px solid #edf0f4;
+}
+.report-stat-row:last-of-type{border-bottom:0}
+.report-stat-row span{color:#667085;font-size:13px}
+.report-stat-row strong{font-size:15px;color:#172033}
+.report-progress{
+  height:9px;
+  background:#edf0f4;
+  border-radius:99px;
+  overflow:hidden;
+  margin:15px 0 8px;
+}
+.report-progress>div{
+  height:100%;
+  background:#172033;
+  border-radius:99px;
+}
+.report-student-panel .scroll{border-top:1px solid #edf0f4;margin-top:12px}
+@media(max-width:1000px){
+  .report-metrics{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:650px){
+  .report-controls{width:100%;display:grid;grid-template-columns:1fr 1fr}
+  .report-controls label{grid-column:1 / -1}
+  .report-controls input{width:100%}
+  .report-controls button{width:100%;min-height:42px}
+  .report-metrics,.report-main-grid{grid-template-columns:1fr}
+  .report-stat-row{padding:12px 0}
+  .report-student-panel{margin-top:12px!important}
+  .report-student-panel table{min-width:680px}
+  .side{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
