@@ -591,7 +591,36 @@ function attendanceRow(s,date){const a=DATA.attendance.find(x=>String(x['Student
 async function setAttendance(studentId,date,classTime,status){const existing=DATA.attendance.find(a=>String(a['Student ID'])===String(studentId)&&attendanceDateKey(a.Date)===date);try{await run('saveAttendance',{attendanceId:existing?.['Attendance ID']||'',studentId,date,classTime,status,notes:''});DATA=await run('getData');renderAll()}catch(e){alert(e.message||e)}}
 async function resetAttendanceAction(studentId,date){try{DATA=await run('resetAttendance',studentId,date);renderAll()}catch(e){alert(e.message||e)}}
 function setStudentView(view){studentView=view;document.getElementById('activeStudentsBtn')?.classList.toggle('active',view==='active');document.getElementById('archivedStudentsBtn')?.classList.toggle('active',view==='archived');renderStudents()}
-function renderStudents(){const q=(document.getElementById('studentSearch')?.value||'').toLowerCase();const rows=DATA.students.filter(s=>(studentView==='archived'?String(s.Active||'').toLowerCase()==='no':String(s.Active||'yes').toLowerCase()!=='no')).filter(s=>Object.values(s).some(v=>String(v).toLowerCase().includes(q))).sort((a,b)=>String(a['Student Name']).localeCompare(String(b['Student Name']))).map(s=>{const c=cycleFor(s['Student ID']);const archived=String(s.Active||'').toLowerCase()==='no';const action=archived?`<button class="secondary" onclick="event.stopPropagation();editStudent('${esc(s['Student ID'])}')">Edit</button><button class="secondary" onclick="event.stopPropagation();openTeacherParentPreview('${esc(s['Student ID'])}')">View Parent Portal</button><button class="secondary" onclick="event.stopPropagation();generateParentLoginDetails('${esc(s['Student ID'])}',this)">Generate Password & Email</button><button class="secondary" onclick="event.stopPropagation();restoreStudent('${esc(s['Student ID'])}')">Restore</button>`:`<button class="secondary" onclick="event.stopPropagation();editStudent('${esc(s['Student ID'])}')">Edit</button><button class="secondary" onclick="event.stopPropagation();openTeacherParentPreview('${esc(s['Student ID'])}')">View Parent Portal</button><button class="secondary" onclick="event.stopPropagation();generateParentLoginDetails('${esc(s['Student ID'])}',this)">Generate Password & Email</button><button class="secondary" onclick="event.stopPropagation();archiveStudent('${esc(s['Student ID'])}')">Archive</button>`;return `<tr class="clickable" onclick="openStudent('${esc(s['Student ID'])}')"><td>${esc(s['Student ID'])}</td><td><b>${esc(s['Student Name'])}</b></td><td>${esc(s.School||'')}</td><td>${esc(s['Normal Class Time']||'')}</td><td>${c} / 4</td><td>${badge(c)}</td><td>${esc(formatDateClient(s['Registration Date']))}</td><td><div class="actions inline-actions">${action}</div></td></tr>`}).join('');document.getElementById('studentsBody').innerHTML=rows||'<tr><td colspan="8" class="empty">No students found.</td></tr>'}
+function closeStudentActionMenus(){document.querySelectorAll('.student-action-menu.show').forEach(m=>m.classList.remove('show'))}
+function toggleStudentActionMenu(event,id){
+  event.stopPropagation();
+  const menu=document.getElementById('studentActionMenu-'+String(id).replace(/[^a-zA-Z0-9_-]/g,'_'));
+  if(!menu)return;
+  const wasOpen=menu.classList.contains('show');
+  closeStudentActionMenus();
+  if(!wasOpen)menu.classList.add('show');
+}
+function runStudentAction(event,fn,id){event.stopPropagation();closeStudentActionMenus();fn(id)}
+document.addEventListener('click',event=>{if(!event.target.closest('.student-action-wrap'))closeStudentActionMenus()});
+function renderStudents(){
+  const q=(document.getElementById('studentSearch')?.value||'').toLowerCase();
+  const rows=DATA.students
+    .filter(s=>(studentView==='archived'?String(s.Active||'').toLowerCase()==='no':String(s.Active||'yes').toLowerCase()!=='no'))
+    .filter(s=>Object.values(s).some(v=>String(v).toLowerCase().includes(q)))
+    .sort((a,b)=>String(a['Student Name']).localeCompare(String(b['Student Name'])))
+    .map(s=>{
+      const state=paymentStateFor(s['Student ID']);
+      const progress=state.progress;
+      const currentCycle=state.currentCycle||1;
+      const archived=String(s.Active||'').toLowerCase()==='no';
+      const safeId=String(s['Student ID']).replace(/[^a-zA-Z0-9_-]/g,'_');
+      const finalAction=archived?'Restore Student':'Archive Student';
+      const finalFn=archived?'restoreStudent':'archiveStudent';
+      const action=`<div class="student-action-wrap"><button class="student-action-trigger" type="button" aria-label="Student actions" aria-haspopup="true" onclick="toggleStudentActionMenu(event,'${esc(s['Student ID'])}')">⋮</button><div class="student-action-menu" id="studentActionMenu-${safeId}" role="menu"><button type="button" onclick="runStudentAction(event,editStudent,'${esc(s['Student ID'])}')">Edit Student</button><button type="button" onclick="runStudentAction(event,openTeacherParentPreview,'${esc(s['Student ID'])}')">View Parent Portal</button><button type="button" onclick="runStudentAction(event,generateParentLoginDetails,'${esc(s['Student ID'])}')">Generate Password &amp; Email</button><div class="student-action-divider"></div><button type="button" class="danger" onclick="runStudentAction(event,${finalFn},'${esc(s['Student ID'])}')">${finalAction}</button></div></div>`;
+      return `<tr class="clickable" onclick="openStudent('${esc(s['Student ID'])}')"><td>${esc(s['Student ID'])}</td><td><b>${esc(s['Student Name'])}</b></td><td>${esc(s['Normal Class Time']||'')}</td><td>${currentCycle}</td><td>${progress} / 4</td><td>${badge(progress)}</td><td>${esc(formatDateClient(s['Registration Date']))}</td><td>${action}</td></tr>`
+    }).join('');
+  document.getElementById('studentsBody').innerHTML=rows||'<tr><td colspan="8" class="empty">No students found.</td></tr>'
+}
 async function archiveStudent(id){if(!confirm('Archive this student? Historical records will be preserved.'))return;try{DATA=await run('archiveStudent',id);renderAll()}catch(e){alert(e.message||e)}}
 async function restoreStudent(id){try{DATA=await run('restoreStudent',id);renderAll()}catch(e){alert(e.message||e)}}
 function renderProfile(id){if(document.getElementById('studentProfile').classList.contains('active'))openStudent(id)}
