@@ -214,3 +214,8 @@ table{font-size:12px}th{font-size:9px;letter-spacing:.07em;color:#667085;backgro
 .student-action-menu button.danger{color:#b42318}
 .student-action-menu button.danger:hover{background:#fff1f0}
 .student-action-divider{height:1px;margin:5px 4px;background:#e7eaf0}
+
+/* Student table sorting */
+.student-sort-button{width:100%;padding:0;border:0;background:transparent;color:inherit;font:inherit;font-size:inherit;letter-spacing:inherit;text-transform:inherit;text-align:left;cursor:pointer;display:flex;align-items:center;justify-content:flex-start;gap:3px}
+.student-sort-button:hover{color:#315efb}
+.student-sort-indicator{font-size:10px;line-height:1;min-width:8px}
