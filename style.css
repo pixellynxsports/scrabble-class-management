@@ -764,3 +764,27 @@ body{background:#eef2f6}
  .report-student-filters{display:grid;grid-template-columns:1fr}
  .report-student-filters select{width:100%}
 }
+
+/* New Registrations workspace */
+.registration-review-page{padding-bottom:40px}
+.registration-review-page>.page-intro{margin-bottom:16px}
+.registration-review-page>.page-intro h2{font-size:28px}
+.registration-filter{display:flex;gap:8px;margin:0 0 16px;flex-wrap:wrap}
+.registration-filter .secondary{min-width:120px}
+.registration-filter .secondary.active{background:#172033;color:#fff;border-color:#172033;box-shadow:0 4px 12px rgba(23,32,51,.14)}
+.registration-review-card{position:relative;background:#fff;border:1px solid #e2e7ef;border-radius:16px;padding:20px;margin-bottom:13px;box-shadow:0 5px 18px rgba(16,24,40,.045);transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+.registration-review-card:hover{transform:translateY(-1px);box-shadow:0 9px 24px rgba(16,24,40,.08);border-color:#cfd7e4}
+.registration-card-top h3{font-size:20px;margin:5px 0 4px;color:#172033}
+.registration-card-top .subtle{font-size:13px}
+.registration-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:0;border-top:1px solid #edf0f4;margin-top:17px;padding-top:16px}
+.registration-grid>div{padding:8px 16px 8px 0}
+.registration-grid small{font-size:10px;letter-spacing:.07em;font-weight:700;color:#8791a3}
+.registration-grid strong{font-size:13px;color:#263247;line-height:1.35}
+.registration-card-bottom{margin-top:15px;padding-top:14px}
+.registration-actions .primary,.registration-actions .secondary{min-width:104px}
+.registration-empty{min-height:250px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px!important}
+.registration-empty-icon{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;background:#eef3fb;color:#172033;font-size:20px;font-weight:800;margin-bottom:12px}
+.registration-empty h3{margin:0 0 5px;font-size:18px}
+.registration-empty p{margin:0;max-width:430px}
+@media(max-width:900px){.registration-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){.registration-review-page>.page-intro{align-items:flex-start}.registration-review-page>.page-intro h2{font-size:24px}.registration-filter{display:grid;grid-template-columns:1fr 1fr 1fr}.registration-filter .secondary{min-width:0;padding:10px 7px}.registration-grid{grid-template-columns:1fr}.registration-grid>div{padding-right:0}.registration-card-top{flex-direction:column}.registration-card-top .badge{align-self:flex-start}.registration-actions{width:100%}}
