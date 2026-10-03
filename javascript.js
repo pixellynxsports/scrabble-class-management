@@ -15,23 +15,38 @@ let authInitialised=false;
 const parentPaymentReturn=new URLSearchParams(window.location.search).get('payment_return')==='1';
 let parentPaymentProcessing=false;
 let parentPaymentReturnHandled=false;
+async function loadAchievementsSafely(studentIds=null){
+  try{
+    let query=supabaseClient.from('student_achievements').select('*').order('achievement_date',{ascending:false});
+    if(Array.isArray(studentIds)&&studentIds.length)query=query.in('student_id',studentIds);
+    const {data,error}=await query;
+    if(error){
+      console.warn('Achievements are temporarily unavailable:',error);
+      return [];
+    }
+    return data||[];
+  }catch(error){
+    console.warn('Achievements are temporarily unavailable:',error);
+    return [];
+  }
+}
 async function loadRemoteData(){
-  const [s,a,p,o,achievements,settings]=await Promise.all([
+  const [s,a,p,o,settings]=await Promise.all([
     supabaseClient.from('students').select('*').order('student_name'),
     supabaseClient.from('attendance').select('*').order('attendance_date',{ascending:false}),
     supabaseClient.from('payments').select('*').order('payment_date',{ascending:false}),
     supabaseClient.from('orders').select('*').order('order_date',{ascending:false}),
-    supabaseClient.from('student_achievements').select('*').order('achievement_date',{ascending:false}),
     supabaseClient.from('settings').select('*')
   ]);
-  for(const result of [s,a,p,o,achievements,settings]){if(result.error)throw dbError(result.error)}
+  for(const result of [s,a,p,o,settings]){if(result.error)throw dbError(result.error)}
   const cfg={fee:50,classesPerCycle:4,classTimes:['10:30 AM','2:00 PM']};
   settings.data?.forEach(x=>{if(x.setting==='fee')cfg.fee=Number(x.value)||50;if(x.setting==='classesPerCycle')cfg.classesPerCycle=Number(x.value)||4;if(x.setting==='classTimes'){try{const v=JSON.parse(x.value);if(Array.isArray(v)&&v.length)cfg.classTimes=v}catch(e){}}});
-  return {students:(s.data||[]).map(studentFromDb),attendance:(a.data||[]).map(attendanceFromDb),payments:(p.data||[]).map(paymentFromDb),orders:(o.data||[]).map(orderFromDb),achievements:achievements.data||[],config:cfg};
+  const achievements=await loadAchievementsSafely();
+  return {students:(s.data||[]).map(studentFromDb),attendance:(a.data||[]).map(attendanceFromDb),payments:(p.data||[]).map(paymentFromDb),orders:(o.data||[]).map(orderFromDb),achievements,config:cfg};
 }
 async function refreshOnline(silent=false){if(currentUserRole==='parent'){await loadParentPortal();return;}try{DATA=await loadRemoteData();document.getElementById('connection').textContent='● Online';document.getElementById('connection').classList.remove('off');renderAll();if(!silent)appNotify('Online data refreshed.')}catch(e){document.getElementById('connection').textContent='● Connection error';document.getElementById('connection').classList.add('off');if(!silent)appNotify(e.message||e);throw e}}
 async function getCurrentParentAccount(){const {data,error}=await supabaseClient.auth.getUser();if(error)throw dbError(error);const uid=data.user?.id;if(!uid)throw new Error('Your session has expired. Please sign in again.');const {data:account,error:accountError}=await supabaseClient.from('parent_accounts').select('user_id,parent_name,email,whatsapp,active,must_change_password').eq('user_id',uid).maybeSingle();if(accountError)throw dbError(accountError);return account;}
-async function loadParentPortal(){const account=await getCurrentParentAccount();if(!account)throw new Error('This account is not registered as a parent account.');if(account.active===false)throw new Error('This parent account is inactive. Please contact the teacher.');const {data:links,error:linkError}=await supabaseClient.from('parent_students').select('student_id').eq('parent_user_id',account.user_id);if(linkError)throw dbError(linkError);const ids=(links||[]).map(x=>x.student_id).filter(Boolean);let students=[],attendance=[],payments=[],orders=[],achievements=[];if(ids.length){const [s,a,p,o,ach]=await Promise.all([supabaseClient.from('students').select('student_id,student_name,school,age,scrabble_experience,parent_guardian,whatsapp,normal_class_time,email,registration_date,active').in('student_id',ids).order('student_name'),supabaseClient.from('attendance').select('*').in('student_id',ids).order('attendance_date',{ascending:false}),supabaseClient.from('payments').select('*').in('student_id',ids).order('payment_date',{ascending:false}),supabaseClient.from('orders').select('*').in('student_id',ids).eq('archived',false).order('order_date',{ascending:false}),supabaseClient.from('student_achievements').select('*').in('student_id',ids).order('achievement_date',{ascending:false})]);for(const result of [s,a,p,o,ach]){if(result.error)throw dbError(result.error)}students=s.data||[];attendance=(a.data||[]).map(attendanceFromDb);payments=(p.data||[]).map(paymentFromDb);orders=(o.data||[]).map(orderFromDb);achievements=ach.data||[];}PARENT_CONTEXT={account,students,attendance,payments,orders,achievements,selectedStudentId:ids[0]||''};renderParentPortal();setConnection('● Online',false);if(parentPaymentReturn&&!parentPaymentReturnHandled&&!parentPaymentProcessing){parentPaymentReturnHandled=true;checkReturnedPayment();}}
+async function loadParentPortal(){const account=await getCurrentParentAccount();if(!account)throw new Error('This account is not registered as a parent account.');if(account.active===false)throw new Error('This parent account is inactive. Please contact the teacher.');const {data:links,error:linkError}=await supabaseClient.from('parent_students').select('student_id').eq('parent_user_id',account.user_id);if(linkError)throw dbError(linkError);const ids=(links||[]).map(x=>x.student_id).filter(Boolean);let students=[],attendance=[],payments=[],orders=[],achievements=[];if(ids.length){const [s,a,p,o]=await Promise.all([supabaseClient.from('students').select('student_id,student_name,school,age,scrabble_experience,parent_guardian,whatsapp,normal_class_time,email,registration_date,active').in('student_id',ids).order('student_name'),supabaseClient.from('attendance').select('*').in('student_id',ids).order('attendance_date',{ascending:false}),supabaseClient.from('payments').select('*').in('student_id',ids).order('payment_date',{ascending:false}),supabaseClient.from('orders').select('*').in('student_id',ids).eq('archived',false).order('order_date',{ascending:false})]);for(const result of [s,a,p,o]){if(result.error)throw dbError(result.error)}students=s.data||[];attendance=(a.data||[]).map(attendanceFromDb);payments=(p.data||[]).map(paymentFromDb);orders=(o.data||[]).map(orderFromDb);achievements=await loadAchievementsSafely(ids);}PARENT_CONTEXT={account,students,attendance,payments,orders,achievements,selectedStudentId:ids[0]||''};renderParentPortal();setConnection('● Online',false);if(parentPaymentReturn&&!parentPaymentReturnHandled&&!parentPaymentProcessing){parentPaymentReturnHandled=true;checkReturnedPayment();}}
 /* ===== PAYMENT DOMAIN ===== */
 let paymentStateCache=new Map();
 let paymentStateCachePayments=null;
