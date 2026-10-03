@@ -697,3 +697,92 @@
     padding:12px 17px;
   }
 }
+
+
+/* Tournament control center refinement */
+.tournament-live-head{
+  display:flex;align-items:center;justify-content:space-between;gap:18px;
+  padding:18px 20px;margin-bottom:12px;
+  border:1px solid #dfe5ee;border-radius:15px;background:#fff;
+}
+.tournament-live-head h3{margin:3px 0 4px;font-size:17px;color:#101828}
+.tournament-live-head p{margin:0;color:#667085;font-size:11px}
+.tournament-live-actions{display:flex;align-items:center;gap:9px;flex:none}
+.tournament-live-actions button:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.live-round-panel{margin-top:0}
+.tournament-finish-hint{
+  display:flex;align-items:center;gap:8px;margin-top:10px;padding:11px 14px;
+  border:1px solid #dbe7ff;border-radius:11px;background:#f7f9ff;color:#475467;font-size:11px;
+}
+.tournament-finish-hint strong{color:#315efb}
+.tournament-finish-hint span{color:#667085}
+.tournament-round-summary{
+  width:100%;text-align:left;cursor:pointer;
+  border:1px solid #e1e6ed;background:#fff;border-radius:15px;padding:18px;
+  transition:border-color .15s ease,box-shadow .15s ease,transform .15s ease;
+}
+.tournament-round-summary:hover{border-color:#b9c9ff;box-shadow:0 8px 22px rgba(15,23,42,.06);transform:translateY(-1px)}
+.tournament-round-summary.selected{border-color:#315efb;box-shadow:0 0 0 2px rgba(49,94,251,.08)}
+.tournament-round-summary h3{margin:3px 0;color:#101828}
+.tournament-round-summary small{display:block;margin-top:12px;color:#98a2b3}
+.tournament-rounds-head{margin-bottom:13px}
+.tournament-rounds-head h3{margin:3px 0}
+.tournament-round-detail{margin-top:15px;padding:0;overflow:hidden}
+.tournament-round-detail-head{
+  display:flex;justify-content:space-between;align-items:flex-start;gap:15px;
+  padding:20px;border-bottom:1px solid #e7ebf0;
+}
+.tournament-round-detail-head h3{margin:3px 0}
+.tournament-viewing-banner{
+  margin:14px 20px 0;padding:10px 12px;border-radius:9px;
+  background:#f7f8fa;border:1px solid #e6eaf0;color:#667085;font-size:10px;
+}
+.tournament-round-detail .tournament-match-list{padding:0 20px 10px}
+.tournament-settings-shell{display:grid;gap:14px}
+.tournament-settings-hero{
+  display:flex;justify-content:space-between;align-items:center;gap:20px;
+  padding:22px;border:1px solid #dce4ef;border-radius:17px;
+  background:linear-gradient(135deg,#101828,#1c2b47);color:#fff;
+  box-shadow:0 12px 30px rgba(15,23,42,.12);
+}
+.tournament-settings-hero h3{margin:4px 0;font-size:22px;color:#fff}
+.tournament-settings-hero p{margin:0;color:#bdc8d9;font-size:11px}
+.tournament-settings-grid.premium{grid-template-columns:repeat(4,1fr)}
+.tournament-setting-card{
+  min-height:110px;padding:17px;border:1px solid #e1e6ed;border-radius:13px;background:#fff;
+}
+.tournament-setting-card span,.tournament-setting-card small{display:block;color:#98a2b3;font-size:9px;text-transform:uppercase;letter-spacing:.07em;font-weight:800}
+.tournament-setting-card b{display:block;margin:8px 0 4px;color:#101828;font-size:14px}
+.tournament-setting-card small{font-size:9px;text-transform:none;letter-spacing:0;font-weight:500;color:#667085}
+.tournament-settings-columns{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.tournament-settings-section{padding:19px}
+.tournament-settings-section h3{margin:3px 0 14px}
+.tournament-settings-lines,.tournament-rule-list{border-top:1px solid #edf0f4}
+.tournament-settings-lines>div,.tournament-rule-list>div{
+  display:flex;justify-content:space-between;gap:15px;padding:11px 0;border-bottom:1px solid #edf0f4;
+  font-size:11px;
+}
+.tournament-settings-lines span,.tournament-rule-list span{color:#667085}
+.tournament-settings-lines strong,.tournament-rule-list strong{color:#172033}
+.tournament-settings-note p{margin:0 0 13px;color:#667085;font-size:11px;line-height:1.5}
+.tournament-edit-form{padding:20px}
+.tournament-edit-form .tournament-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tournament-edit-form .tournament-field{display:grid;gap:6px}
+.tournament-edit-form .tournament-field.full{grid-column:1/-1}
+.tournament-edit-form label{font-size:10px;font-weight:800;color:#344054}
+.tournament-edit-form input,.tournament-edit-form textarea{width:100%;min-height:43px}
+.tournament-edit-form textarea{min-height:80px}
+@media(max-width:900px){
+  .tournament-settings-grid.premium{grid-template-columns:1fr 1fr}
+}
+@media(max-width:700px){
+  .tournament-live-head{align-items:flex-start;flex-direction:column}
+  .tournament-live-actions{width:100%;justify-content:space-between}
+  .tournament-live-actions button{flex:1}
+  .tournament-finish-hint{align-items:flex-start;flex-direction:column}
+  .tournament-settings-columns,.tournament-settings-grid.premium{grid-template-columns:1fr}
+  .tournament-settings-hero{align-items:flex-start;flex-direction:column}
+  .tournament-round-detail-head{align-items:flex-start;flex-direction:column}
+  .tournament-edit-form .tournament-form-grid{grid-template-columns:1fr}
+  .tournament-edit-form .tournament-field.full{grid-column:auto}
+}
