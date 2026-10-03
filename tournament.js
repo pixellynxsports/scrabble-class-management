@@ -5,7 +5,7 @@
 (function(){
   'use strict';
 
-  const state={tournaments:[],students:[],selected:null,players:[],rounds:[],matches:[],awards:[],standings:[],view:'overview',loaded:false,loading:false};
+  const state={tournaments:[],students:[],selected:null,players:[],rounds:[],matches:[],awards:[],standings:[],view:'overview',roundFocus:null,loaded:false,loading:false};
 
   const FORMAT_LABELS={
     single_elimination:'Single Elimination',
@@ -81,7 +81,7 @@
   async function open(id){
     const tournament=state.tournaments.find(function(t){return String(t.tournament_id)===String(id);});
     if(!tournament)return;
-    state.selected=tournament;state.view='overview';
+    state.selected=tournament;state.view='overview';state.roundFocus=null;
     try{await loadTournamentData(id);renderWorkspace();}catch(error){notifyT(error.message||String(error),'error','Tournament Could Not Open',{variant:'critical'});}
   }
 
@@ -134,15 +134,22 @@
   function playerName(id){const p=state.players.find(function(x){return String(x.player_id)===String(id);});return p?p.display_name:(id?'Unknown player':'BYE');}
 
   function renderPairings(){
-    const byRound={};state.matches.forEach(function(m){(byRound[m.round_number]||(byRound[m.round_number]=[])).push(m);});
-    const rounds=Object.keys(byRound).sort(function(a,b){return Number(a)-Number(b);});
-    if(!rounds.length)return '<div class="panel tournament-empty-panel"><div class="eyebrow">PAIRINGS</div><h3>No matches generated yet</h3><p class="subtle">Start the tournament to create the first round.</p></div>';
-    return '<div class="tournament-round-toolbar"><div><div class="eyebrow">MATCH CONTROL</div><h3>Pairings & Results</h3></div><div><span class="badge blue">'+state.matches.filter(function(m){return m.status==='completed';}).length+' completed</span></div></div>'+rounds.map(function(round){const matches=byRound[round];const done=matches.every(function(m){return m.status==='completed';});return '<div class="panel tournament-round-panel"><div class="row"><div><div class="eyebrow">ROUND '+escT(round)+'</div><h3>'+matches.length+' match'+(matches.length===1?'':'es')+'</h3></div><span class="badge '+(done?'present':'almost')+'">'+(done?'Complete':'In Progress')+'</span></div><div class="tournament-match-list">'+matches.map(matchCard).join('')+'</div></div>';}).join('');
+    const currentRound=Number(state.selected?.current_round||1);
+    const matches=state.matches.filter(function(m){return Number(m.round_number)===currentRound;});
+    if(!matches.length)return '<div class="panel tournament-empty-panel"><div class="eyebrow">LIVE PAIRINGS</div><h3>No live round is available</h3><p class="subtle">Start the tournament or finish the previous round to generate the next pairings.</p></div>';
+    const completed=matches.filter(function(m){return m.status==='completed';}).length;
+    const allComplete=completed===matches.length;
+    const roundRecord=state.rounds.find(function(r){return Number(r.round_number)===currentRound;});
+    const finished=roundRecord&&roundRecord.status==='completed';
+    return '<div class="tournament-live-head"><div><div class="eyebrow">LIVE ROUND</div><h3>Round '+escT(currentRound)+'</h3><p>Only the current round is shown here. Completed rounds are available in the Rounds panel.</p></div><div class="tournament-live-actions"><span class="badge '+(allComplete?'present':'almost')+'">'+completed+'/'+matches.length+' complete</span><button class="primary" type="button" '+(!allComplete||finished?'disabled':'')+' onclick="SCMSTournament.finishRound()">'+(currentRound>=Number(state.selected.rounds_total||1)?'Finish Final Round':'Finish Round')+' →</button></div></div>'+
+      '<div class="panel tournament-round-panel live-round-panel"><div class="tournament-match-list">'+matches.map(matchCard).join('')+'</div></div>'+
+      (allComplete&&!finished?'<div class="tournament-finish-hint"><strong>Round ready to finish.</strong><span>Review all results above, then click Finish Round. The next round will be created only after you confirm.</span></div>':'');
   }
 
   function matchCard(m){
     const p1=playerName(m.player1_id),p2=playerName(m.player2_id),completed=m.status==='completed',winner=m.winner_player_id?String(m.winner_player_id):'';
-    return '<div class="tournament-match-card '+(completed?'is-complete':'')+'"><div class="tournament-match-number">#'+escT(m.match_number)+'</div><div class="tournament-match-players"><div class="'+(winner&&winner===String(m.player1_id)?'winner':'')+'"><span>'+escT(p1)+'</span><b>'+(m.player1_score==null?'—':escT(m.player1_score))+'</b></div><div class="tournament-vs">VS</div><div class="'+(winner&&winner===String(m.player2_id)?'winner':'')+'"><span>'+escT(p2)+'</span><b>'+(m.player2_score==null?'—':escT(m.player2_score))+'</b></div></div><div class="tournament-match-side">'+(m.table_label?'<small>'+escT(m.table_label)+'</small>':'')+(completed?'<span class="badge present">Completed</span>':m.player1_id&&m.player2_id?'<button class="secondary" type="button" onclick="SCMSTournament.score(\''+escT(m.match_id)+'\')">Report Score</button>':'<span class="badge blue">BYE</span>')+'</div></div>';
+    const action=completed?'<button class="secondary small" type="button" onclick="SCMSTournament.score(\''+escT(m.match_id)+'\')">Edit Result</button>':m.player1_id&&m.player2_id?'<button class="secondary" type="button" onclick="SCMSTournament.score(\''+escT(m.match_id)+'\')">Report Score</button>':'<span class="badge blue">BYE</span>';
+    return '<div class="tournament-match-card '+(completed?'is-complete':'')+'"><div class="tournament-match-number">#'+escT(m.match_number)+'</div><div class="tournament-match-players"><div class="'+(winner&&winner===String(m.player1_id)?'winner':'')+'"><span>'+escT(p1)+'</span><b>'+(m.player1_score==null?'—':escT(m.player1_score))+'</b></div><div class="tournament-vs">VS</div><div class="'+(winner&&winner===String(m.player2_id)?'winner':'')+'"><span>'+escT(p2)+'</span><b>'+(m.player2_score==null?'—':escT(m.player2_score))+'</b></div></div><div class="tournament-match-side">'+(m.table_label?'<small>'+escT(m.table_label)+'</small>':'')+action+'</div></div>';
   }
 
   function calculateStandings(){
@@ -174,15 +181,47 @@
 
   function renderRounds(){
     if(!state.rounds.length)return '<div class="panel"><div class="empty">No rounds yet.</div></div>';
-    return '<div class="tournament-round-grid">'+state.rounds.map(function(r){const matches=state.matches.filter(function(m){return Number(m.round_number)===Number(r.round_number);});const done=matches.filter(function(m){return m.status==='completed';}).length;return '<div class="panel tournament-round-summary"><div class="eyebrow">ROUND '+escT(r.round_number)+'</div><h3>'+escT(statusLabel(r.status))+'</h3><div class="tournament-round-summary-stat"><strong>'+done+'/'+matches.length+'</strong><span>matches complete</span></div><small>'+escT(r.created_at?dateLabel(r.created_at.slice(0,10)):'')+'</small></div>';}).join('')+'</div>';
+    const selectedRound=state.roundFocus?Number(state.roundFocus):null;
+    const cards=state.rounds.map(function(r){
+      const matches=state.matches.filter(function(m){return Number(m.round_number)===Number(r.round_number);});
+      const done=matches.filter(function(m){return m.status==='completed';}).length;
+      const isLive=Number(r.round_number)===Number(state.selected.current_round)&&state.selected.status==='active';
+      return '<button type="button" class="tournament-round-summary '+(selectedRound===Number(r.round_number)?'selected':'')+'" onclick="SCMSTournament.viewRound('+Number(r.round_number)+')"><div class="row"><div><div class="eyebrow">ROUND '+escT(r.round_number)+'</div><h3>'+escT(isLive?'Live Round':statusLabel(r.status))+'</h3></div><span class="badge '+(r.status==='completed'?'present':isLive?'blue':'neutral')+'">'+(r.status==='completed'?'Completed':isLive?'Live':'Scheduled')+'</span></div><div class="tournament-round-summary-stat"><strong>'+done+'/'+matches.length+'</strong><span>matches complete</span></div><small>'+escT(r.created_at?dateLabel(r.created_at.slice(0,10)):'')+'</small></button>';
+    }).join('');
+    let detail='';
+    if(selectedRound){
+      const r=state.rounds.find(function(x){return Number(x.round_number)===selectedRound;});
+      const matches=state.matches.filter(function(m){return Number(m.round_number)===selectedRound;});
+      const completed=r&&r.status==='completed';
+      detail='<div class="panel tournament-round-detail"><div class="tournament-round-detail-head"><div><div class="eyebrow">'+(completed?'VIEWING MODE':'ROUND DETAIL')+'</div><h3>Round '+escT(selectedRound)+'</h3><p class="subtle">'+(completed?'This round is complete. Review or edit any recorded result.':'This is the current round. Use Pairings for live match control.')+'</p></div><button class="secondary" type="button" onclick="SCMSTournament.clearRoundView()">Back to Rounds</button></div><div class="tournament-viewing-banner">'+(completed?'🔒 Completed round · No pairing actions are available here.':'● Live round · Match actions are managed from Pairings.')+'</div><div class="tournament-match-list">'+matches.map(matchCard).join('')+'</div></div>';
+    }
+    return '<div class="tournament-rounds-head"><div><div class="eyebrow">ROUND HISTORY</div><h3>Rounds</h3><p class="subtle">Select any round to inspect its complete record. Completed rounds open in viewing mode.</p></div></div><div class="tournament-round-grid">'+cards+'</div>'+detail;
   }
 
   function renderSettings(){
     const t=state.selected;
-    return '<div class="panel tournament-settings-panel"><div class="eyebrow">TOURNAMENT SETTINGS</div><h3>Configuration</h3><div class="tournament-settings-grid"><div><span>Name</span><b>'+escT(t.name)+'</b></div><div><span>Format</span><b>'+escT(formatLabel(t.format))+'</b></div><div><span>Rounds</span><b>'+escT(t.rounds_total||'Auto')+'</b></div><div><span>Date</span><b>'+escT(dateLabel(t.event_date))+'</b></div></div><p class="subtle">Advanced rules are stored with this tournament so historical records remain self-contained.</p>'+(t.status==='draft'||t.status==='ready'?'<button class="secondary" type="button" onclick="SCMSTournament.editTournament()">Edit Tournament</button>':'')+'</div>';
+    const completed=state.matches.filter(function(m){return m.status==='completed';}).length;
+    const total=state.matches.length;
+    const locked=!['draft','ready'].includes(t.status);
+    return '<div class="tournament-settings-shell">'+
+      '<div class="tournament-settings-hero"><div><div class="eyebrow">TOURNAMENT CONTROL CENTER</div><h3>'+escT(t.name)+'</h3><p>Manage the competition identity, format rules and record protection from one place.</p></div><span class="tournament-big-status '+statusClass(t.status)+'">'+escT(statusLabel(t.status))+'</span></div>'+
+      '<div class="tournament-settings-grid premium">'+
+        '<div class="tournament-setting-card"><span>Competition</span><b>'+escT(t.name)+'</b><small>Official tournament name</small></div>'+
+        '<div class="tournament-setting-card"><span>Format</span><b>'+escT(formatLabel(t.format))+'</b><small>Pairing engine</small></div>'+
+        '<div class="tournament-setting-card"><span>Schedule</span><b>'+escT(dateLabel(t.event_date))+'</b><small>'+(t.start_time?escT(t.start_time):'Start time not set')+'</small></div>'+
+        '<div class="tournament-setting-card"><span>Round Plan</span><b>'+escT(t.rounds_total||'Auto')+'</b><small>Maximum scheduled rounds</small></div>'+
+      '</div>'+
+      '<div class="tournament-settings-columns">'+
+        '<div class="panel tournament-settings-section"><div class="eyebrow">LIVE RECORD</div><h3>Competition Status</h3><div class="tournament-settings-lines"><div><span>Current round</span><strong>'+escT(t.current_round||0)+'</strong></div><div><span>Players</span><strong>'+escT(state.players.length)+'</strong></div><div><span>Results recorded</span><strong>'+completed+' / '+total+'</strong></div><div><span>Rounds completed</span><strong>'+state.rounds.filter(function(r){return r.status==='completed';}).length+'</strong></div></div></div>'+
+        '<div class="panel tournament-settings-section"><div class="eyebrow">RULES</div><h3>Scoring & Pairing</h3><div class="tournament-rule-list"><div><span>Game</span><strong>Scrabble</strong></div><div><span>Result</span><strong>Higher score wins</strong></div><div><span>Tie</span><strong>Recorded as tie</strong></div><div><span>Participant mode</span><strong>Manual selection</strong></div></div></div>'+
+      '</div>'+
+      '<div class="panel tournament-settings-section tournament-settings-note"><div class="eyebrow">RECORD SAFETY</div><h3>'+(locked?'Protected tournament record':'Editable setup')+'</h3><p>'+(locked?'The competition identity and format are preserved once play has started. Match results, participants before start and seeding remain separately manageable.':'You can edit the tournament setup before starting the first round.')+'</p>'+(locked?'':'<button class="primary" type="button" onclick="SCMSTournament.editTournament()">Edit Tournament Setup</button>')+'</div>'+
+    '</div>';
   }
 
-  function tab(name){state.view=name;renderWorkspace();}
+  function tab(name){state.view=name;if(name!=='rounds')state.roundFocus=null;renderWorkspace();}
+  function viewRound(roundNumber){state.view='rounds';state.roundFocus=Number(roundNumber);renderWorkspace();}
+  function clearRoundView(){state.roundFocus=null;renderWorkspace();}
 
   function showModal(html){
     const modal=document.getElementById('modal'),content=document.getElementById('modalContent');
@@ -386,8 +425,9 @@ async function saveParticipants(){
   }
 
   async function score(matchId){
-    const m=state.matches.find(function(x){return String(x.match_id)===String(matchId);});if(!m||m.status==='completed')return;
-    showModal('<div class="tournament-modal-head"><div><div class="eyebrow">REPORT RESULT</div><h2>Match #'+escT(m.match_number)+'</h2><p>Round '+escT(m.round_number)+' · '+escT(m.table_label||'Table')+'</p></div><button class="parent-close-button" type="button" onclick="SCMSTournament.closeModal()">×</button></div><form id="tScoreForm" class="tournament-score-form"><div class="tournament-score-grid"><div><span>'+escT(playerName(m.player1_id))+'</span><input id="score1" type="number" min="0" step="1" required placeholder="0"></div><div class="tournament-score-vs">VS</div><div><span>'+escT(playerName(m.player2_id))+'</span><input id="score2" type="number" min="0" step="1" required placeholder="0"></div></div><p class="subtle">The higher Scrabble score wins. Equal scores are recorded as a tie.</p><div class="tournament-form-footer"><button type="button" class="secondary" onclick="SCMSTournament.closeModal()">Cancel</button><button class="primary" type="submit">Save Result</button></div></form>');
+    const m=state.matches.find(function(x){return String(x.match_id)===String(matchId);});if(!m)return;
+    const editing=m.status==='completed';
+    showModal('<div class="tournament-modal-head"><div><div class="eyebrow">'+(editing?'EDIT RECORDED RESULT':'REPORT RESULT')+'</div><h2>Match #'+escT(m.match_number)+'</h2><p>Round '+escT(m.round_number)+' · '+escT(m.table_label||'Table')+(editing?' · Existing result':'')+'</p></div><button class="parent-close-button" type="button" onclick="SCMSTournament.closeModal()">×</button></div><form id="tScoreForm" class="tournament-score-form"><div class="tournament-score-grid"><div><span>'+escT(playerName(m.player1_id))+'</span><input id="score1" type="number" min="0" step="1" required value="'+escT(m.player1_score==null?'':m.player1_score)+'" placeholder="0"></div><div class="tournament-score-vs">VS</div><div><span>'+escT(playerName(m.player2_id))+'</span><input id="score2" type="number" min="0" step="1" required value="'+escT(m.player2_score==null?'':m.player2_score)+'" placeholder="0"></div></div><p class="subtle">'+(editing?'You can correct this recorded result. The tournament record will be recalculated from the saved scores.':'The higher Scrabble score wins. Equal scores are recorded as a tie.')+'</p><div class="tournament-form-footer"><button type="button" class="secondary" onclick="SCMSTournament.closeModal()">Cancel</button><button class="primary" type="submit">'+(editing?'Save Correction':'Save Result')+'</button></div></form>');
     document.getElementById('tScoreForm').onsubmit=function(e){e.preventDefault();saveScore(m);};
   }
 
@@ -395,29 +435,46 @@ async function saveParticipants(){
     const s1=Number(document.getElementById('score1').value),s2=Number(document.getElementById('score2').value);if(!Number.isFinite(s1)||!Number.isFinite(s2)){notifyT('Enter both scores.','warning','Score Required');return;}
     const winner=s1>s2?m.player1_id:s2>s1?m.player2_id:null;
     const result=await supabaseClient.from('tournament_matches').update({player1_score:s1,player2_score:s2,winner_player_id:winner,status:'completed'}).eq('match_id',m.match_id);if(result.error){notifyT(result.error.message,'error','Result Not Saved',{variant:'critical'});return;}
-    closeModal();await finalizeRoundIfReady(Number(m.round_number));await loadTournamentData(state.selected.tournament_id);state.view='pairings';renderWorkspace();notifyT('Match result saved and standings updated.','success','Result Recorded',{variant:'payment'});
+    closeModal();
+    if(m.status!=='completed')await finalizeRoundIfReady(Number(m.round_number));
+    await loadTournamentData(state.selected.tournament_id);
+    state.view='pairings';state.roundFocus=null;renderWorkspace();
+    notifyT(m.status==='completed'?'Recorded result corrected.':'Result recorded. Finish the round when all matches are complete.','success',m.status==='completed'?'Result Updated':'Result Recorded',{variant:'payment'});
   }
 
   async function finalizeRoundIfReady(roundNumber){
     const result=await supabaseClient.from('tournament_matches').select('*').eq('tournament_id',state.selected.tournament_id).eq('round_number',roundNumber);if(result.error)throw result.error;
-    const current=result.data||[];if(!current.length||current.some(function(m){return m.status!=='completed';}))return;
-    await supabaseClient.from('tournament_rounds').update({status:'completed',completed_at:new Date().toISOString()}).eq('tournament_id',state.selected.tournament_id).eq('round_number',roundNumber);
-    const t=state.selected,nextRound=roundNumber+1;
-    if(t.format==='single_elimination'){
-      const winners=current.map(function(m){return m.winner_player_id;}).filter(Boolean);
-      if(winners.length>1){
-        await supabaseClient.from('tournaments').update({current_round:nextRound}).eq('tournament_id',t.tournament_id);
-        await createRoundAndMatches(nextRound,eliminationPairsFromWinners(winners));
-      }else await supabaseClient.from('tournaments').update({current_round:roundNumber}).eq('tournament_id',t.tournament_id);
-      return;
-    }
-    if(t.format==='round_robin'||t.format==='swiss'){
+    const current=result.data||[];if(!current.length||current.some(function(m){return m.status!=='completed';}))return false;
+    const update=await supabaseClient.from('tournament_rounds').update({status:'completed',completed_at:new Date().toISOString()}).eq('tournament_id',state.selected.tournament_id).eq('round_number',roundNumber);if(update.error)throw update.error;
+    return true;
+  }
+
+  async function finishRound(){
+    const t=state.selected;if(!t||t.status!=='active')return;
+    const roundNumber=Number(t.current_round||1);
+    await loadTournamentData(t.tournament_id);
+    const current=state.matches.filter(function(m){return Number(m.round_number)===roundNumber;});
+    if(!current.length){notifyT('There are no matches in the current round.','warning','Round Not Ready');return;}
+    if(current.some(function(m){return m.status!=='completed';})){notifyT('Complete every match in the live round before finishing it.','warning','Matches Still Open');return;}
+    const roundRecord=state.rounds.find(function(r){return Number(r.round_number)===roundNumber;});
+    if(roundRecord&&roundRecord.status==='completed'){notifyT('This round has already been finished.','info','Round Complete');return;}
+    if(!(await confirmT('Finish Round '+roundNumber+'? The round will be locked as complete and the next round will be created only after this confirmation.','Finish Round')))return;
+    try{
+      await finalizeRoundIfReady(roundNumber);
+      const nextRound=roundNumber+1;
       if(nextRound<=Number(t.rounds_total||1)){
+        const pairs=generatePairs(nextRound);
         await supabaseClient.from('tournaments').update({current_round:nextRound}).eq('tournament_id',t.tournament_id);
-        state.rounds=state.rounds;state.matches=current.concat(state.matches.filter(function(m){return Number(m.round_number)!==roundNumber;}));
-        await createRoundAndMatches(nextRound,generatePairs(nextRound));
+        if(pairs.length)await createRoundAndMatches(nextRound,pairs);
+        await loadTournaments();await loadTournamentData(t.tournament_id);
+        state.view='pairings';state.roundFocus=null;renderWorkspace();
+        notifyT('Round '+roundNumber+' is complete. Round '+nextRound+' is now live.','success','Next Round Ready',{variant:'registration'});
+      }else{
+        await loadTournaments();await loadTournamentData(t.tournament_id);
+        state.view='pairings';state.roundFocus=null;renderWorkspace();
+        notifyT('Final round completed. Review the final standings, then end the tournament.','success','Final Round Complete',{variant:'registration'});
       }
-    }
+    }catch(error){notifyT(error.message||String(error),'error','Round Could Not Finish',{variant:'critical'});}
   }
 
   async function finish(){
@@ -489,7 +546,11 @@ async function saveParticipants(){
     await loadTournaments();await open(state.selected.tournament_id);notifyT('Tournament reopened. Correct the relevant results, then end it again.','info','Tournament Reopened');
   }
 
-  function editTournament(){notifyT('Tournament settings are intentionally protected after creation in this release. Participant management remains available before the tournament starts.','info','Settings');}
+  function editTournament(){
+    const t=state.selected;if(!t||!['draft','ready'].includes(t.status))return;
+    showModal('<div class="tournament-modal-head"><div><div class="eyebrow">TOURNAMENT SETUP</div><h2>Edit Tournament Setup</h2><p>Update the competition details before the first round begins.</p></div><button class="parent-close-button" type="button" onclick="SCMSTournament.closeModal()">×</button></div><form id="editTournamentForm" class="tournament-edit-form"><div class="tournament-form-grid"><div class="tournament-field full"><label>Tournament Name</label><input id="eName" required value="'+escT(t.name)+'"></div><div class="tournament-field"><label>Event Date</label><input id="eDate" type="date" required value="'+escT(t.event_date||'')+'"></div><div class="tournament-field"><label>Start Time</label><input id="eTime" type="time" value="'+escT(t.start_time||'')+'"></div><div class="tournament-field full"><label>Description</label><textarea id="eDescription">'+escT(t.description||'')+'</textarea></div></div><div class="tournament-form-footer"><button type="button" class="secondary" onclick="SCMSTournament.closeModal()">Cancel</button><button class="primary" type="submit">Save Changes</button></div></form>');
+    document.getElementById('editTournamentForm').onsubmit=async function(e){e.preventDefault();try{const result=await supabaseClient.from('tournaments').update({name:document.getElementById('eName').value.trim(),event_date:document.getElementById('eDate').value,start_time:document.getElementById('eTime').value||null,description:document.getElementById('eDescription').value.trim()}).eq('tournament_id',t.tournament_id);if(result.error)throw result.error;closeModal();await loadTournaments();await open(t.tournament_id);notifyT('Tournament setup updated.','success','Settings Saved');}catch(error){notifyT(error.message||String(error),'error','Settings Not Saved',{variant:'critical'});}};
+  }
   function back(){state.selected=null;state.players=[];state.rounds=[];state.matches=[];state.awards=[];renderHome();}
   async function refresh(){await loadTournaments();if(state.selected)await open(state.selected.tournament_id);}
 
