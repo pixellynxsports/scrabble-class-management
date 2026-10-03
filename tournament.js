@@ -217,7 +217,7 @@
       '</div>'+
       '<div class="panel tournament-settings-section tournament-settings-note"><div class="eyebrow">RECORD SAFETY</div><h3>'+(locked?'Protected tournament record':'Editable setup')+'</h3><p>'+(locked?'The competition identity and format are preserved once play has started. Match results remain editable so corrections can be made without losing the tournament history.':'You can edit the tournament setup before starting the first round.')+'</p>'+(locked?'':'<button class="primary" type="button" onclick="SCMSTournament.editTournament()">Edit Tournament Setup</button>')+
       (t.status==='active'?'<div class="tournament-danger-zone"><div><div class="eyebrow">EMERGENCY CONTROL</div><h4>End Tournament Immediately</h4><p>Stops the competition now and preserves all results already recorded. Unfinished matches remain incomplete.</p></div><button class="danger" type="button" onclick="SCMSTournament.immediateEnd()">End Immediately</button></div>':'')+
-      (t.status==='completed'&&t.settings&&t.settings.ended_early?'<div class="tournament-danger-zone delete-zone"><div><div class="eyebrow">PERMANENT ACTION</div><h4>Delete Ended Tournament</h4><p>Permanently removes this tournament and its tournament records. This cannot be undone.</p></div><button class="danger" type="button" onclick="SCMSTournament.deleteTournament()">Delete Tournament</button></div>':'')+
+      (t.status==='completed'?'<div class="tournament-danger-zone delete-zone"><div><div class="eyebrow">PERMANENT ACTION</div><h4>Delete Tournament</h4><p>Permanently removes this completed tournament and its tournament records. This cannot be undone.</p></div><button class="danger" type="button" onclick="SCMSTournament.deleteTournament()">Delete Tournament</button></div>':'')+
       '</div>'+
     '</div>';
   }
@@ -516,7 +516,7 @@ async function saveParticipants(){
   }
 
   async function deleteTournament(){
-    const t=state.selected;if(!t||t.status!=='completed'||!(t.settings&&t.settings.ended_early))return;
+    const t=state.selected;if(!t||t.status!=='completed')return;
     if(!(await confirmT('Permanently delete this ended tournament and all of its tournament records? This cannot be undone. Student records outside this tournament will not be deleted.','Delete Tournament')))return;
     try{
       const awardIds=(state.awards||[]).map(function(a){return String(a.award_id);});
