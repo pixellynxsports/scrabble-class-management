@@ -136,14 +136,18 @@
   function renderPairings(){
     const currentRound=Number(state.selected?.current_round||1);
     const matches=state.matches.filter(function(m){return Number(m.round_number)===currentRound;});
-    if(!matches.length)return '<div class="panel tournament-empty-panel"><div class="eyebrow">LIVE PAIRINGS</div><h3>No live round is available</h3><p class="subtle">Start the tournament or finish the previous round to generate the next pairings.</p></div>';
+    const roundRecord=state.rounds.find(function(r){return Number(r.round_number)===currentRound;});
+    const roundEnded=roundRecord&&roundRecord.status==='completed';
+    if(!matches.length||roundEnded){
+      const totalRounds=state.rounds.length;
+      const completedRounds=state.rounds.filter(function(r){return r.status==='completed';}).length;
+      return '<div class="tournament-ended-round-panel"><div class="tournament-ended-round-icon">✓</div><div class="eyebrow">ALL ROUNDS ENDED</div><h3>Round '+escT(currentRound)+' is complete</h3><p>All '+escT(completedRounds)+' round'+(completedRounds===1?'':'s')+' currently scheduled for this tournament have been completed. There is no live round right now.</p><div class="tournament-ended-round-stats"><div><b>'+escT(completedRounds)+'</b><span>Rounds completed</span></div><div><b>'+escT(totalRounds)+'</b><span>Rounds scheduled</span></div><div><b>'+escT(state.players.length)+'</b><span>Players</span></div></div><button class="primary tournament-add-round-button" type="button" onclick="SCMSTournament.addRound()">+ Add One More Round</button><small class="tournament-ended-round-note">Adding a round will generate fresh pairings from the current standings and make the new round live immediately.</small></div>';
+    }
     const completed=matches.filter(function(m){return m.status==='completed';}).length;
     const allComplete=completed===matches.length;
-    const roundRecord=state.rounds.find(function(r){return Number(r.round_number)===currentRound;});
-    const finished=roundRecord&&roundRecord.status==='completed';
-    return '<div class="tournament-live-head"><div><div class="eyebrow">LIVE ROUND</div><h3>Round '+escT(currentRound)+'</h3><p>Only the current round is shown here. Completed rounds are available in the Rounds panel.</p></div><div class="tournament-live-actions"><span class="badge '+(allComplete?'present':'almost')+'">'+completed+'/'+matches.length+' complete</span><button class="primary" type="button" '+(!allComplete?'disabled':'')+' onclick="SCMSTournament.finishRound()">'+(currentRound>=Number(state.selected.rounds_total||1)?'Finish Final Round':'Finish Round')+' →</button></div></div>'+
+    return '<div class="tournament-live-head"><div><div class="eyebrow">LIVE ROUND</div><h3>Round '+escT(currentRound)+'</h3><p>Only the current round is shown here. Completed rounds are available in the Rounds panel.</p></div><div class="tournament-live-actions"><span class="badge '+(allComplete?'present':'almost')+'">'+completed+'/'+matches.length+' complete</span><button class="primary" type="button" '+(!allComplete?'disabled':'')+' onclick="SCMSTournament.finishRound()">'+(currentRound>=Number(state.selected.rounds_total||1)?'Finish Round':'Finish Round')+' →</button></div></div>'+
       '<div class="panel tournament-round-panel live-round-panel"><div class="tournament-match-list">'+matches.map(function(m){return matchCard(m,false);}).join('')+'</div></div>'+
-      (allComplete?'<div class="tournament-finish-hint"><strong>Round ready to finish.</strong><span>Review all results above, then click Finish Round. The next round will be created only after you confirm. The next live round will open automatically in Pairings.</span></div>':'');
+      (allComplete?'<div class="tournament-finish-hint"><strong>Round ready to finish.</strong><span>Review all results above, then click Finish Round. The round will be locked and the next round will not start until you confirm.</span></div>':'');
   }
 
   function matchCard(m,viewOnly){
@@ -488,11 +492,40 @@ async function saveParticipants(){
         state.view='pairings';state.roundFocus=null;renderWorkspace();
         notifyT('Round '+roundNumber+' is complete. Round '+nextRound+' is now live.','success','Next Round Ready',{variant:'registration'});
       }else{
-        await loadTournaments();await loadTournamentData(t.tournament_id);
+        await loadTournaments();
+        const freshTournament=state.tournaments.find(function(x){return String(x.tournament_id)===String(t.tournament_id);});
+        if(!freshTournament)throw new Error('The tournament could not be refreshed after completing the round.');
+        state.selected=freshTournament;
+        await loadTournamentData(t.tournament_id);
         state.view='pairings';state.roundFocus=null;renderWorkspace();
-        notifyT('Final round completed. Review the final standings, then end the tournament.','success','Final Round Complete',{variant:'registration'});
+        notifyT('Round '+roundNumber+' is complete. There is no live round until you add another round.','success','All Rounds Complete',{variant:'registration'});
       }
     }catch(error){notifyT(error.message||String(error),'error','Round Could Not Finish',{variant:'critical'});}
+  }
+
+  async function addRound(){
+    const t=state.selected;if(!t||t.status!=='active')return;
+    await loadTournamentData(t.tournament_id);
+    const currentRound=Number(t.current_round||0);
+    const currentRecord=state.rounds.find(function(r){return Number(r.round_number)===currentRound;});
+    if(currentRecord&&currentRecord.status!=='completed'){notifyT('Finish the current live round before adding another round.','warning','Round Still Live');return;}
+    if(!(await confirmT('Add one more round? A new round will be created from the current standings and will become the live round.','Add One More Round')))return;
+    try{
+      const nextRound=currentRound+1;
+      const pairs=generatePairs(nextRound);
+      if(!pairs.length)throw new Error('No new pairings could be generated for this format and player set.');
+      const exists=state.rounds.some(function(r){return Number(r.round_number)===nextRound;});
+      if(!exists)await createRoundAndMatches(nextRound,pairs);
+      const newTotal=Math.max(Number(t.rounds_total||0),nextRound);
+      const upd=await supabaseClient.from('tournaments').update({current_round:nextRound,rounds_total:newTotal}).eq('tournament_id',t.tournament_id);
+      if(upd.error)throw upd.error;
+      await loadTournaments();
+      const fresh=state.tournaments.find(function(x){return String(x.tournament_id)===String(t.tournament_id);});
+      state.selected=fresh||t;
+      await loadTournamentData(t.tournament_id);
+      state.view='pairings';state.roundFocus=null;renderWorkspace();
+      notifyT('Round '+nextRound+' is now live.','success','New Round Added',{variant:'registration'});
+    }catch(error){notifyT(error.message||String(error),'error','Could Not Add Round',{variant:'critical'});}
   }
 
   async function immediateEnd(){
@@ -609,7 +642,7 @@ async function saveParticipants(){
   function back(){state.selected=null;state.players=[];state.rounds=[];state.matches=[];state.awards=[];renderHome();}
   async function refresh(){await loadTournaments();if(state.selected)await open(state.selected.tournament_id);}
 
-  window.SCMSTournament={init:async function(){await loadTournaments();},refresh:refresh,create:create,open:open,back:back,tab:tab,viewRound:viewRound,clearRoundView:clearRoundView,closeModal:closeModal,formatChanged:formatChanged,filterParticipants:filterParticipants,selectAllParticipants:selectAllParticipants,clearParticipants:clearParticipants,saveParticipants:saveParticipants,editParticipants:editParticipants,seedParticipants:seedParticipants,moveSeed:moveSeed,saveSeeding:saveSeeding,removePlayer:removePlayer,start:start,score:score,finish:finish,finishRound:finishRound,immediateEnd:immediateEnd,deleteTournament:deleteTournament,saveSpecialAwards:saveSpecialAwards,archive:archive,reopen:reopen,editTournament:editTournament};
+  window.SCMSTournament={init:async function(){await loadTournaments();},refresh:refresh,create:create,open:open,back:back,tab:tab,viewRound:viewRound,clearRoundView:clearRoundView,closeModal:closeModal,formatChanged:formatChanged,filterParticipants:filterParticipants,selectAllParticipants:selectAllParticipants,clearParticipants:clearParticipants,saveParticipants:saveParticipants,editParticipants:editParticipants,seedParticipants:seedParticipants,moveSeed:moveSeed,saveSeeding:saveSeeding,removePlayer:removePlayer,start:start,score:score,finish:finish,finishRound:finishRound,addRound:addRound,immediateEnd:immediateEnd,deleteTournament:deleteTournament,saveSpecialAwards:saveSpecialAwards,archive:archive,reopen:reopen,editTournament:editTournament};
 
   const originalPage=window.page;
   window.page=function(name){originalPage(name);if(name==='tournament'){const title=document.getElementById('title');if(title)title.textContent='Tournament';SCMSTournament.init();}};
