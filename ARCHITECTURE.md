@@ -44,6 +44,15 @@ New Registration workflow and registration specific UI.
 ### parent-login-email.js
 Parent login and email related authentication workflow.
 
+### tournament.js
+Isolated tournament controller. Handles tournament lifecycle, manual participant selection, seeding, supported pairing formats, match results, standings, final awards, archive/reopen actions, and tournament-to-achievement synchronization.
+
+### tournament.css
+Tournament-specific visual system and responsive workspace styling.
+
+### sql/20261003_tournaments.sql
+Supabase schema and RLS policies for tournaments, participants, rounds, matches and awards.
+
 ## Change rule
 
 When adding a feature:
