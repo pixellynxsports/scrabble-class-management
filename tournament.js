@@ -141,9 +141,9 @@
     const allComplete=completed===matches.length;
     const roundRecord=state.rounds.find(function(r){return Number(r.round_number)===currentRound;});
     const finished=roundRecord&&roundRecord.status==='completed';
-    return '<div class="tournament-live-head"><div><div class="eyebrow">LIVE ROUND</div><h3>Round '+escT(currentRound)+'</h3><p>Only the current round is shown here. Completed rounds are available in the Rounds panel.</p></div><div class="tournament-live-actions"><span class="badge '+(allComplete?'present':'almost')+'">'+completed+'/'+matches.length+' complete</span><button class="primary" type="button" '+(!allComplete||finished?'disabled':'')+' onclick="SCMSTournament.finishRound()">'+(currentRound>=Number(state.selected.rounds_total||1)?'Finish Final Round':'Finish Round')+' →</button></div></div>'+
+    return '<div class="tournament-live-head"><div><div class="eyebrow">LIVE ROUND</div><h3>Round '+escT(currentRound)+'</h3><p>Only the current round is shown here. Completed rounds are available in the Rounds panel.</p></div><div class="tournament-live-actions"><span class="badge '+(allComplete?'present':'almost')+'">'+completed+'/'+matches.length+' complete</span><button class="primary" type="button" '+(!allComplete?'disabled':'')+' onclick="SCMSTournament.finishRound()">'+(currentRound>=Number(state.selected.rounds_total||1)?'Finish Final Round':'Finish Round')+' →</button></div></div>'+
       '<div class="panel tournament-round-panel live-round-panel"><div class="tournament-match-list">'+matches.map(matchCard).join('')+'</div></div>'+
-      (allComplete&&!finished?'<div class="tournament-finish-hint"><strong>Round ready to finish.</strong><span>Review all results above, then click Finish Round. The next round will be created only after you confirm.</span></div>':'');
+      (allComplete?'<div class="tournament-finish-hint"><strong>Round ready to finish.</strong><span>Review all results above, then click Finish Round. The next round will be created only after you confirm. The next live round will open automatically in Pairings.</span></div>':'');
   }
 
   function matchCard(m){
