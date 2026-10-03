@@ -71,11 +71,20 @@
     const active=state.tournaments.find(function(t){return t.status==='active';});
     const drafts=state.tournaments.filter(function(t){return ['draft','ready'].includes(t.status);});
     const completed=state.tournaments.filter(function(t){return ['completed','archived'].includes(t.status);});
-    el.innerHTML='<div class="tournament-page-head"><div><div class="eyebrow">COMPETITION MANAGEMENT</div><h2>Tournaments</h2><p>Create, run, score and archive your Scrabble tournaments from one workspace.</p></div><button class="primary" type="button" onclick="SCMSTournament.create()">＋ Create Tournament</button></div>'+
-      '<div class="tournament-stat-grid">'+statCard('ACTIVE',active?'1':'0','Tournament in progress',active?'active':'')+statCard('DRAFTS',String(drafts.length),'Ready to configure','')+statCard('COMPLETED',String(completed.length),'Tournament history','')+statCard('TOTAL',String(state.tournaments.length),'All tournament records','')+'</div>'+
-      (active?activeCard(active):'<div class="tournament-empty-active"><div class="tournament-empty-icon">◎</div><div><div class="eyebrow">NO ACTIVE TOURNAMENT</div><h3>Ready for your next competition?</h3><p>Create a tournament, choose your players manually, set the format and start when you are ready.</p></div><button class="secondary" type="button" onclick="SCMSTournament.create()">Create Tournament</button></div>')+
-      '<div class="tournament-section-head"><div><div class="eyebrow">WORKSPACE</div><h3>Draft & Ready</h3></div><span class="badge blue">'+drafts.length+'</span></div><div class="tournament-list">'+(drafts.map(tournamentCard).join('')||emptyList('No draft tournaments.'))+'</div>'+
-      '<div class="tournament-section-head"><div><div class="eyebrow">HISTORY</div><h3>Completed & Archived</h3></div><span class="badge blue">'+completed.length+'</span></div><div class="tournament-list">'+(completed.slice(0,12).map(tournamentCard).join('')||emptyList('No completed tournaments yet.'))+'</div>';
+    const total=state.tournaments.length;
+    el.innerHTML=
+      '<div class="tournament-command-hero"><div class="tournament-command-hero-art"></div><div class="tournament-command-content"><div class="tournament-command-kicker"><span class="live-dot"></span> BANTING SCRABBLE ACADEMY · COMPETITION DESK</div><h2>Tournament Control Center</h2><p>Create, manage and conclude Scrabble competitions with live pairings, standings, rounds and official results in one place.</p><div class="tournament-command-meta"><span><b>'+escT(total)+'</b> tournaments</span><i></i><span><b>'+escT(completed.length)+'</b> completed</span><i></i><span><b>'+escT(active?'Live':'Ready')+'</b> status</span></div></div><button class="primary tournament-command-create" type="button" onclick="SCMSTournament.create()">＋ Create Tournament</button></div>'+
+      '<div class="tournament-stat-grid tournament-home-stats">'+
+        '<div class="tournament-stat-card home-stat-live"><span>LIVE EVENT</span><strong>'+escT(active?'01':'00')+'</strong><small>'+escT(active?active.name:'No tournament in progress')+'</small><em>LIVE</em></div>'+
+        '<div class="tournament-stat-card"><span>DRAFTS & READY</span><strong>'+escT(drafts.length).padStart?String(drafts.length).padStart(2,'0'):String(drafts.length)+'</strong><small>Competitions being prepared</small><em>SETUP</em></div>'+
+        '<div class="tournament-stat-card"><span>COMPLETED</span><strong>'+String(completed.length).padStart(2,'0')+'</strong><small>Finished competition records</small><em>RESULTS</em></div>'+
+        '<div class="tournament-stat-card"><span>ALL EVENTS</span><strong>'+String(total).padStart(2,'0')+'</strong><small>Complete tournament history</small><em>ARCHIVE</em></div>'+
+      '</div>'+
+      (active?activeCard(active):'<div class="tournament-no-live"><div class="tournament-no-live-badge">SC</div><div class="tournament-no-live-copy"><div class="eyebrow">NO LIVE COMPETITION</div><h3>The tournament desk is ready.</h3><p>Start a new competition, select your players and choose the format. Once started, live pairings and scoring will appear here.</p></div><button class="secondary" type="button" onclick="SCMSTournament.create()">Create New Tournament <span>→</span></button></div>')+
+      '<div class="tournament-section-head tournament-home-section"><div><div class="eyebrow">TOURNAMENT WORKSPACE</div><h3>Draft & Ready</h3><p>Competitions waiting to be configured or started.</p></div><span class="badge blue">'+drafts.length+'</span></div>'+
+      '<div class="tournament-list tournament-home-list">'+(drafts.map(tournamentCard).join('')||emptyList('No tournaments are waiting to be started.'))+'</div>'+
+      '<div class="tournament-section-head tournament-home-section"><div><div class="eyebrow">OFFICIAL HISTORY</div><h3>Completed & Archived</h3><p>Past competitions and final records.</p></div><span class="badge blue">'+completed.length+'</span></div>'+
+      '<div class="tournament-list tournament-home-list">'+(completed.slice(0,12).map(tournamentCard).join('')||emptyList('No completed tournament records yet.'))+'</div>';
   }
 
   async function open(id){
