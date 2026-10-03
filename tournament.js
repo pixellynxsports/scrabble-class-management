@@ -395,7 +395,7 @@ async function saveParticipants(){
     const s1=Number(document.getElementById('score1').value),s2=Number(document.getElementById('score2').value);if(!Number.isFinite(s1)||!Number.isFinite(s2)){notifyT('Enter both scores.','warning','Score Required');return;}
     const winner=s1>s2?m.player1_id:s2>s1?m.player2_id:null;
     const result=await supabaseClient.from('tournament_matches').update({player1_score:s1,player2_score:s2,winner_player_id:winner,status:'completed'}).eq('match_id',m.match_id);if(result.error){notifyT(result.error.message,'error','Result Not Saved',{variant:'critical'});return;}
-    closeModal();await finalizeRoundIfReady(Number(m.round_number));await open(state.selected.tournament_id);notifyT('Match result saved and standings updated.','success','Result Recorded',{variant:'payment'});
+    closeModal();await finalizeRoundIfReady(Number(m.round_number));await loadTournamentData(state.selected.tournament_id);state.view='pairings';renderWorkspace();notifyT('Match result saved and standings updated.','success','Result Recorded',{variant:'payment'});
   }
 
   async function finalizeRoundIfReady(roundNumber){
