@@ -211,8 +211,8 @@ table{font-size:12px}th{font-size:9px;letter-spacing:.07em;color:#667085;backgro
 .student-action-menu.show{display:block}
 .student-action-menu button{display:block;width:100%;padding:10px 12px;border:0;border-radius:8px;background:transparent;color:#162033;text-align:left;font:inherit;font-size:13px;cursor:pointer}
 .student-action-menu button:hover{background:#f3f6fb}
-.student-action-menu button.danger{color:#b42318}
-.student-action-menu button.danger:hover{background:#fff1f0}
+.student-action-menu button.danger{display:block!important;width:100%!important;color:#b42318!important;background:#fff7f6!important;border:1px solid #f2c9c5!important;border-radius:9px!important;font-weight:750!important;padding:10px 12px!important;line-height:1.35!important;opacity:1!important}
+.student-action-menu button.danger:hover{color:#9f1c14!important;background:#fff0ee!important;border-color:#e9aaa4!important}
 .student-action-divider{height:1px;margin:5px 4px;background:#e7eaf0}
 
 /* Student table sorting */
