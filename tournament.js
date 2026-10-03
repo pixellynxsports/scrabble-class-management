@@ -459,7 +459,6 @@ async function saveParticipants(){
     if(!current.length){notifyT('There are no matches in the current round.','warning','Round Not Ready');return;}
     if(current.some(function(m){return m.status!=='completed';})){notifyT('Complete every match in the live round before finishing it.','warning','Matches Still Open');return;}
     const roundRecord=state.rounds.find(function(r){return Number(r.round_number)===roundNumber;});
-    if(roundRecord&&roundRecord.status==='completed'){notifyT('This round has already been finished.','info','Round Complete');return;}
     if(!(await confirmT('Finish Round '+roundNumber+'? The round will be locked as complete and the next round will be created only after this confirmation.','Finish Round')))return;
     try{
       await finalizeRoundIfReady(roundNumber);
