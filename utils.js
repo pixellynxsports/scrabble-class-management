@@ -21,26 +21,26 @@ function ensureNotificationUI(){
   modal.querySelector('.sc-dialog-backdrop').onclick=()=>window.__scDialogResolve?.(false);
   modal.querySelector('.sc-dialog-close').onclick=()=>window.__scDialogResolve?.(false);
 }
-function appNotify(message,type='info',title=''){
+function appNotify(message,type='info',title='',options={}){
   ensureNotificationUI();
   const root=document.getElementById('scNotificationRoot');
   const config={success:['✓','SUCCESS'],error:['!','ERROR'],warning:['!','ATTENTION'],info:['i','NOTICE']};
   const [icon,label]=config[type]||config.info;
   const item=document.createElement('div');
-  item.className='sc-notification sc-notification-'+type;
-  item.innerHTML='<div class="sc-notification-icon">'+icon+'</div><div class="sc-notification-copy"><div class="sc-notification-title">'+esc(title||label)+'</div><div class="sc-notification-message">'+esc(String(message||''))+'</div></div><button class="sc-notification-close" type="button" aria-label="Dismiss">×</button><div class="sc-notification-progress"></div>';
+  item.className='sc-notification sc-notification-'+type+(options.variant?' sc-notification-'+options.variant:'');
+  item.innerHTML='<div class="sc-notification-icon">'+(options.icon||icon)+'</div><div class="sc-notification-copy"><div class="sc-notification-eyebrow">'+esc(options.eyebrow||label)+'</div><div class="sc-notification-title">'+esc(title||label)+'</div><div class="sc-notification-message">'+esc(String(message||''))+'</div></div><button class="sc-notification-close" type="button" aria-label="Dismiss">×</button><div class="sc-notification-progress"></div>';
   root.appendChild(item);
   const close=()=>{item.classList.add('is-closing');setTimeout(()=>item.remove(),180)};
   item.querySelector('.sc-notification-close').onclick=close;
-  setTimeout(close,5000);
+  setTimeout(close,Number(options.duration)||5000);
 }
-function appConfirm(message,title='Confirm Action'){
+function appConfirm(message,title='Confirm Action',eyebrow='CONFIRMATION'){
   ensureNotificationUI();
   return new Promise(resolve=>{
     const modal=document.getElementById('scDialogRoot');
     const dialog=modal.querySelector('.sc-dialog');
     modal.querySelector('.sc-dialog-icon').textContent='?';
-    modal.querySelector('.sc-dialog-eyebrow').textContent='CONFIRMATION';
+    modal.querySelector('.sc-dialog-eyebrow').textContent=eyebrow;
     modal.querySelector('.sc-dialog-title').textContent=title;
     modal.querySelector('.sc-dialog-message').textContent=message;
     modal.querySelector('.sc-dialog-body').innerHTML='';
