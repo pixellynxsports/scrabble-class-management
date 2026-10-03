@@ -584,3 +584,116 @@
   #modal:has(.tournament-create-modal){padding:8px}
   #modal:has(.tournament-create-modal) .modalbox{max-height:96vh;border-radius:16px}
 }
+
+
+/* Score reporting modal refinement */
+#modal:has(.tournament-score-form) .modalbox{
+  width:min(760px,calc(100vw - 32px));
+  max-height:min(90vh,620px);
+  padding:0;
+  overflow:hidden;
+  border-radius:18px;
+  box-shadow:0 28px 80px rgba(15,23,42,.28);
+}
+#modal:has(.tournament-score-form) .tournament-modal-head{
+  padding:20px 22px 17px;
+  background:linear-gradient(135deg,#101828 0%,#17233a 100%);
+  border-bottom:0;
+  color:#fff;
+}
+#modal:has(.tournament-score-form) .tournament-modal-head .eyebrow{
+  color:#aebcff;
+  font-size:9px;
+  letter-spacing:.1em;
+}
+#modal:has(.tournament-score-form) .tournament-modal-head h2{
+  margin:4px 0 3px;
+  color:#fff;
+  font-size:22px;
+}
+#modal:has(.tournament-score-form) .tournament-modal-head p{
+  color:#b8c3d6;
+  font-size:11px;
+}
+#modal:has(.tournament-score-form) .tournament-modal-head .parent-close-button{
+  width:36px;
+  height:36px;
+  border:1px solid rgba(255,255,255,.16);
+  border-radius:10px;
+  background:rgba(255,255,255,.09);
+  color:#fff;
+  font-size:22px;
+}
+#modal:has(.tournament-score-form) .tournament-score-form{
+  padding:22px;
+  background:#fff;
+}
+#modal:has(.tournament-score-form) .tournament-score-grid{
+  grid-template-columns:minmax(0,1fr) 46px minmax(0,1fr);
+  gap:14px;
+  align-items:center;
+}
+#modal:has(.tournament-score-form) .tournament-score-grid>div{
+  gap:8px;
+}
+#modal:has(.tournament-score-form) .tournament-score-grid span{
+  min-height:30px;
+  display:flex;
+  align-items:center;
+  font-size:10px;
+  line-height:1.25;
+  text-transform:uppercase;
+  letter-spacing:.03em;
+}
+#modal:has(.tournament-score-form) .tournament-score-grid input{
+  min-height:62px;
+  border:1px solid #d8dee8;
+  border-radius:12px;
+  background:#f8fafc;
+  font-size:26px;
+  color:#101828;
+}
+#modal:has(.tournament-score-form) .tournament-score-grid input:focus{
+  background:#fff;
+  border-color:#315efb;
+  box-shadow:0 0 0 4px rgba(49,94,251,.10);
+}
+#modal:has(.tournament-score-form) .tournament-score-vs{
+  width:34px;
+  height:34px;
+  margin:auto;
+  border:1px solid #e2e7ef;
+  border-radius:50%;
+  background:#f8fafc;
+  display:grid!important;
+  place-items:center;
+  font-size:9px!important;
+}
+#modal:has(.tournament-score-form) .tournament-score-form>.subtle{
+  margin:15px 0 0;
+  padding:10px 12px;
+  border-radius:9px;
+  background:#f8fafc;
+  color:#667085;
+  font-size:11px;
+}
+#modal:has(.tournament-score-form) .tournament-form-footer{
+  margin:20px -22px -22px;
+  padding:13px 22px;
+  background:#fbfcfe;
+}
+@media(max-width:650px){
+  #modal:has(.tournament-score-form) .modalbox{
+    width:calc(100vw - 20px);
+    max-height:92vh;
+    border-radius:16px;
+  }
+  #modal:has(.tournament-score-form) .tournament-modal-head{padding:17px}
+  #modal:has(.tournament-score-form) .tournament-score-form{padding:17px}
+  #modal:has(.tournament-score-form) .tournament-score-grid{grid-template-columns:1fr}
+  #modal:has(.tournament-score-form) .tournament-score-vs{display:none!important}
+  #modal:has(.tournament-score-form) .tournament-form-footer{
+    margin:17px -17px -17px;
+    padding:12px 17px;
+  }
+}
