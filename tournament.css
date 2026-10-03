@@ -938,3 +938,193 @@ button.danger:hover{
 .tournament-completed-grid>.panel{margin:0}
 .tournament-completed-grid .tournament-table-head{padding-bottom:12px}
 @media(max-width:900px){.tournament-completed-grid{grid-template-columns:1fr}}
+
+
+/* =========================================================
+   TOURNAMENT HOME / COMPETITION DESK
+   Premium event-management presentation
+   ========================================================= */
+.tournament-command-hero{
+  position:relative;
+  overflow:hidden;
+  min-height:205px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:30px;
+  padding:30px 34px;
+  margin-bottom:16px;
+  border:1px solid #24344d;
+  border-radius:20px;
+  background:linear-gradient(115deg,#0b1220 0%,#111c31 52%,#1b3158 100%);
+  box-shadow:0 20px 46px rgba(15,23,42,.16);
+  color:#fff;
+}
+.tournament-command-hero:before{
+  content:"";
+  position:absolute;
+  width:440px;height:440px;
+  right:-145px;top:-225px;
+  border:1px solid rgba(158,181,255,.13);
+  border-radius:50%;
+  box-shadow:0 0 0 55px rgba(158,181,255,.025),0 0 0 110px rgba(158,181,255,.018);
+}
+.tournament-command-hero-art{
+  position:absolute;
+  width:270px;height:270px;
+  right:70px;bottom:-190px;
+  border-radius:50%;
+  background:radial-gradient(circle,rgba(72,112,255,.28),rgba(72,112,255,0) 68%);
+  pointer-events:none;
+}
+.tournament-command-content{position:relative;z-index:2;max-width:760px}
+.tournament-command-kicker{
+  display:flex;align-items:center;gap:8px;
+  color:#9eb5ff;font-size:9px;font-weight:900;letter-spacing:.13em;
+}
+.tournament-command-kicker .live-dot{
+  width:7px;height:7px;border-radius:50%;
+  background:#63e6a5;box-shadow:0 0 0 4px rgba(99,230,165,.11);
+}
+.tournament-command-content h2{
+  margin:9px 0 8px;
+  color:#fff;
+  font-size:32px;
+  letter-spacing:-.045em;
+  line-height:1.05;
+}
+.tournament-command-content p{
+  max-width:650px;
+  margin:0;
+  color:#b8c4d7;
+  font-size:12px;
+  line-height:1.65;
+}
+.tournament-command-meta{
+  display:flex;align-items:center;gap:13px;
+  margin-top:19px;
+  color:#8291a8;font-size:10px;
+}
+.tournament-command-meta b{color:#e6ebf4}
+.tournament-command-meta i{width:3px;height:3px;border-radius:50%;background:#52627b}
+.tournament-command-create{
+  position:relative;z-index:3;
+  min-width:175px;
+  min-height:46px;
+  background:#fff!important;
+  color:#101828!important;
+  border:1px solid rgba(255,255,255,.5)!important;
+  box-shadow:0 10px 24px rgba(0,0,0,.18)!important;
+}
+.tournament-command-create:hover{background:#f4f6fa!important;transform:translateY(-1px)}
+
+.tournament-home-stats{gap:11px;margin-bottom:17px}
+.tournament-home-stats .tournament-stat-card{
+  min-height:116px;
+  padding:17px 18px;
+  border-radius:15px;
+  border-color:#dce3ec;
+  box-shadow:0 5px 20px rgba(15,23,42,.035);
+}
+.tournament-home-stats .tournament-stat-card:after{
+  width:115px;height:115px;
+  right:-45px;bottom:-48px;
+  background:#f4f7fb;
+}
+.tournament-home-stats .tournament-stat-card span{font-size:8px;color:#8190a5;letter-spacing:.13em}
+.tournament-home-stats .tournament-stat-card strong{font-size:29px;margin-top:9px}
+.tournament-home-stats .tournament-stat-card small{
+  position:relative;z-index:1;
+  display:block;
+  max-width:190px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.tournament-home-stats .tournament-stat-card em{
+  position:absolute;z-index:2;
+  right:15px;top:17px;
+  padding:4px 7px;
+  border-radius:5px;
+  background:#f2f4f7;
+  color:#8a96a8;
+  font-size:7px;font-style:normal;font-weight:900;letter-spacing:.08em;
+}
+.tournament-home-stats .home-stat-live{
+  border-color:#cdebdc;
+  background:linear-gradient(145deg,#fff 0%,#fbfffc 100%);
+}
+.tournament-home-stats .home-stat-live strong{color:#16704a}
+.tournament-home-stats .home-stat-live em{background:#e8f8ef;color:#16804d}
+
+.tournament-no-live{
+  position:relative;
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+  gap:18px;
+  min-height:125px;
+  padding:22px 24px;
+  margin-bottom:24px;
+  border:1px solid #dce3ec;
+  border-radius:17px;
+  background:linear-gradient(105deg,#fff 0%,#f8fafc 100%);
+  box-shadow:0 7px 23px rgba(15,23,42,.045);
+}
+.tournament-no-live:after{
+  content:"";
+  position:absolute;
+  width:190px;height:190px;
+  right:-75px;top:-90px;
+  border:1px solid #e7edf5;border-radius:50%;
+}
+.tournament-no-live-badge{
+  position:relative;z-index:2;
+  flex:0 0 48px;
+  width:48px;height:48px;
+  display:grid;place-items:center;
+  border-radius:14px;
+  background:#101828;
+  color:#fff;
+  font-size:12px;font-weight:900;
+  box-shadow:0 8px 18px rgba(15,23,42,.15);
+}
+.tournament-no-live-copy{position:relative;z-index:2}
+.tournament-no-live-copy h3{margin:4px 0 5px;color:#101828;font-size:17px}
+.tournament-no-live-copy p{margin:0;max-width:690px;color:#667085;font-size:11px;line-height:1.55}
+.tournament-no-live>button{position:relative;z-index:2;margin-left:auto;white-space:nowrap}
+.tournament-no-live>button span{margin-left:7px;font-size:14px}
+
+.tournament-home-section{
+  align-items:center;
+  margin:26px 0 9px;
+}
+.tournament-home-section h3{font-size:16px;margin-top:4px}
+.tournament-home-section p{
+  margin:3px 0 0;
+  color:#98a2b3;
+  font-size:10px;
+}
+.tournament-home-list .tournament-list-card{
+  min-height:69px;
+  padding:13px 15px;
+  border-radius:13px;
+}
+.tournament-home-list .tournament-card-mark{
+  background:#f7f8fa;
+}
+.tournament-home-list .tournament-card-copy strong{font-size:12px}
+.tournament-home-list .tournament-card-copy small{font-size:9px}
+.tournament-home-list .tournament-card-arrow{font-size:21px}
+
+@media(max-width:800px){
+  .tournament-command-hero{align-items:flex-start;flex-direction:column;padding:25px}
+  .tournament-command-create{width:100%}
+}
+@media(max-width:650px){
+  .tournament-command-hero{min-height:auto;padding:22px}
+  .tournament-command-content h2{font-size:26px}
+  .tournament-command-meta{flex-wrap:wrap}
+  .tournament-no-live{align-items:flex-start;flex-wrap:wrap}
+  .tournament-no-live>button{margin-left:66px;width:calc(100% - 66px)}
+}
