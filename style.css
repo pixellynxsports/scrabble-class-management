@@ -970,3 +970,295 @@ body.sc-dialog-open{overflow:hidden}
 .sc-notification-payment .sc-notification-icon,.sc-notification-payment .sc-notification-progress{background:#315efb}
 .sc-notification-registration .sc-notification-icon,.sc-notification-registration .sc-notification-progress{background:#6b4cc5}
 .sc-notification-critical .sc-notification-icon,.sc-notification-critical .sc-notification-progress{background:#b42318}
+
+
+/* =========================================================
+   FINAL MOBILE EXPERIENCE PASS
+   Teacher Portal + Parent Portal + Tournament
+   2026.10.03
+   ========================================================= */
+@media(max-width:650px){
+  html{font-size:16px;overflow-x:hidden}
+  body{width:100%;overflow-x:hidden;-webkit-text-size-adjust:100%}
+  button,a,input,select,textarea{touch-action:manipulation}
+  button,.nav,.tab,.att-btn,.parent-child-tab,.parent-pay-btn,.student-sort-button{
+    -webkit-tap-highlight-color:transparent;
+  }
+  button{min-height:42px}
+  
+  /* Teacher navigation: compact horizontal app bar */
+  .side{
+    display:block;
+    padding:10px 0 8px;
+    overflow:hidden;
+    white-space:nowrap;
+  }
+  .side-brand{
+    display:flex;
+    padding:2px 14px 10px;
+    margin:0;
+    white-space:normal;
+  }
+  .side .nav{
+    display:inline-flex;
+    width:auto;
+    min-height:40px;
+    margin:0 2px;
+    padding:9px 12px;
+    vertical-align:top;
+    white-space:nowrap;
+  }
+  .side nav,.side .nav-list{
+    display:flex;
+    width:max-content;
+    min-width:100%;
+    gap:3px;
+    padding:0 10px 2px;
+    overflow-x:auto;
+    overflow-y:hidden;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+  }
+  .side nav::-webkit-scrollbar,.side .nav-list::-webkit-scrollbar{display:none}
+  .side .nav-icon{display:none}
+  .side-footer{display:none}
+  
+  .main{padding:14px 12px 30px}
+  .top{padding-bottom:12px}
+  .top-actions{display:flex;align-items:center;gap:7px}
+  .top-actions .sync{min-height:40px;display:flex;align-items:center;justify-content:center}
+  
+  /* Never allow a desktop row to create horizontal page scrolling */
+  .row,.detail-head,.profile-payment-top,.action-required,.order-dashboard-head{
+    max-width:100%;
+  }
+  .row>*{min-width:0}
+  
+  /* Touch friendly forms */
+  input,select,textarea{
+    min-height:44px;
+    border-radius:10px;
+  }
+  textarea{min-height:100px}
+  .primary,.secondary,.danger{min-height:44px;padding:10px 14px;border-radius:10px}
+  .linkbtn{min-height:40px}
+  
+  /* Teacher tables become intentional scroll areas */
+  .scroll{
+    border-radius:10px;
+    overscroll-behavior-x:contain;
+    scrollbar-width:thin;
+  }
+  .scroll table{min-width:680px}
+  
+  /* Students action menu */
+  .student-action-menu{
+    position:fixed;
+    right:10px;
+    left:10px;
+    top:auto;
+    bottom:10px;
+    min-width:0;
+    max-height:70vh;
+    overflow:auto;
+    border-radius:16px;
+    padding:8px;
+    box-shadow:0 20px 50px rgba(15,23,42,.22);
+    z-index:1200;
+  }
+  .student-action-menu button{
+    min-height:48px;
+    width:100%;
+    text-align:left;
+    border-radius:10px;
+    padding:12px 13px;
+  }
+  
+  /* Cards and profile sections */
+  .profile-hero-actions{width:100%;display:grid;grid-template-columns:1fr 1fr}
+  .profile-hero-actions>*{width:100%}
+  .profile-kpi{min-height:96px}
+  .profile-section-title{align-items:flex-start;flex-direction:column}
+  .profile-table-panel{overflow:hidden}
+  .profile-payment-top{align-items:flex-start;flex-direction:column}
+  .profile-payment-top .secondary,.profile-payment-top .primary{width:100%}
+  
+  /* Registration cards and filters */
+  .registration-filter{
+    width:100%;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+  .registration-actions{display:grid;grid-template-columns:1fr}
+  .registration-actions button{width:100%}
+  
+  /* Orders */
+  .order-title-block{min-width:0}
+  .order-head-badges{width:100%}
+  .order-head-badges .badge{max-width:100%;overflow:hidden;text-overflow:ellipsis}
+  .order-status-card,.order-stat{min-height:92px}
+  .order-proof-panel .row{align-items:flex-start;flex-direction:column}
+  .order-proof-panel .row>*{width:100%}
+  .order-form-footer{position:sticky;bottom:0;z-index:15;background:rgba(255,255,255,.96);backdrop-filter:blur(10px);padding:10px;margin:0 -2px -2px;border-top:1px solid #e4e7ec}
+  .order-form-footer button{flex:1}
+  
+  /* Parent portal */
+  .parent-portal{
+    width:100%;
+    min-height:100vh;
+    padding:12px;
+    overflow-x:hidden;
+  }
+  .parent-shell{width:100%;max-width:none}
+  .parent-top{
+    gap:12px;
+    margin-bottom:14px;
+    padding:4px 2px;
+  }
+  .parent-top h1{font-size:24px;line-height:1.12}
+  .parent-top .logout-button{width:100%;margin-left:0;min-height:44px}
+  .parent-card{padding:16px;border-radius:14px}
+  .parent-child-tabs{
+    display:flex;
+    overflow-x:auto;
+    scroll-snap-type:x proximity;
+    padding-bottom:4px;
+    margin-left:-2px;
+    margin-right:-2px;
+  }
+  .parent-child-tab{
+    flex:0 0 78%;
+    scroll-snap-align:start;
+    min-height:70px;
+  }
+  .parent-hero{
+    padding:17px;
+    border-radius:14px;
+  }
+  .parent-hero h2{font-size:22px}
+  .parent-metric{min-height:94px;padding:14px}
+  .parent-metric strong{font-size:21px}
+  .parent-two-col{gap:11px}
+  .parent-list-row{gap:9px;padding:13px 0}
+  .parent-list-row>div:last-child{width:100%}
+  .parent-order-status{width:100%}
+  .parent-pay-btn{width:100%;min-height:44px}
+  .parent-achievement-panel{padding:16px}
+  .parent-achievement-row{
+    display:grid;
+    grid-template-columns:40px minmax(0,1fr);
+    gap:10px;
+  }
+  .parent-achievement-row .secondary{
+    grid-column:1/-1;
+    width:100%;
+  }
+  .achievement-record-actions{display:grid;grid-template-columns:1fr;width:100%}
+  .achievement-record-actions button{width:100%}
+  
+  /* Parent order/detail modals */
+  .parent-detail-modal{padding:8px}
+  .parent-detail-panel{width:100%;max-width:none;max-height:96vh;border-radius:16px}
+  .parent-detail-body{padding:15px}
+  .action-required{padding:13px}
+  .action-side{display:grid;grid-template-columns:1fr;width:100%}
+  .action-side>*{width:100%}
+  .qr-payment-card{padding:17px}
+  .qr-payment-card img{width:min(280px,82vw);margin:14px auto}
+  
+  /* Notifications and confirmations */
+  .sc-notification-root{
+    top:8px!important;
+    left:8px!important;
+    right:8px!important;
+    width:auto!important;
+  }
+  .sc-notification{
+    width:100%!important;
+    max-width:none!important;
+    border-radius:14px!important;
+  }
+  .sc-dialog-root{padding:8px!important}
+  .sc-dialog{
+    width:100%!important;
+    max-width:none!important;
+    max-height:92vh;
+    overflow:auto;
+    border-radius:16px!important;
+  }
+  
+  /* Tournament */
+  .tournament-page-head{padding:19px;border-radius:15px}
+  .tournament-page-head h2{font-size:24px}
+  .tournament-command-hero{padding:20px;border-radius:16px}
+  .tournament-command-content h2{font-size:25px}
+  .tournament-command-create{width:100%}
+  .tournament-command-meta{gap:9px}
+  .tournament-home-stats{grid-template-columns:1fr 1fr}
+  .tournament-home-stats .tournament-stat-card{min-height:104px;padding:14px}
+  .tournament-home-stats .tournament-stat-card strong{font-size:24px}
+  .tournament-no-live{padding:17px;border-radius:14px}
+  .tournament-no-live>button{width:100%;margin:0}
+  .tournament-tabs{
+    position:sticky;
+    top:0;
+    margin-left:-2px;
+    margin-right:-2px;
+    width:calc(100% + 4px);
+    overflow-x:auto;
+    display:flex;
+    flex-wrap:nowrap;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+  }
+  .tournament-tabs::-webkit-scrollbar{display:none}
+  .tournament-tab{flex:0 0 auto;min-height:42px}
+  .tournament-workspace-title h2{font-size:25px}
+  .tournament-control-actions{display:grid;width:100%}
+  .tournament-control-actions button{width:100%}
+  .tournament-work-metrics{grid-template-columns:1fr 1fr}
+  .tournament-match-players{
+    grid-template-columns:minmax(0,1fr) 20px minmax(0,1fr);
+    gap:4px;
+  }
+  .tournament-match-players>div:not(.tournament-vs){
+    min-width:0;
+    padding:9px 8px;
+  }
+  .tournament-match-players>div:not(.tournament-vs) span{
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .tournament-match-side{width:100%}
+  .tournament-match-side button{width:100%}
+  .tournament-round-grid{grid-template-columns:1fr}
+  .tournament-round-summary{padding:15px}
+  .tournament-settings-grid{grid-template-columns:1fr}
+  .tournament-final-podium{grid-template-columns:1fr}
+  .tournament-completed-grid{grid-template-columns:1fr}
+  .tournament-score-grid{grid-template-columns:1fr}
+  
+  /* Modals: full-width sheets on phones */
+  .tournament-modal-head{gap:10px}
+  .tournament-form{padding-top:13px}
+  .tournament-form-footer{
+    position:sticky;
+    bottom:0;
+    z-index:5;
+    margin:0 -17px -17px;
+    padding:10px 17px;
+    background:rgba(255,255,255,.97);
+    backdrop-filter:blur(10px);
+  }
+  
+  /* Avoid hover-only interactions on touch devices */
+  .tournament-list-card:hover,
+  .panel:hover,.class-card:hover,.metric:hover{
+    transform:none;
+  }
+}
+@media(max-width:390px){
+  .tournament-home-stats{grid-template-columns:1fr}
+  .tournament-command-content h2{font-size:23px}
+  .parent-child-tab{flex-basis:88%}
+  .profile-hero-actions{grid-template-columns:1fr}
+}
