@@ -475,7 +475,11 @@ async function saveParticipants(){
           const upd=await supabaseClient.from('tournaments').update({current_round:nextRound}).eq('tournament_id',t.tournament_id);
           if(upd.error)throw upd.error;
         }
-        await loadTournaments();await loadTournamentData(t.tournament_id);
+        await loadTournaments();
+        const freshTournament=state.tournaments.find(function(x){return String(x.tournament_id)===String(t.tournament_id);});
+        if(!freshTournament)throw new Error('The tournament could not be refreshed after finishing the round.');
+        state.selected=freshTournament;
+        await loadTournamentData(t.tournament_id);
         state.view='pairings';state.roundFocus=null;renderWorkspace();
         notifyT('Round '+roundNumber+' is complete. Round '+nextRound+' is now live.','success','Next Round Ready',{variant:'registration'});
       }else{
