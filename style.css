@@ -788,3 +788,74 @@ body{background:#eef2f6}
 .registration-empty p{margin:0;max-width:430px}
 @media(max-width:900px){.registration-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:650px){.registration-review-page>.page-intro{align-items:flex-start}.registration-review-page>.page-intro h2{font-size:24px}.registration-filter{display:grid;grid-template-columns:1fr 1fr 1fr}.registration-filter .secondary{min-width:0;padding:10px 7px}.registration-grid{grid-template-columns:1fr}.registration-grid>div{padding-right:0}.registration-card-top{flex-direction:column}.registration-card-top .badge{align-self:flex-start}.registration-actions{width:100%}}
+
+/* Registration modal correction */
+.registration-modal .registration-card{
+  background:#fff !important;
+  opacity:1 !important;
+  border:1px solid #dfe5ec !important;
+  box-shadow:0 24px 70px rgba(15,23,42,.24) !important;
+  overflow:auto;
+}
+.registration-modal .registration-header{
+  background:#fff;
+  border-bottom:1px solid #e8edf3;
+  padding-bottom:18px;
+}
+.registration-modal .registration-header h2{
+  color:#172033;
+  font-size:26px;
+  letter-spacing:-.02em;
+}
+.registration-modal .registration-header .subtle{
+  color:#667085;
+}
+.registration-modal .modal-close{
+  width:40px;
+  height:40px;
+  border:1px solid #dfe5ec;
+  border-radius:10px;
+  background:#f8fafc;
+  color:#667085;
+  font-size:22px;
+  display:grid;
+  place-items:center;
+  cursor:pointer;
+}
+.registration-modal .modal-close:hover{
+  background:#eef2f7;
+  color:#172033;
+}
+.registration-choice-grid{
+  padding-top:22px;
+  gap:16px;
+}
+.registration-choice{
+  min-height:150px;
+  border:1px solid #dfe5ec;
+  border-radius:15px;
+  padding:24px;
+  background:#fff;
+}
+.registration-choice:hover{
+  border-color:#8ea4ff;
+  box-shadow:0 10px 26px rgba(49,94,251,.10);
+  transform:translateY(-1px);
+}
+.registration-choice-icon{
+  width:42px;
+  height:42px;
+  display:grid;
+  place-items:center;
+  border-radius:11px;
+  background:#eef3ff;
+  font-size:22px;
+}
+.registration-choice strong{font-size:17px}
+.registration-choice small{font-size:13px}
+@media(max-width:650px){
+  .registration-modal{padding:12px}
+  .registration-modal .registration-card{width:100%;padding:20px;max-height:94vh}
+  .registration-choice-grid{grid-template-columns:1fr}
+  .registration-choice{min-height:125px}
+}
