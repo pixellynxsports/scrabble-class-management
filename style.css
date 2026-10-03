@@ -859,3 +859,66 @@ body{background:#eef2f6}
   .registration-choice-grid{grid-template-columns:1fr}
   .registration-choice{min-height:125px}
 }
+
+/* Order Dashboard refinement */
+.order-dashboard-shell{gap:16px}
+.order-dashboard-head{padding:22px 24px;min-height:130px;align-items:center}
+.order-title-block{min-width:0}
+.order-back{margin-bottom:18px}
+.order-title-block h2{margin:5px 0 4px;font-size:27px;letter-spacing:-.025em;color:#101828}
+.order-title-block p{margin:0}
+.order-dot{padding:0 5px;color:#98a2b3}
+.order-head-side{display:flex;align-items:flex-end;gap:18px;flex-direction:column}
+.order-total{text-align:right}
+.order-total small{display:block;font-size:9px;font-weight:800;letter-spacing:.1em;color:#98a2b3}
+.order-total strong{display:block;font-size:23px;margin-top:3px;color:#172033}
+.order-status-grid{gap:12px}
+.order-status-card{position:relative;padding:17px 18px;min-height:126px;overflow:hidden}
+.order-status-card small{margin-top:3px}
+.order-status-card strong{font-size:17px;line-height:1.25}
+.order-status-card span{font-size:11px;line-height:1.4}
+.order-status-icon{width:31px;height:31px;border-radius:9px;background:#eef2ff;color:#315efb;display:grid;place-items:center;font-size:13px;font-weight:800;margin-bottom:12px}
+.order-dashboard-main{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(310px,.85fr);gap:16px;align-items:start}
+.order-left-column,.order-right-column{display:grid;gap:16px;min-width:0}
+.order-customer-panel,.order-management-panel,.order-summary-panel{padding:20px}
+.section-subtitle{margin:-8px 0 16px;color:#667085;font-size:12px}
+.order-customer-grid{gap:10px;margin-top:14px}
+.order-customer-grid .info{padding:13px 14px;border:1px solid #e7ebf1;border-radius:11px;background:#fafbfc}
+.order-customer-grid .info small{font-size:9px;letter-spacing:.08em;color:#98a2b3}
+.order-customer-grid .info b{display:block;margin-top:5px;font-size:12px;color:#172033;word-break:break-word}
+.order-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+.order-field{min-width:0}
+.order-field.full{grid-column:1/-1}
+.order-field label{display:block;margin-bottom:6px;font-size:10px;font-weight:800;letter-spacing:.03em;color:#475467}
+.order-field input,.order-field select,.order-field textarea{width:100%;min-height:42px}
+.order-field textarea{min-height:105px;resize:vertical}
+.order-form-footer{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:18px;padding-top:16px;border-top:1px solid #edf0f4}
+.order-form-footer span{font-size:11px;color:#98a2b3}
+.order-form-footer .primary{min-width:120px}
+.order-proof-panel{padding:20px;border:1px solid #dfe5ec;box-shadow:0 4px 18px rgba(15,23,42,.045)}
+.order-panel-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.order-panel-head h3{margin:5px 0 0;font-size:16px;color:#172033}
+.order-proof-actions{margin-top:15px;display:flex;gap:8px;flex-wrap:wrap}
+.order-note{display:grid;gap:4px;margin-top:14px;padding:11px 12px;border-radius:9px;background:#f8fafc;border:1px solid #edf0f4;font-size:11px;color:#667085}
+.order-note b{font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:#475467}
+.order-proof-empty{min-height:170px}
+.order-summary-panel .section-title{margin-bottom:8px}
+.order-summary-row{display:flex;justify-content:space-between;gap:15px;padding:12px 0;border-bottom:1px solid #edf0f4;font-size:12px;color:#667085}
+.order-summary-row b{color:#172033;text-align:right}
+.order-summary-row.total{border-bottom:0;padding-top:16px}
+.order-summary-row.total strong{font-size:19px;color:#172033}
+@media(max-width:1050px){
+  .order-dashboard-main{grid-template-columns:1fr}
+  .order-right-column{grid-template-columns:1fr 1fr}
+}
+@media(max-width:650px){
+  .order-dashboard-head{padding:18px;align-items:flex-start}
+  .order-head-side{width:100%;align-items:flex-start}
+  .order-total{text-align:left}
+  .order-form-grid{grid-template-columns:1fr}
+  .order-field.full{grid-column:auto}
+  .order-form-footer{align-items:stretch;flex-direction:column}
+  .order-form-footer .primary{width:100%}
+  .order-right-column{grid-template-columns:1fr}
+  .order-status-card{min-height:0}
+}
