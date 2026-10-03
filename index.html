@@ -135,7 +135,36 @@
 <script src="data/data.js"></script>
 <script src="utils.js?v=20261003.3"></script>
 <script src="data-mappers.js?v=20261003.1"></script>
-<script src="javascript.js?v=20261003.13"></script>
+<script src="javascript.js?v=20261003.14"></script>
 <script src="registration.js?v=20261003.4"></script>
-<script src="parent-login-email.js?v=20261003.2"></script><script>window.addEventListener("DOMContentLoaded",()=>initSupabaseAuth());</script>
+<script src="parent-login-email.js?v=20261003.2"></script>
+<script>
+window.addEventListener("DOMContentLoaded",()=>{
+  const showStartupFallback=()=>{
+    if(window.__scAuthStartupDone)return;
+    const boot=document.getElementById("bootScreen");
+    const login=document.getElementById("loginScreen");
+    if(boot&&!boot.classList.contains("hidden")){
+      boot.classList.add("hidden");
+      login?.classList.remove("hidden");
+      const msg=document.getElementById("loginMessage");
+      if(msg)msg.textContent="The portal could not complete its startup connection. Please check your connection and try again.";
+    }
+  };
+  window.setTimeout(showStartupFallback,12000);
+  if(typeof initSupabaseAuth==="function"){
+    Promise.resolve(initSupabaseAuth()).catch(error=>{
+      window.__scAuthStartupDone=true;
+      const boot=document.getElementById("bootScreen");
+      const login=document.getElementById("loginScreen");
+      boot?.classList.add("hidden");
+      login?.classList.remove("hidden");
+      const msg=document.getElementById("loginMessage");
+      if(msg)msg.textContent=error?.message||"Unable to start the portal.";
+    });
+  }else{
+    showStartupFallback();
+  }
+});
+</script>
 </body></html>
