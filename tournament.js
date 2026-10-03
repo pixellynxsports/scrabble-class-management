@@ -439,7 +439,6 @@ async function saveParticipants(){
     const winner=s1>s2?m.player1_id:s2>s1?m.player2_id:null;
     const result=await supabaseClient.from('tournament_matches').update({player1_score:s1,player2_score:s2,winner_player_id:winner,status:'completed'}).eq('match_id',m.match_id);if(result.error){notifyT(result.error.message,'error','Result Not Saved',{variant:'critical'});return;}
     closeModal();
-    if(m.status!=='completed')await finalizeRoundIfReady(Number(m.round_number));
     await loadTournamentData(state.selected.tournament_id);
     state.view='pairings';state.roundFocus=null;renderWorkspace();
     notifyT(m.status==='completed'?'Recorded result corrected.':'Result recorded. Finish the round when all matches are complete.','success',m.status==='completed'?'Result Updated':'Result Recorded',{variant:'payment'});
