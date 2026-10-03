@@ -193,7 +193,46 @@
 
   function create(){
     const defaultDate=new Date().toISOString().slice(0,10);
-    showModal('<div class="tournament-modal-head"><div><div class="eyebrow">NEW TOURNAMENT</div><h2>Create Tournament</h2><p>Build the competition first, then choose exactly which SCMS students will participate.</p></div><button class="parent-close-button" type="button" onclick="SCMSTournament.closeModal()">×</button></div><form id="tournamentCreateForm" class="tournament-form"><div class="tournament-form-grid"><div class="tournament-field full"><label>Tournament Name</label><input id="tName" required placeholder="October Friendly Scrabble Tournament"></div><div class="tournament-field"><label>Date</label><input id="tDate" type="date" value="'+defaultDate+'" required></div><div class="tournament-field"><label>Start Time</label><input id="tTime" type="time" value="10:00"></div><div class="tournament-field"><label>Format</label><select id="tFormat" onchange="SCMSTournament.formatChanged()"><option value="swiss">Swiss</option><option value="single_elimination">Single Elimination</option><option value="round_robin">Round Robin</option></select></div><div class="tournament-field"><label>Rounds</label><input id="tRounds" type="number" min="1" max="20" value="5"></div><div class="tournament-field full"><label>Description</label><textarea id="tDescription" placeholder="Friendly monthly Scrabble tournament"></textarea></div></div><div class="tournament-participant-builder"><div class="row"><div><div class="eyebrow">PARTICIPANTS</div><h3>Select Students</h3><p class="subtle">Nothing is added automatically. Tick only the students who are playing.</p></div><span class="badge blue" id="selectedPlayerCount">0 selected</span></div><div class="tournament-participant-toolbar"><input id="participantSearch" class="search grow" placeholder="Search student name or ID" oninput="SCMSTournament.filterParticipants()"><button type="button" class="secondary" onclick="SCMSTournament.selectAllParticipants()">Select All</button><button type="button" class="secondary" onclick="SCMSTournament.clearParticipants()">Clear All</button></div><div id="participantChecklist" class="tournament-participant-list">'+participantChecklist('')+'</div></div><div class="tournament-form-footer"><button type="button" class="secondary" onclick="SCMSTournament.closeModal()">Cancel</button><button class="primary" type="submit">Create Tournament</button></div></form>');
+    showModal('<div class="tournament-create-modal">'+
+      '<div class="tournament-create-hero">'+
+        '<div class="tournament-create-icon">T</div>'+
+        '<div class="tournament-create-heading"><div class="eyebrow">TOURNAMENT SETUP</div><h2>Create Tournament</h2><p>Build your competition, choose the players and prepare the event before you start the first round.</p></div>'+
+        '<button class="tournament-modal-close" type="button" aria-label="Close" onclick="SCMSTournament.closeModal()">×</button>'+
+      '</div>'+
+      '<form id="tournamentCreateForm" class="tournament-form tournament-create-form">'+
+        '<section class="tournament-form-section">'+
+          '<div class="tournament-form-section-head"><span>01</span><div><strong>Competition details</strong><small>Give the tournament its identity and schedule.</small></div></div>'+
+          '<div class="tournament-form-grid">'+
+            '<div class="tournament-field full"><label for="tName">Tournament Name</label><input id="tName" required placeholder="October Friendly Scrabble Tournament"></div>'+
+            '<div class="tournament-field"><label for="tDate">Event Date</label><input id="tDate" type="date" value="'+defaultDate+'" required></div>'+
+            '<div class="tournament-field"><label for="tTime">Start Time</label><input id="tTime" type="time" value="10:00"></div>'+
+          '</div>'+
+        '</section>'+
+        '<section class="tournament-form-section">'+
+          '<div class="tournament-form-section-head"><span>02</span><div><strong>Competition format</strong><small>Choose how rounds and pairings will be managed.</small></div></div>'+
+          '<div class="tournament-format-grid">'+
+            '<label class="tournament-format-option selected"><input type="radio" name="tFormatChoice" value="swiss" checked onchange="document.getElementById(\'tFormat\').value=this.value;SCMSTournament.formatChanged();"><span class="tournament-format-icon">S</span><span><b>Swiss</b><small>Players continue across rounds without elimination.</small></span></label>'+
+            '<label class="tournament-format-option"><input type="radio" name="tFormatChoice" value="round_robin" onchange="document.getElementById(\'tFormat\').value=this.value;SCMSTournament.formatChanged();"><span class="tournament-format-icon">R</span><span><b>Round Robin</b><small>Players meet across a complete round schedule.</small></span></label>'+
+            '<label class="tournament-format-option"><input type="radio" name="tFormatChoice" value="single_elimination" onchange="document.getElementById(\'tFormat\').value=this.value;SCMSTournament.formatChanged();"><span class="tournament-format-icon">E</span><span><b>Single Elimination</b><small>Players progress through a knockout bracket.</small></span></label>'+
+          '</div>'+
+          '<select id="tFormat" class="tournament-format-hidden" aria-hidden="true"><option value="swiss">Swiss</option><option value="round_robin">Round Robin</option><option value="single_elimination">Single Elimination</option></select>'+
+          '<div class="tournament-round-setting"><div><label for="tRounds">Number of Rounds</label><small>How many rounds should be scheduled?</small></div><input id="tRounds" type="number" min="1" max="20" value="5"></div>'+
+        '</section>'+
+        '<section class="tournament-form-section">'+
+          '<div class="tournament-form-section-head"><span>03</span><div><strong>Participants</strong><small>Select exactly which SCMS students will compete.</small></div><span class="badge blue" id="selectedPlayerCount">0 selected</span></div>'+
+          '<div class="tournament-participant-builder tournament-participant-builder-new">'+
+            '<div class="tournament-participant-toolbar"><div class="tournament-search-wrap"><span>⌕</span><input id="participantSearch" class="search grow" placeholder="Search student name or ID" oninput="SCMSTournament.filterParticipants()"></div><button type="button" class="secondary" onclick="SCMSTournament.selectAllParticipants()">Select All</button><button type="button" class="secondary" onclick="SCMSTournament.clearParticipants()">Clear</button></div>'+
+            '<div id="participantChecklist" class="tournament-participant-list">'+participantChecklist('')+'</div>'+
+          '</div>'+
+        '</section>'+
+        '<section class="tournament-form-section">'+
+          '<div class="tournament-form-section-head"><span>04</span><div><strong>Event note</strong><small>Optional information for your tournament record.</small></div></div>'+
+          '<div class="tournament-field"><label for="tDescription">Description</label><textarea id="tDescription" placeholder="Friendly monthly Scrabble tournament"></textarea></div>'+
+        '</section>'+
+        '<div class="tournament-form-footer tournament-create-footer"><div class="tournament-footer-note"><span>●</span><div><strong>Draft first, start when ready</strong><small>You can manage participants and seeding before the tournament begins.</small></div></div><div class="tournament-footer-actions"><button type="button" class="secondary" onclick="SCMSTournament.closeModal()">Cancel</button><button class="primary" type="submit">Create Tournament <span>→</span></button></div></div>'+
+      '</form>'+
+    '</div>');
+    document.querySelectorAll('input[name="tFormatChoice"]').forEach(function(input){input.addEventListener('change',function(){document.querySelectorAll('.tournament-format-option').forEach(function(option){option.classList.toggle('selected',option.querySelector('input').checked);});});});
     document.getElementById('tournamentCreateForm').onsubmit=function(e){e.preventDefault();saveCreate();};
   }
 
