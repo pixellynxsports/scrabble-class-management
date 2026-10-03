@@ -325,7 +325,9 @@
   width:min(960px,100%);
   max-height:min(92vh,900px);
   border-radius:20px;
-  overflow:hidden;
+  overflow-y:auto;
+  overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
   padding:0;
   box-shadow:0 30px 90px rgba(16,24,40,.25);
 }
