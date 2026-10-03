@@ -146,9 +146,9 @@
       (allComplete?'<div class="tournament-finish-hint"><strong>Round ready to finish.</strong><span>Review all results above, then click Finish Round. The next round will be created only after you confirm. The next live round will open automatically in Pairings.</span></div>':'');
   }
 
-  function matchCard(m){
+  function matchCard(m,viewOnly){
     const p1=playerName(m.player1_id),p2=playerName(m.player2_id),completed=m.status==='completed',winner=m.winner_player_id?String(m.winner_player_id):'';
-    const action=completed?'<button class="secondary small" type="button" onclick="SCMSTournament.score(\''+escT(m.match_id)+'\')">Edit Result</button>':m.player1_id&&m.player2_id?'<button class="secondary" type="button" onclick="SCMSTournament.score(\''+escT(m.match_id)+'\')">Report Score</button>':'<span class="badge blue">BYE</span>';
+    const action=viewOnly&&completed?'<span class="badge present">Recorded</span>':completed?'<button class="secondary small" type="button" onclick="SCMSTournament.score(\''+escT(m.match_id)+'\')">Edit Result</button>':m.player1_id&&m.player2_id?'<button class="secondary" type="button" onclick="SCMSTournament.score(\''+escT(m.match_id)+'\')">Report Score</button>':'<span class="badge blue">BYE</span>';
     return '<div class="tournament-match-card '+(completed?'is-complete':'')+'"><div class="tournament-match-number">#'+escT(m.match_number)+'</div><div class="tournament-match-players"><div class="'+(winner&&winner===String(m.player1_id)?'winner':'')+'"><span>'+escT(p1)+'</span><b>'+(m.player1_score==null?'—':escT(m.player1_score))+'</b></div><div class="tournament-vs">VS</div><div class="'+(winner&&winner===String(m.player2_id)?'winner':'')+'"><span>'+escT(p2)+'</span><b>'+(m.player2_score==null?'—':escT(m.player2_score))+'</b></div></div><div class="tournament-match-side">'+(m.table_label?'<small>'+escT(m.table_label)+'</small>':'')+action+'</div></div>';
   }
 
@@ -223,7 +223,12 @@
   }
 
   function tab(name){state.view=name;if(name!=='rounds')state.roundFocus=null;renderWorkspace();}
-  function viewRound(roundNumber){state.view='rounds';state.roundFocus=Number(roundNumber);renderWorkspace();}
+  function viewRound(roundNumber){
+    const n=Number(roundNumber);
+    const t=state.selected;
+    if(t&&t.status==='active'&&n===Number(t.current_round||0)){state.view='pairings';state.roundFocus=null;renderWorkspace();return;}
+    state.view='rounds';state.roundFocus=n;renderWorkspace();
+  }
   function clearRoundView(){state.roundFocus=null;renderWorkspace();}
 
   function showModal(html){
