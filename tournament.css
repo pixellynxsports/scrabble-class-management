@@ -850,3 +850,85 @@ button.danger:hover{
     width:100%;
   }
 }
+
+
+/* Tournament ended round and final dashboard presentation */
+.tournament-ended-round-panel{
+  position:relative;
+  overflow:hidden;
+  margin:4px 0;
+  padding:38px 28px 30px;
+  text-align:center;
+  border:1px solid #dbe3ef;
+  border-radius:18px;
+  background:linear-gradient(145deg,#ffffff 0%,#f7f9fc 100%);
+  box-shadow:0 14px 34px rgba(15,23,42,.07);
+}
+.tournament-ended-round-panel:before{
+  content:"";
+  position:absolute;
+  width:220px;height:220px;
+  right:-95px;top:-120px;
+  border-radius:50%;
+  background:rgba(34,197,94,.06);
+}
+.tournament-ended-round-icon{
+  position:relative;
+  width:48px;height:48px;
+  margin:0 auto 12px;
+  display:grid;place-items:center;
+  border-radius:14px;
+  background:#ecfdf3;
+  color:#07883f;
+  border:1px solid #ccefdc;
+  font-size:22px;font-weight:900;
+}
+.tournament-ended-round-panel .eyebrow{position:relative;color:#07883f}
+.tournament-ended-round-panel h3{position:relative;margin:7px 0 7px;font-size:22px;color:#101828}
+.tournament-ended-round-panel p{position:relative;max-width:620px;margin:0 auto;color:#667085;line-height:1.6}
+.tournament-ended-round-stats{
+  position:relative;
+  display:grid;grid-template-columns:repeat(3,1fr);
+  max-width:620px;margin:24px auto;
+  border:1px solid #e5eaf1;border-radius:14px;overflow:hidden;background:#fff;
+}
+.tournament-ended-round-stats div{padding:14px;border-right:1px solid #e5eaf1}
+.tournament-ended-round-stats div:last-child{border-right:0}
+.tournament-ended-round-stats b{display:block;font-size:21px;color:#101828}
+.tournament-ended-round-stats span{display:block;margin-top:3px;font-size:10px;color:#7b8799}
+.tournament-add-round-button{position:relative;min-width:210px}
+.tournament-ended-round-note{position:relative;display:block;margin:11px auto 0;color:#8b95a7;font-size:10px}
+.tournament-completed-dashboard{
+  position:relative;
+  overflow:hidden;
+  border:1px solid #d9e2ee;
+  border-radius:20px;
+  background:linear-gradient(135deg,#0f172a 0%,#172554 52%,#1e3a8a 100%);
+  color:#fff;
+  box-shadow:0 18px 42px rgba(15,23,42,.16);
+}
+.tournament-completed-dashboard:after{
+  content:"";
+  position:absolute;right:-90px;top:-110px;width:300px;height:300px;
+  border:1px solid rgba(255,255,255,.1);border-radius:50%;
+  box-shadow:0 0 0 45px rgba(255,255,255,.025),0 0 0 90px rgba(255,255,255,.018);
+}
+.tournament-completed-dashboard .eyebrow{color:#a9c5ff}
+.tournament-completed-dashboard h3{color:#fff;font-size:25px;margin:7px 0}
+.tournament-completed-dashboard p{color:#cbd5e1}
+.tournament-final-podium{
+  position:relative;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:22px;
+}
+.tournament-final-podium .podium-place{
+  padding:16px;border:1px solid rgba(255,255,255,.12);border-radius:13px;
+  background:rgba(255,255,255,.07);backdrop-filter:blur(8px);
+}
+.tournament-final-podium .podium-place strong{display:block;color:#a9c5ff;font-size:10px;text-transform:uppercase;letter-spacing:.08em}
+.tournament-final-podium .podium-place b{display:block;margin-top:5px;color:#fff;font-size:14px}
+.tournament-final-podium .podium-place span{display:block;margin-top:3px;color:#b8c5d8;font-size:10px}
+@media(max-width:700px){
+  .tournament-ended-round-stats{grid-template-columns:1fr}
+  .tournament-ended-round-stats div{border-right:0;border-bottom:1px solid #e5eaf1}
+  .tournament-ended-round-stats div:last-child{border-bottom:0}
+  .tournament-final-podium{grid-template-columns:1fr}
+}
