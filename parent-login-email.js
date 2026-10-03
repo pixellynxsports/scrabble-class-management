@@ -5,13 +5,14 @@ async function generateParentLoginDetails(studentId,button){
     s=>String(s["Student ID"])===String(studentId)
   );
 
-  if(!student)return alert("Student not found.");
+  if(!student){appNotify("The selected student could not be found in the current student records.","error","Student Not Found");return;}
 
   const parentName=student["Parent / Guardian"]||"the parent";
 
-  const ok=confirm(
-    "Generate a new temporary Parent Portal password for "+parentName+
-    "?\n\nThe current parent password will be replaced and the parent will be required to change it at the next login."
+  const ok=await appConfirm(
+    "The current parent password will be replaced and the parent will be required to change it at the next login.",
+    "Generate Parent Login?",
+    "SECURITY ACTION"
   );
 
   if(!ok)return;
@@ -69,25 +70,14 @@ async function generateParentLoginDetails(studentId,button){
     if(emailWindow&&!emailWindow.closed){
       emailWindow.location.href=gmailUrl;
     }else{
-      alert(
-        "PARENT PORTAL LOGIN DETAILS\n\n"+
-        "Parent: "+(data.parent_name||parentName)+"\n"+
-        "Login Email: "+data.email+"\n"+
-        "Temporary Password: "+data.password+"\n\n"+
-        "Registered Student(s):\n"+children+
-        "\n\nThe Gmail window was blocked. Please use your normal email service and send these details manually."
-      );
+      appNotify("Gmail was blocked. The generated login details are ready for manual email delivery.","warning","Gmail Window Blocked");
     }
 
-    confirm(
-      "Parent login details generated successfully.\n\n"+
-      "A Gmail compose window has been opened with the email prepared.\n\n"+
-      "Send the email, then do not generate another password for this parent."
-    );
+    appNotify("Gmail compose opened with the parent login email prepared. Send it once, then do not generate another password for this parent.","success","Login Details Ready");
 
   }catch(error){
     if(emailWindow&&!emailWindow.closed)emailWindow.close();
-    alert(error?.message||"Unable to generate the parent login details.");
+    appNotify(error?.message||"Unable to generate the parent login details.","error","Login Details Not Generated");
   }finally{
     if(button){
       button.disabled=false;
