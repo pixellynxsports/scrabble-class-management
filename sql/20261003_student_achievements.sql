@@ -14,6 +14,8 @@ create table if not exists public.student_achievements (
   file_type text,
   file_size bigint,
   created_by uuid references auth.users(id),
+  source_type text,
+  source_id text,
   created_at timestamptz not null default now()
 );
 
@@ -22,6 +24,9 @@ create index if not exists student_achievements_student_id_idx
 
 create index if not exists student_achievements_date_idx
   on public.student_achievements(achievement_date desc);
+
+create index if not exists student_achievements_source_idx
+  on public.student_achievements(source_type, source_id);
 
 alter table public.student_achievements enable row level security;
 
