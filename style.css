@@ -922,3 +922,41 @@ body{background:#eef2f6}
   .order-right-column{grid-template-columns:1fr}
   .order-status-card{min-height:0}
 }
+
+/* ===== SCMS BRANDED NOTIFICATIONS & DIALOGS ===== */
+.sc-notification-root{position:fixed;top:22px;right:22px;width:min(390px,calc(100vw - 32px));display:grid;gap:10px;z-index:100000;pointer-events:none}
+.sc-notification{position:relative;display:grid;grid-template-columns:40px 1fr 28px;gap:12px;align-items:start;padding:15px 15px 17px;border:1px solid rgba(255,255,255,.55);border-radius:15px;background:rgba(255,255,255,.96);box-shadow:0 18px 45px rgba(15,23,42,.18),0 3px 10px rgba(15,23,42,.08);backdrop-filter:blur(14px);overflow:hidden;pointer-events:auto;animation:scNotifyIn .28s cubic-bezier(.2,.8,.2,1)}
+.sc-notification.is-closing{animation:scNotifyOut .18s ease forwards}
+.sc-notification-icon{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:#172033;color:#fff;font-weight:800;font-size:17px}
+.sc-notification-copy{min-width:0;padding-top:1px}
+.sc-notification-title{font-size:11px;font-weight:800;letter-spacing:.07em;color:#172033;text-transform:uppercase}
+.sc-notification-message{margin-top:4px;font-size:13px;line-height:1.45;color:#667085;word-break:break-word}
+.sc-notification-close{width:28px;height:28px;border:0;border-radius:8px;background:#f2f4f7;color:#667085;font-size:18px;line-height:1;cursor:pointer}
+.sc-notification-close:hover{background:#e4e7ec;color:#172033}
+.sc-notification-progress{position:absolute;left:0;right:0;bottom:0;height:3px;background:#172033;transform-origin:left;animation:scNotifyProgress 5s linear forwards}
+.sc-notification-success .sc-notification-icon,.sc-notification-success .sc-notification-progress{background:#16704a}
+.sc-notification-error .sc-notification-icon,.sc-notification-error .sc-notification-progress{background:#c93636}
+.sc-notification-warning .sc-notification-icon,.sc-notification-warning .sc-notification-progress{background:#a96800}
+.sc-notification-info .sc-notification-icon,.sc-notification-info .sc-notification-progress{background:#315efb}
+.sc-dialog-root{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:20px;z-index:100001}
+.sc-dialog-root.show{display:flex}
+.sc-dialog-backdrop{position:absolute;inset:0;background:rgba(15,23,42,.52);backdrop-filter:blur(5px);animation:scFadeIn .18s ease}
+.sc-dialog{position:relative;width:min(480px,100%);padding:26px;background:#fff;border:1px solid #e1e6ee;border-radius:20px;box-shadow:0 28px 80px rgba(15,23,42,.28);animation:scDialogIn .22s cubic-bezier(.2,.8,.2,1)}
+.sc-dialog-close{position:absolute;right:17px;top:17px;width:36px;height:36px;border:1px solid #e1e6ee;border-radius:10px;background:#f8fafc;color:#667085;font-size:21px;cursor:pointer}
+.sc-dialog-close:hover{background:#eef2f6;color:#172033}
+.sc-dialog-icon{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;background:#eef3ff;color:#315efb;font-size:21px;font-weight:800;margin-bottom:17px}
+.sc-dialog-eyebrow{font-size:10px;font-weight:800;letter-spacing:.09em;color:#667085}
+.sc-dialog-title{margin:5px 45px 7px 0;font-size:22px;letter-spacing:-.02em;color:#172033}
+.sc-dialog-message{margin:0;color:#667085;font-size:13px;line-height:1.55;white-space:pre-line}
+.sc-dialog-body{margin-top:17px}
+.sc-dialog-input{width:100%;min-height:44px;padding:11px 13px;border:1px solid #d7dde7;border-radius:10px;background:#fff;color:#172033;font:inherit;outline:none}
+.sc-dialog-input:focus{border-color:#315efb;box-shadow:0 0 0 3px rgba(49,94,251,.10)}
+.sc-dialog-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:22px}
+.sc-dialog-actions button{min-width:100px}
+body.sc-dialog-open{overflow:hidden}
+@keyframes scNotifyIn{from{opacity:0;transform:translate3d(24px,-8px,0) scale(.98)}to{opacity:1;transform:none}}
+@keyframes scNotifyOut{to{opacity:0;transform:translate3d(24px,-4px,0) scale(.98)}}
+@keyframes scNotifyProgress{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+@keyframes scFadeIn{from{opacity:0}to{opacity:1}}
+@keyframes scDialogIn{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
+@media(max-width:650px){.sc-notification-root{top:12px;right:12px;left:12px;width:auto}.sc-notification{grid-template-columns:36px 1fr 28px;padding:13px}.sc-notification-icon{width:36px;height:36px;border-radius:10px}.sc-dialog-root{padding:12px}.sc-dialog{padding:22px 18px;border-radius:17px}.sc-dialog-actions{flex-direction:column-reverse}.sc-dialog-actions button{width:100%}}
