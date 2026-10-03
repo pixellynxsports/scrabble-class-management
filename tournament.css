@@ -932,3 +932,9 @@ button.danger:hover{
   .tournament-ended-round-stats div:last-child{border-bottom:0}
   .tournament-final-podium{grid-template-columns:1fr}
 }
+
+.tournament-final-metrics{margin-top:14px}
+.tournament-completed-grid{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(280px,.75fr);gap:14px;margin-top:14px}
+.tournament-completed-grid>.panel{margin:0}
+.tournament-completed-grid .tournament-table-head{padding-bottom:12px}
+@media(max-width:900px){.tournament-completed-grid{grid-template-columns:1fr}}
