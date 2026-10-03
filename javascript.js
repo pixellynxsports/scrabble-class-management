@@ -32,7 +32,18 @@ async function refreshOnline(silent=false){if(currentUserRole==='parent'){await 
 async function getCurrentParentAccount(){const {data,error}=await supabaseClient.auth.getUser();if(error)throw dbError(error);const uid=data.user?.id;if(!uid)throw new Error('Your session has expired. Please sign in again.');const {data:account,error:accountError}=await supabaseClient.from('parent_accounts').select('user_id,parent_name,email,whatsapp,active,must_change_password').eq('user_id',uid).maybeSingle();if(accountError)throw dbError(accountError);return account;}
 async function loadParentPortal(){const account=await getCurrentParentAccount();if(!account)throw new Error('This account is not registered as a parent account.');if(account.active===false)throw new Error('This parent account is inactive. Please contact the teacher.');const {data:links,error:linkError}=await supabaseClient.from('parent_students').select('student_id').eq('parent_user_id',account.user_id);if(linkError)throw dbError(linkError);const ids=(links||[]).map(x=>x.student_id).filter(Boolean);let students=[],attendance=[],payments=[],orders=[];if(ids.length){const [s,a,p,o]=await Promise.all([supabaseClient.from('students').select('student_id,student_name,school,age,scrabble_experience,parent_guardian,whatsapp,normal_class_time,email,registration_date,active').in('student_id',ids).order('student_name'),supabaseClient.from('attendance').select('*').in('student_id',ids).order('attendance_date',{ascending:false}),supabaseClient.from('payments').select('*').in('student_id',ids).order('payment_date',{ascending:false}),supabaseClient.from('orders').select('*').in('student_id',ids).eq('archived',false).order('order_date',{ascending:false})]);for(const result of [s,a,p,o]){if(result.error)throw dbError(result.error)}students=s.data||[];attendance=(a.data||[]).map(attendanceFromDb);payments=(p.data||[]).map(paymentFromDb);orders=(o.data||[]).map(orderFromDb);}PARENT_CONTEXT={account,students,attendance,payments,orders,selectedStudentId:ids[0]||''};renderParentPortal();setConnection('● Online',false);if(parentPaymentReturn&&!parentPaymentReturnHandled&&!parentPaymentProcessing){parentPaymentReturnHandled=true;checkReturnedPayment();}}
 /* ===== PAYMENT DOMAIN ===== */
+let paymentStateCache=new Map();
+let paymentStateCachePayments=null;
+let paymentStateCacheAttendance=null;
 function calculatePaymentState(payments,attendance,sid){
+  if(paymentStateCachePayments!==payments||paymentStateCacheAttendance!==attendance){
+    paymentStateCache=new Map();
+    paymentStateCachePayments=payments;
+    paymentStateCacheAttendance=attendance;
+  }
+  const cacheKey=String(sid);
+  const cached=paymentStateCache.get(cacheKey);
+  if(cached)return cached;
   const paid=payments
     .filter(p=>String(p['Student ID'])===String(sid)&&String(p.Status||'').toLowerCase()==='paid')
     .sort((a,b)=>(Number(a['Cycle Number'])||0)-(Number(b['Cycle Number'])||0));
@@ -69,7 +80,7 @@ function calculatePaymentState(payments,attendance,sid){
   if(initialPayment && latestCycle===initialCycle){
     const classes=present.slice(0,4);
     const progress=classes.length;
-    return {
+    const result={
       classes,
       progress,
       status:progress>=4?'Payment Due':progress===3?'Almost Due':'Paid',
@@ -79,6 +90,8 @@ function calculatePaymentState(payments,attendance,sid){
       activePrepaid:progress<4,
       lastPayment:latestPayment
     };
+    paymentStateCache.set(cacheKey,result);
+    return result;
   }
 
   // For later cycles, Present records not covered by a paid payment belong
@@ -89,7 +102,7 @@ function calculatePaymentState(payments,attendance,sid){
   const progress=classes.length;
   const status=progress>=4?'Payment Due':progress===3?'Almost Due':'Paid';
 
-  return {
+  const result={
     classes,
     progress,
     status,
@@ -99,6 +112,8 @@ function calculatePaymentState(payments,attendance,sid){
     activePrepaid:false,
     lastPayment:latestPayment
   };
+  paymentStateCache.set(cacheKey,result);
+  return result;
 }
 function parentPaymentState(sid){
   return calculatePaymentState(PARENT_CONTEXT.payments,PARENT_CONTEXT.attendance,sid);
