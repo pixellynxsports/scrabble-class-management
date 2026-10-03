@@ -215,7 +215,10 @@
         '<div class="panel tournament-settings-section"><div class="eyebrow">LIVE RECORD</div><h3>Competition Status</h3><div class="tournament-settings-lines"><div><span>Current round</span><strong>'+escT(t.current_round||0)+'</strong></div><div><span>Players</span><strong>'+escT(state.players.length)+'</strong></div><div><span>Results recorded</span><strong>'+completed+' / '+total+'</strong></div><div><span>Rounds completed</span><strong>'+state.rounds.filter(function(r){return r.status==='completed';}).length+'</strong></div></div></div>'+
         '<div class="panel tournament-settings-section"><div class="eyebrow">RULES</div><h3>Scoring & Pairing</h3><div class="tournament-rule-list"><div><span>Game</span><strong>Scrabble</strong></div><div><span>Result</span><strong>Higher score wins</strong></div><div><span>Tie</span><strong>Recorded as tie</strong></div><div><span>Participant mode</span><strong>Manual selection</strong></div></div></div>'+
       '</div>'+
-      '<div class="panel tournament-settings-section tournament-settings-note"><div class="eyebrow">RECORD SAFETY</div><h3>'+(locked?'Protected tournament record':'Editable setup')+'</h3><p>'+(locked?'The competition identity and format are preserved once play has started. Match results, participants before start and seeding remain separately manageable.':'You can edit the tournament setup before starting the first round.')+'</p>'+(locked?'':'<button class="primary" type="button" onclick="SCMSTournament.editTournament()">Edit Tournament Setup</button>')+'</div>'+
+      '<div class="panel tournament-settings-section tournament-settings-note"><div class="eyebrow">RECORD SAFETY</div><h3>'+(locked?'Protected tournament record':'Editable setup')+'</h3><p>'+(locked?'The competition identity and format are preserved once play has started. Match results remain editable so corrections can be made without losing the tournament history.':'You can edit the tournament setup before starting the first round.')+'</p>'+(locked?'':'<button class="primary" type="button" onclick="SCMSTournament.editTournament()">Edit Tournament Setup</button>')+
+      (t.status==='active'?'<div class="tournament-danger-zone"><div><div class="eyebrow">EMERGENCY CONTROL</div><h4>End Tournament Immediately</h4><p>Stops the competition now and preserves all results already recorded. Unfinished matches remain incomplete.</p></div><button class="danger" type="button" onclick="SCMSTournament.immediateEnd()">End Immediately</button></div>':'')+
+      (t.status==='completed'&&t.settings&&t.settings.ended_early?'<div class="tournament-danger-zone delete-zone"><div><div class="eyebrow">PERMANENT ACTION</div><h4>Delete Ended Tournament</h4><p>Permanently removes this tournament and its tournament records. This cannot be undone.</p></div><button class="danger" type="button" onclick="SCMSTournament.deleteTournament()">Delete Tournament</button></div>':'')+
+      '</div>'+
     '</div>';
   }
 
@@ -477,6 +480,43 @@ async function saveParticipants(){
     }catch(error){notifyT(error.message||String(error),'error','Round Could Not Finish',{variant:'critical'});}
   }
 
+  async function immediateEnd(){
+    const t=state.selected;if(!t||t.status!=='active')return;
+    await loadTournamentData(t.tournament_id);
+    const completedMatches=state.matches.filter(function(m){return m.status==='completed';}).length;
+    if(!(await confirmT('End this tournament immediately? The current results will be preserved, unfinished matches will remain incomplete, and the tournament will be marked as ended early. A Delete Tournament option will then become available.','Immediate End Tournament')))return;
+    try{
+      const standings=calculateStandings();
+      for(let i=0;i<standings.length;i++){
+        const p=standings[i];
+        const upd=await supabaseClient.from('tournament_players').update({final_rank:i+1,wins:p.wins,losses:p.losses,ties:p.ties,points:p.points,score_for:p.score_for,score_against:p.score_against}).eq('player_id',p.player_id);
+        if(upd.error)throw upd.error;
+      }
+      const settings=Object.assign({},t.settings||{},{ended_early:true,ended_early_at:new Date().toISOString()});
+      const upd=await supabaseClient.from('tournaments').update({status:'completed',completed_at:new Date().toISOString(),settings:settings}).eq('tournament_id',t.tournament_id);
+      if(upd.error)throw upd.error;
+      await loadTournaments();await open(t.tournament_id);
+      notifyT('Tournament ended immediately. '+completedMatches+' recorded matches were preserved.','success','Tournament Ended Early',{variant:'critical'});
+    }catch(error){notifyT(error.message||String(error),'error','Immediate End Failed',{variant:'critical'});}
+  }
+
+  async function deleteTournament(){
+    const t=state.selected;if(!t||t.status!=='completed'||!(t.settings&&t.settings.ended_early))return;
+    if(!(await confirmT('Permanently delete this ended tournament and all of its tournament records? This cannot be undone. Student records outside this tournament will not be deleted.','Delete Tournament')))return;
+    try{
+      const awardIds=(state.awards||[]).map(function(a){return String(a.award_id);});
+      if(awardIds.length){
+        const ach=await supabaseClient.from('student_achievements').delete().eq('source_type','tournament').in('source_id',awardIds);
+        if(ach.error&&!/relation .*student_achievements.*does not exist|could not find the table/i.test(ach.error.message||''))throw ach.error;
+      }
+      const result=await supabaseClient.from('tournaments').delete().eq('tournament_id',t.tournament_id);
+      if(result.error)throw result.error;
+      state.selected=null;state.players=[];state.rounds=[];state.matches=[];state.awards=[];state.standings=[];
+      await loadTournaments();
+      notifyT('The ended tournament and its tournament records were permanently deleted.','success','Tournament Deleted');
+    }catch(error){notifyT(error.message||String(error),'error','Tournament Could Not Be Deleted',{variant:'critical'});}
+  }
+
   async function finish(){
     const t=state.selected;if(!t||t.status!=='active')return;
     const incomplete=state.matches.filter(function(m){return m.status!=='completed';});if(incomplete.length){notifyT('Complete all open matches before ending the tournament.','warning','Matches Still Open');return;}
@@ -554,7 +594,7 @@ async function saveParticipants(){
   function back(){state.selected=null;state.players=[];state.rounds=[];state.matches=[];state.awards=[];renderHome();}
   async function refresh(){await loadTournaments();if(state.selected)await open(state.selected.tournament_id);}
 
-  window.SCMSTournament={init:async function(){await loadTournaments();},refresh:refresh,create:create,open:open,back:back,tab:tab,closeModal:closeModal,formatChanged:formatChanged,filterParticipants:filterParticipants,selectAllParticipants:selectAllParticipants,clearParticipants:clearParticipants,saveParticipants:saveParticipants,editParticipants:editParticipants,seedParticipants:seedParticipants,moveSeed:moveSeed,saveSeeding:saveSeeding,removePlayer:removePlayer,start:start,score:score,finish:finish,saveSpecialAwards:saveSpecialAwards,archive:archive,reopen:reopen,editTournament:editTournament};
+  window.SCMSTournament={init:async function(){await loadTournaments();},refresh:refresh,create:create,open:open,back:back,tab:tab,viewRound:viewRound,clearRoundView:clearRoundView,closeModal:closeModal,formatChanged:formatChanged,filterParticipants:filterParticipants,selectAllParticipants:selectAllParticipants,clearParticipants:clearParticipants,saveParticipants:saveParticipants,editParticipants:editParticipants,seedParticipants:seedParticipants,moveSeed:moveSeed,saveSeeding:saveSeeding,removePlayer:removePlayer,start:start,score:score,finish:finish,finishRound:finishRound,immediateEnd:immediateEnd,deleteTournament:deleteTournament,saveSpecialAwards:saveSpecialAwards,archive:archive,reopen:reopen,editTournament:editTournament};
 
   const originalPage=window.page;
   window.page=function(name){originalPage(name);if(name==='tournament'){const title=document.getElementById('title');if(title)title.textContent='Tournament';SCMSTournament.init();}};
