@@ -5,7 +5,7 @@ const supabaseClient=window.supabase.createClient(window.SUPABASE_URL,window.SUP
 let authReady=false;
 let loginMode='teacher';
 let currentUserRole='teacher';
-let PARENT_CONTEXT={account:null,students:[]};
+let PARENT_CONTEXT={account:null,students:[],achievements:[]};
 let teacherPreviewMode=false;
 let teacherPreviewPreviousPage='students';
 let parentEntryNoticeShown=false;
@@ -488,7 +488,7 @@ function showPasswordChangeScreen(message=''){document.getElementById('passwordC
 function hidePasswordChangeScreen(){document.getElementById('passwordChangeScreen')?.classList.add('hidden');}
 function validateParentPassword(value){return value.length>=8&&/[A-Z]/.test(value)&&/[a-z]/.test(value)&&/[0-9]/.test(value);}
 async function changeParentPassword(){if(passwordChangeInProgress)return;const newPassword=document.getElementById('newPassword')?.value||'',confirmPassword=document.getElementById('confirmNewPassword')?.value||'',button=document.getElementById('changePasswordButton'),msg=document.getElementById('passwordChangeMessage');if(!validateParentPassword(newPassword)){msg.textContent='Use at least 8 characters with uppercase, lowercase and a number.';return}if(newPassword!==confirmPassword){msg.textContent='The passwords do not match.';return}passwordChangeInProgress=true;if(button)button.disabled=true;msg.textContent='Updating password...';try{const {data,error}=await supabaseClient.auth.updateUser({password:newPassword,user_metadata:{must_change_password:false}});if(error)throw dbError(error);const uid=data.user?.id;if(!uid)throw new Error('Your session has expired. Please sign in again.');const {error:dbUpdateError}=await supabaseClient.rpc('complete_parent_first_login');if(dbUpdateError)throw dbError(dbUpdateError);msg.textContent='Password updated successfully.';document.getElementById('newPassword').value='';document.getElementById('confirmNewPassword').value='';await new Promise(resolve=>setTimeout(resolve,700));hidePasswordChangeScreen();await loadParentPortal();hideBoot();}catch(e){msg.textContent=e.message||'Unable to update your password.';}finally{passwordChangeInProgress=false;if(button)button.disabled=false;}}
-async function signOut(){if(teacherPreviewMode){closeTeacherParentPreview();return;}await supabaseClient.auth.signOut();authReady=false;currentUserRole='teacher';PARENT_CONTEXT={account:null,students:[]};hidePasswordChangeScreen();hideParentPortal();showLogin('You have signed out.');}
+async function signOut(){if(teacherPreviewMode){closeTeacherParentPreview();return;}await supabaseClient.auth.signOut();authReady=false;currentUserRole='teacher';PARENT_CONTEXT={account:null,students:[],achievements:[]};hidePasswordChangeScreen();hideParentPortal();showLogin('You have signed out.');}
 async function enterSession(session){
   showBoot();
 
