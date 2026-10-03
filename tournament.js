@@ -461,12 +461,20 @@ async function saveParticipants(){
     const roundRecord=state.rounds.find(function(r){return Number(r.round_number)===roundNumber;});
     if(!(await confirmT('Finish Round '+roundNumber+'? The round will be locked as complete and the next round will be created only after this confirmation.','Finish Round')))return;
     try{
-      await finalizeRoundIfReady(roundNumber);
+      const roundResult=await finalizeRoundIfReady(roundNumber);
       const nextRound=roundNumber+1;
       if(nextRound<=Number(t.rounds_total||1)){
-        const pairs=generatePairs(nextRound);
-        await supabaseClient.from('tournaments').update({current_round:nextRound}).eq('tournament_id',t.tournament_id);
-        if(pairs.length)await createRoundAndMatches(nextRound,pairs);
+        let nextExists=state.rounds.some(function(r){return Number(r.round_number)===nextRound;});
+        if(!nextExists){
+          const pairs=generatePairs(nextRound);
+          if(!pairs.length)throw new Error('The pairing engine did not produce the next round. Please check the tournament format and completed results.');
+          await createRoundAndMatches(nextRound,pairs);
+          nextExists=true;
+        }
+        if(nextExists){
+          const upd=await supabaseClient.from('tournaments').update({current_round:nextRound}).eq('tournament_id',t.tournament_id);
+          if(upd.error)throw upd.error;
+        }
         await loadTournaments();await loadTournamentData(t.tournament_id);
         state.view='pairings';state.roundFocus=null;renderWorkspace();
         notifyT('Round '+roundNumber+' is complete. Round '+nextRound+' is now live.','success','Next Round Ready',{variant:'registration'});
