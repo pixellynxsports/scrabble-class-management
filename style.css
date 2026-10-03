@@ -929,8 +929,8 @@ body{background:#eef2f6}
 .sc-notification.is-closing{animation:scNotifyOut .18s ease forwards}
 .sc-notification-icon{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:#172033;color:#fff;font-weight:800;font-size:17px}
 .sc-notification-copy{min-width:0;padding-top:1px}
-.sc-notification-title{font-size:11px;font-weight:800;letter-spacing:.07em;color:#172033;text-transform:uppercase}
-.sc-notification-message{margin-top:4px;font-size:13px;line-height:1.45;color:#667085;word-break:break-word}
+.sc-notification-eyebrow{font-size:9px;font-weight:800;letter-spacing:.1em;color:#98a2b3;text-transform:uppercase}.sc-notification-title{font-size:14px;font-weight:800;letter-spacing:-.01em;color:#172033;margin-top:2px}.sc-notification-message{margin-top:4px;font-size:12px;line-height:1.45;color:#667085;word-break:break-word}
+
 .sc-notification-close{width:28px;height:28px;border:0;border-radius:8px;background:#f2f4f7;color:#667085;font-size:18px;line-height:1;cursor:pointer}
 .sc-notification-close:hover{background:#e4e7ec;color:#172033}
 .sc-notification-progress{position:absolute;left:0;right:0;bottom:0;height:3px;background:#172033;transform-origin:left;animation:scNotifyProgress 5s linear forwards}
@@ -960,3 +960,8 @@ body.sc-dialog-open{overflow:hidden}
 @keyframes scFadeIn{from{opacity:0}to{opacity:1}}
 @keyframes scDialogIn{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
 @media(max-width:650px){.sc-notification-root{top:12px;right:12px;left:12px;width:auto}.sc-notification{grid-template-columns:36px 1fr 28px;padding:13px}.sc-notification-icon{width:36px;height:36px;border-radius:10px}.sc-dialog-root{padding:12px}.sc-dialog{padding:22px 18px;border-radius:17px}.sc-dialog-actions{flex-direction:column-reverse}.sc-dialog-actions button{width:100%}}
+
+.sc-notification-security .sc-notification-icon{background:#172033}
+.sc-notification-payment .sc-notification-icon,.sc-notification-payment .sc-notification-progress{background:#315efb}
+.sc-notification-registration .sc-notification-icon,.sc-notification-registration .sc-notification-progress{background:#6b4cc5}
+.sc-notification-critical .sc-notification-icon,.sc-notification-critical .sc-notification-progress{background:#b42318}
