@@ -591,6 +591,7 @@ async function initSupabaseAuth(){
 
   await enterSession(data.session);
   authInitialised=true;
+  window.__scAuthStartupDone=true;
 }
 
 /* ===== NAVIGATION & PAGE RENDERING ===== */
