@@ -107,7 +107,7 @@
   function renderTabContent(){if(state.view==='pairings')return renderPairings();if(state.view==='standings')return renderStandings();if(state.view==='players')return renderPlayers();if(state.view==='rounds')return renderRounds();if(state.view==='settings')return renderSettings();return renderOverview();}
 
   function controlButtons(t){
-    if(t.status==='draft'||t.status==='ready')return '<button class="primary" type="button" onclick="SCMSTournament.editParticipants()">Manage Participants</button><button class="primary" type="button" onclick="SCMSTournament.start()">Start Tournament</button>';
+    if(t.status==='draft'||t.status==='ready')return '<button class="secondary" type="button" onclick="SCMSTournament.editParticipants()">Manage Participants</button><button class="secondary" type="button" onclick="SCMSTournament.seedParticipants()">Seed Players</button><button class="primary" type="button" onclick="SCMSTournament.start()">Start Tournament</button>';
     if(t.status==='active')return '<button class="secondary" type="button" onclick="SCMSTournament.tab(\'pairings\')">Open Pairings</button><button class="primary" type="button" onclick="SCMSTournament.finish()">End Tournament</button>';
     if(t.status==='completed')return '<button class="secondary" type="button" onclick="SCMSTournament.reopen()">Reopen</button><button class="primary" type="button" onclick="SCMSTournament.archive()">Archive Tournament</button>';
     return '<button class="secondary" type="button" onclick="SCMSTournament.reopen()">Reopen Tournament</button>';
@@ -193,7 +193,7 @@
 
   function create(){
     const defaultDate=new Date().toISOString().slice(0,10);
-    showModal('<div class="tournament-modal-head"><div><div class="eyebrow">NEW TOURNAMENT</div><h2>Create Tournament</h2><p>Build the competition first, then choose exactly which SCMS students will participate.</p></div><button class="parent-close-button" type="button" onclick="SCMSTournament.closeModal()">×</button></div><form id="tournamentCreateForm" class="tournament-form"><div class="tournament-form-grid"><div class="tournament-field full"><label>Tournament Name</label><input id="tName" required placeholder="October Friendly Scrabble Tournament"></div><div class="tournament-field"><label>Date</label><input id="tDate" type="date" value="'+defaultDate+'" required></div><div class="tournament-field"><label>Start Time</label><input id="tTime" type="time" value="10:00"></div><div class="tournament-field"><label>Format</label><select id="tFormat" onchange="SCMSTournament.formatChanged()"><option value="swiss">Swiss</option><option value="single_elimination">Single Elimination</option><option value="double_elimination">Double Elimination</option><option value="round_robin">Round Robin</option><option value="free_for_all">Free For All</option><option value="leaderboard">Leaderboard</option></select></div><div class="tournament-field"><label>Rounds</label><input id="tRounds" type="number" min="1" max="20" value="5"></div><div class="tournament-field full"><label>Description</label><textarea id="tDescription" placeholder="Friendly monthly Scrabble tournament"></textarea></div></div><div class="tournament-participant-builder"><div class="row"><div><div class="eyebrow">PARTICIPANTS</div><h3>Select Students</h3><p class="subtle">Nothing is added automatically. Tick only the students who are playing.</p></div><span class="badge blue" id="selectedPlayerCount">0 selected</span></div><div class="tournament-participant-toolbar"><input id="participantSearch" class="search grow" placeholder="Search student name or ID" oninput="SCMSTournament.filterParticipants()"><button type="button" class="secondary" onclick="SCMSTournament.selectAllParticipants()">Select All</button><button type="button" class="secondary" onclick="SCMSTournament.clearParticipants()">Clear All</button></div><div id="participantChecklist" class="tournament-participant-list">'+participantChecklist('')+'</div></div><div class="tournament-form-footer"><button type="button" class="secondary" onclick="SCMSTournament.closeModal()">Cancel</button><button class="primary" type="submit">Create Tournament</button></div></form>');
+    showModal('<div class="tournament-modal-head"><div><div class="eyebrow">NEW TOURNAMENT</div><h2>Create Tournament</h2><p>Build the competition first, then choose exactly which SCMS students will participate.</p></div><button class="parent-close-button" type="button" onclick="SCMSTournament.closeModal()">×</button></div><form id="tournamentCreateForm" class="tournament-form"><div class="tournament-form-grid"><div class="tournament-field full"><label>Tournament Name</label><input id="tName" required placeholder="October Friendly Scrabble Tournament"></div><div class="tournament-field"><label>Date</label><input id="tDate" type="date" value="'+defaultDate+'" required></div><div class="tournament-field"><label>Start Time</label><input id="tTime" type="time" value="10:00"></div><div class="tournament-field"><label>Format</label><select id="tFormat" onchange="SCMSTournament.formatChanged()"><option value="swiss">Swiss</option><option value="single_elimination">Single Elimination</option><option value="round_robin">Round Robin</option></select></div><div class="tournament-field"><label>Rounds</label><input id="tRounds" type="number" min="1" max="20" value="5"></div><div class="tournament-field full"><label>Description</label><textarea id="tDescription" placeholder="Friendly monthly Scrabble tournament"></textarea></div></div><div class="tournament-participant-builder"><div class="row"><div><div class="eyebrow">PARTICIPANTS</div><h3>Select Students</h3><p class="subtle">Nothing is added automatically. Tick only the students who are playing.</p></div><span class="badge blue" id="selectedPlayerCount">0 selected</span></div><div class="tournament-participant-toolbar"><input id="participantSearch" class="search grow" placeholder="Search student name or ID" oninput="SCMSTournament.filterParticipants()"><button type="button" class="secondary" onclick="SCMSTournament.selectAllParticipants()">Select All</button><button type="button" class="secondary" onclick="SCMSTournament.clearParticipants()">Clear All</button></div><div id="participantChecklist" class="tournament-participant-list">'+participantChecklist('')+'</div></div><div class="tournament-form-footer"><button type="button" class="secondary" onclick="SCMSTournament.closeModal()">Cancel</button><button class="primary" type="submit">Create Tournament</button></div></form>');
     document.getElementById('tournamentCreateForm').onsubmit=function(e){e.preventDefault();saveCreate();};
   }
 
@@ -212,7 +212,7 @@
   function updateSelectedCount(){const count=document.getElementById('selectedPlayerCount');if(count)count.textContent=document.querySelectorAll('#participantChecklist input:checked').length+' selected';}
   function selectAllParticipants(){document.querySelectorAll('#participantChecklist input').forEach(function(x){x.checked=true;});updateSelectedCount();}
   function clearParticipants(){document.querySelectorAll('#participantChecklist input').forEach(function(x){x.checked=false;});updateSelectedCount();}
-  function formatChanged(){const format=document.getElementById('tFormat')?.value,rounds=document.getElementById('tRounds');if(!rounds)return;if(format==='round_robin')rounds.value=Math.max(1,state.students.length-1);else if(format==='single_elimination'||format==='double_elimination')rounds.value=1;else if(format==='free_for_all')rounds.value=1;else rounds.value=5;}
+  function formatChanged(){const format=document.getElementById('tFormat')?.value,rounds=document.getElementById('tRounds');if(!rounds)return;if(format==='round_robin')rounds.value=Math.max(1,state.students.length-1);else if(format==='single_elimination')rounds.value=1;else if(format==='free_for_all')rounds.value=1;else rounds.value=5;}
 
   async function saveCreate(){
     const ids=[...document.querySelectorAll('#participantChecklist input:checked')].map(function(x){return x.value;});
@@ -237,7 +237,30 @@
     document.querySelectorAll('#participantChecklist input').forEach(function(box){if(current.has(box.value))box.checked=true;});updateSelectedCount();
   }
 
-  async function saveParticipants(){
+  
+  function seedParticipants(){
+    if(!state.selected||!['draft','ready'].includes(state.selected.status))return;
+    const rows=state.players.slice().sort(function(a,b){return Number(a.seed)-Number(b.seed);});
+    showModal('<div class="tournament-modal-head"><div><div class="eyebrow">SEEDING</div><h2>Arrange Seed Order</h2><p>Seed 1 is the first seed. Use the arrows to place players exactly where you want them before the tournament starts.</p></div><button class="parent-close-button" type="button" onclick="SCMSTournament.closeModal()">×</button></div><div id="seedList" class="tournament-seed-list">'+rows.map(function(p,i){return seedRow(p,i);}).join('')+'</div><div class="tournament-form-footer"><button type="button" class="secondary" onclick="SCMSTournament.closeModal()">Cancel</button><button class="primary" type="button" onclick="SCMSTournament.saveSeeding()">Save Seeding</button></div>');
+  }
+  function seedRow(p,index){
+    return '<div class="tournament-seed-row" data-seed-player="'+escT(p.player_id)+'"><span class="tournament-seed-number">'+(index+1)+'</span><strong>'+escT(p.display_name)+'</strong><small>'+escT(p.student_id)+'</small><div><button type="button" class="secondary small" '+(index===0?'disabled':'')+' onclick="SCMSTournament.moveSeed('+index+',-1)">↑</button><button type="button" class="secondary small" '+(index===state.players.length-1?'disabled':'')+' onclick="SCMSTournament.moveSeed('+index+',1)">↓</button></div></div>';
+  }
+  function moveSeed(index,direction){
+    const list=[...document.querySelectorAll('[data-seed-player]')];
+    const target=index+direction;if(target<0||target>=list.length)return;
+    if(direction<0)list[index].parentNode.insertBefore(list[index],list[target]);else list[index].parentNode.insertBefore(list[target],list[index]);
+    [...document.querySelectorAll('[data-seed-player]')].forEach(function(row,i){row.querySelector('.tournament-seed-number').textContent=i+1;row.querySelectorAll('button').forEach(function(btn){btn.disabled=false;});});
+  }
+  async function saveSeeding(){
+    try{
+      const rows=[...document.querySelectorAll('[data-seed-player]')];
+      for(let i=0;i<rows.length;i++){const result=await supabaseClient.from('tournament_players').update({seed:i+1}).eq('player_id',rows[i].getAttribute('data-seed-player'));if(result.error)throw result.error;}
+      closeModal();await open(state.selected.tournament_id);notifyT('Seed order saved. Pairings will use this order.','success','Seeding Saved');
+    }catch(error){notifyT(error.message||String(error),'error','Seeding Not Saved',{variant:'critical'});}
+  }
+
+async function saveParticipants(){
     const ids=[...document.querySelectorAll('#participantChecklist input:checked')].map(function(x){return x.value;});
     if(ids.length<2){notifyT('At least two participants are required.','warning','Participants');return;}
     try{
@@ -294,7 +317,7 @@
     if(state.selected.format==='round_robin')return roundRobinPairs(roundNumber,players);
     if(state.selected.format==='free_for_all')return roundNumber===1?[{players:players.map(function(p){return p.player_id;})}]:[];
     if(state.selected.format==='leaderboard')return [];
-    if(state.selected.format==='single_elimination'||state.selected.format==='double_elimination'){
+    if(state.selected.format==='single_elimination'){
       if(roundNumber===1){
         const size=Math.pow(2,Math.ceil(Math.log2(players.length))),seeded=players.slice();while(seeded.length<size)seeded.push(null);
         const pairs=[];for(let i=0;i<size/2;i++)pairs.push({players:[seeded[i]?.player_id||null,seeded[size-1-i]?.player_id||null]});return pairs;
@@ -341,7 +364,7 @@
     const current=result.data||[];if(!current.length||current.some(function(m){return m.status!=='completed';}))return;
     await supabaseClient.from('tournament_rounds').update({status:'completed',completed_at:new Date().toISOString()}).eq('tournament_id',state.selected.tournament_id).eq('round_number',roundNumber);
     const t=state.selected,nextRound=roundNumber+1;
-    if(t.format==='single_elimination'||t.format==='double_elimination'){
+    if(t.format==='single_elimination'){
       const winners=current.map(function(m){return m.winner_player_id;}).filter(Boolean);
       if(winners.length>1){
         await supabaseClient.from('tournaments').update({current_round:nextRound}).eq('tournament_id',t.tournament_id);
@@ -385,8 +408,10 @@
       if(!award.student_id)continue;
       const existing=await supabaseClient.from('student_achievements').select('achievement_id').eq('source_type','tournament').eq('source_id',String(award.award_id)).maybeSingle();
       if(existing.error)continue;
-      if(existing.data)continue;
-      const result=await supabaseClient.from('student_achievements').insert({student_id:award.student_id,title:award.title,category:'Tournament',achievement_date:state.selected.event_date,description:state.selected.name+' · '+award.title+(award.certificate_path?'':' · Certificate template pending'),file_path:award.certificate_path||null,file_name:award.certificate_path?award.title+'.pdf':null,file_type:award.certificate_path?'application/pdf':null,source_type:'tournament',source_id:String(award.award_id)});
+      const achievementPayload={student_id:award.student_id,title:award.title,category:'Tournament',achievement_date:state.selected.event_date,description:state.selected.name+' · '+award.title+(award.certificate_path?'':' · Certificate template pending'),file_path:award.certificate_path||null,file_name:award.certificate_path?award.title+'.pdf':null,file_type:award.certificate_path?'application/pdf':null,source_type:'tournament',source_id:String(award.award_id)};
+      if(existing.error)continue;
+      if(existing.data){const update=await supabaseClient.from('student_achievements').update(achievementPayload).eq('achievement_id',existing.data.achievement_id);if(update.error)console.warn('Tournament achievement record was not updated:',update.error);continue;}
+      const result=await supabaseClient.from('student_achievements').insert(achievementPayload);
       if(result.error)console.warn('Tournament achievement record was not created:',result.error);
     }
   }
@@ -403,7 +428,7 @@
       const controls=[...document.querySelectorAll('[data-special-award]')];
       for(const control of controls){
         const awardType=control.getAttribute('data-special-award'),studentId=control.value;
-        if(!studentId){const del=await supabaseClient.from('tournament_awards').delete().eq('tournament_id',state.selected.tournament_id).eq('award_type',awardType);if(del.error)throw del.error;continue;}
+        if(!studentId){const existingAward=await supabaseClient.from('tournament_awards').select('award_id').eq('tournament_id',state.selected.tournament_id).eq('award_type',awardType).maybeSingle();if(existingAward.error)throw existingAward.error;if(existingAward.data){await supabaseClient.from('student_achievements').delete().eq('source_type','tournament').eq('source_id',String(existingAward.data.award_id));}const del=await supabaseClient.from('tournament_awards').delete().eq('tournament_id',state.selected.tournament_id).eq('award_type',awardType);if(del.error)throw del.error;continue;}
         const student=state.standings.find(function(p){return String(p.student_id)===String(studentId);});
         const result=await supabaseClient.from('tournament_awards').upsert({tournament_id:state.selected.tournament_id,student_id:studentId,student_name:student?student.display_name:studentId,award_type:awardType,rank:null,title:awardType,certificate_path:null},{onConflict:'tournament_id,award_type'});if(result.error)throw result.error;
       }
@@ -429,7 +454,7 @@
   function back(){state.selected=null;state.players=[];state.rounds=[];state.matches=[];state.awards=[];renderHome();}
   async function refresh(){await loadTournaments();if(state.selected)await open(state.selected.tournament_id);}
 
-  window.SCMSTournament={init:async function(){await loadTournaments();},refresh:refresh,create:create,open:open,back:back,tab:tab,closeModal:closeModal,formatChanged:formatChanged,filterParticipants:filterParticipants,selectAllParticipants:selectAllParticipants,clearParticipants:clearParticipants,saveParticipants:saveParticipants,editParticipants:editParticipants,removePlayer:removePlayer,start:start,score:score,finish:finish,saveSpecialAwards:saveSpecialAwards,archive:archive,reopen:reopen,editTournament:editTournament};
+  window.SCMSTournament={init:async function(){await loadTournaments();},refresh:refresh,create:create,open:open,back:back,tab:tab,closeModal:closeModal,formatChanged:formatChanged,filterParticipants:filterParticipants,selectAllParticipants:selectAllParticipants,clearParticipants:clearParticipants,saveParticipants:saveParticipants,editParticipants:editParticipants,seedParticipants:seedParticipants,moveSeed:moveSeed,saveSeeding:saveSeeding,removePlayer:removePlayer,start:start,score:score,finish:finish,saveSpecialAwards:saveSpecialAwards,archive:archive,reopen:reopen,editTournament:editTournament};
 
   const originalPage=window.page;
   window.page=function(name){originalPage(name);if(name==='tournament'){const title=document.getElementById('title');if(title)title.textContent='Tournament';SCMSTournament.init();}};
