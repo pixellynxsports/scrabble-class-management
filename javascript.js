@@ -92,6 +92,24 @@ function calculatePaymentState(payments,attendance,sid){
   const latestPayment=paid[paid.length-1]||null;
   const latestCycle=Number(latestPayment?.['Cycle Number'])||initialCycle;
 
+  // A student with no recorded payment has not started a paid package.
+  // Do not label a newly approved student as Paid simply because they have
+  // zero classes. Payment is required before the first cycle becomes active.
+  if(!paid.length){
+    const result={
+      classes:[],
+      progress:0,
+      status:'Payment Due',
+      coveredIds:covered,
+      currentCycle:1,
+      paid:[],
+      activePrepaid:false,
+      lastPayment:null
+    };
+    paymentStateCache.set(cacheKey,result);
+    return result;
+  }
+
   // While the initial prepaid package is active, its first four Present
   // records form the current package.
   if(initialPayment && latestCycle===initialCycle){
