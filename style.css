@@ -667,15 +667,43 @@ body{background:#eef2f6}
 
 /* Reports Phase 1 */
 .report-attention{overflow:hidden}
-.attention-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}
-.attention-card{border:1px solid #e3e7ed;background:#fff;border-radius:12px;padding:13px;text-align:left;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:9px;cursor:pointer;transition:.15s ease}
-.attention-card:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(15,23,42,.07)}
-.attention-card strong{font-size:24px;color:#172033}
-.attention-card span{font-size:12px;font-weight:700;color:#475467}
-.attention-card b{font-size:10px;color:#667085}
-.attention-card.danger{border-left:4px solid #b42318}
-.attention-card.warning{border-left:4px solid #b54708}
-.attention-card.info{border-left:4px solid #175cd3}
+.attention-grid{display:grid;grid-template-columns:repeat(2,minmax(260px,390px));gap:10px;margin-top:14px}
+.attention-card{
+  min-height:64px;
+  border:1px solid #e3e7ed;
+  background:#fff;
+  border-radius:12px;
+  padding:11px 13px;
+  text-align:left;
+  display:grid;
+  grid-template-columns:42px minmax(0,1fr) auto;
+  align-items:center;
+  gap:10px;
+  cursor:pointer;
+  transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease;
+}
+.attention-card:hover{transform:translateY(-1px);box-shadow:0 7px 20px rgba(15,23,42,.08)}
+.attention-card strong{
+  width:34px;height:34px;
+  display:grid;place-items:center;
+  border-radius:9px;
+  font-size:18px;
+  line-height:1;
+}
+.attention-card span{font-size:11px;font-weight:750;color:#344054}
+.attention-card b{font-size:9px;color:#667085;font-weight:750;white-space:nowrap}
+.attention-card.danger{border-color:#efc9c5;background:#fff9f8}
+.attention-card.danger strong{background:#fcebea;color:#b42318}
+.attention-card.danger span{color:#9f1c14}
+.attention-card.warning{border-color:#f2d7b6;background:#fffbf5}
+.attention-card.warning strong{background:#fff0dc;color:#b54708}
+.attention-card.warning span{color:#8a3f08}
+.attention-card.info{border-color:#cdddf8;background:#f8fbff}
+.attention-card.info strong{background:#edf4ff;color:#175cd3}
+@media(max-width:650px){
+  .attention-grid{grid-template-columns:1fr}
+  .attention-card{width:100%}
+}
 .attention-clear{display:flex;align-items:center;gap:10px;padding:13px;border-radius:10px;background:#f3faf6;color:#17663a;font-size:13px}
 .package-distribution{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-top:14px}
 .package-bar{min-width:0}
