@@ -1290,3 +1290,5 @@ body.sc-dialog-open{overflow:hidden}
   .parent-child-tab{flex-basis:88%}
   .profile-hero-actions{grid-template-columns:1fr}
 }
+
+.badge.new-student{background:#fff4df;color:#9a5a00;border:1px solid #f2d29a;font-weight:700}
