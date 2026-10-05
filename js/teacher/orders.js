@@ -122,3 +122,19 @@ function renderProfileData(d){
     <div class="profile-section-title"><div><div class="eyebrow">ORDERS</div><h3>Linked Orders</h3></div><span class="profile-section-note">${orders.length} order${orders.length===1?'':'s'}</span></div>
     <div class="panel profile-table-panel scroll"><table><thead><tr><th>Order ID</th><th>Product</th><th>Size</th><th>Qty</th><th>Total</th><th>Order Status</th><th>Payment</th><th>Collection</th><th>Date</th></tr></thead><tbody>${orders.map(o=>`<tr><td><button class="linkbtn" onclick="openOrder('${esc(o['Order ID'])}')">${esc(o['Order ID'])}</button></td><td>${esc(o.Product||'')}</td><td>${o.Product==='T Shirt'?esc(o.Size||''):'-'}</td><td>${esc(o.Quantity||1)}</td><td>RM${esc(o.Total||0)}</td><td>${esc(o['Order Status']||'')}</td><td>${esc(String(o['Payment Proof Status']||'')==='Submitted'?'Awaiting Confirmation':o['Payment Status']||'')}</td><td>${esc(o['Collection Status']||'')}</td><td>${esc(formatDateClient(o['Order Date']))}</td></tr>`).join('')||'<tr><td colspan="9" class="empty">No linked orders.</td></tr>'}</tbody></table></div>`;
 }
+
+
+/* ===== ORDERS SUPPORT ===== */
+function setOrderTab(product){orderTab=product;selectedOrderIds.clear();document.getElementById('tabSets').classList.toggle('active',product==='Scrabble Set');document.getElementById('tabShirts').classList.toggle('active',product==='T Shirt');document.getElementById('orderTitle').textContent=product==='Scrabble Set'?'Scrabble Sets':'T Shirts';renderOrders()}
+function studentName(id){return DATA.students.find(s=>String(s['Student ID'])===String(id))?.['Student Name']||id}
+async function changeOrder(id,field,value){try{DATA=await run('updateOrderStatus',id,field,value);renderOrders()}catch(e){appNotify(e.message||e)}}
+function changeOrder(id,field,value){try{DATA=await run('updateOrderStatus',id,field,value);renderOrders()}catch(e){appNotify(e.message||e)}}
+function editOrder(id){const o=DATA.orders.find(x=>String(x['Order ID'])===String(id));if(!o)return;showOrderForm(o)}
+function toggleOrderCustomer(){const other=document.getElementById('oType').value==='other';document.getElementById('studentBox').style.display=other?'none':'block';document.getElementById('otherBox').style.display=other?'block':'none'}
+const reportsRenderer=renderReports;renderReports=function(){const reportHead=document.querySelector('#reports #reportStudents')?.closest('table')?.querySelector('thead');if(reportHead)reportHead.innerHTML='<tr><th>Student</th><th>ID</th><th>Normal Class</th><th>Present</th><th>Absent</th><th>Payment Status</th><th>Orders</th></tr>';reportsRenderer()}
+let orderView='active';let currentOrderId='';
+function setOrderView(view){orderView=view;selectedOrderIds.clear();renderOrders()}
+function toggleOrderSelection(id,checked){if(checked)selectedOrderIds.add(String(id));else selectedOrderIds.delete(String(id));updateOrderBulkBar()}
+function toggleAllOrders(checked){const q=(document.getElementById('orderSearch')?.value||'').toLowerCase();const visible=DATA.orders.filter(o=>(orderView==='archived'?String(o.Archived||'').toLowerCase()==='yes':String(o.Archived||'no').toLowerCase()!=='yes')).filter(o=>o.Product===orderTab&&Object.values(o).some(v=>String(v).toLowerCase().includes(q)));visible.forEach(o=>checked?selectedOrderIds.add(String(o['Order ID'])):selectedOrderIds.delete(String(o['Order ID'])));renderOrders()}
+function updateOrderBulkBar(){const count=selectedOrderIds.size;const label=document.getElementById('orderSelectedCount');const action=document.getElementById('orderBulkAction');if(label)label.textContent=count?`${count} selected`:'';if(action){action.textContent=orderView==='archived'?'Restore Selected':'Archive Selected';action.disabled=count===0;action.classList.toggle('disabled',count===0)}}
+/* ===== ORDERS ===== */
