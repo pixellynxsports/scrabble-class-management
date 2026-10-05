@@ -113,46 +113,28 @@ function calculatePaymentState(payments,attendance,sid){
   const cacheKey=String(sid);
   const cached=paymentStateCache.get(cacheKey);
   if(cached)return cached;
+
   const paid=payments
     .filter(p=>String(p['Student ID'])===String(sid)&&String(p.Status||'').toLowerCase()==='paid')
     .sort((a,b)=>(Number(a['Cycle Number'])||0)-(Number(b['Cycle Number'])||0));
+
   const present=attendance
-    .filter(a=>String(a['Student ID'])===String(sid)&&a.Status==='Present')
+    .filter(a=>String(a['Student ID'])===String(sid)&&String(a.Status||'')==='Present')
     .sort((a,b)=>attendanceDateKey(a.Date).localeCompare(attendanceDateKey(b.Date)));
 
-  const initialPayment=paid.find(p=>
-    String(p['Payment Type']||'').toLowerCase()==='initial 4-class package' ||
-    String(p.Prepaid||'').toLowerCase()==='yes'
-  )||null;
-  const initialCycle=Number(initialPayment?.['Cycle Number'])||1;
-  const covered=new Set();
+  // Each paid RM50 payment owns one four-class package.
+  // Package 1 owns Present records 1-4, package 2 owns 5-8, and so on.
+  // A package exists only after its payment is recorded.
+  // Attendance after a completed package therefore remains unassigned until
+  // the next payment is made.
+  const packageSize=4;
 
-  // The imported initial package has no attendance IDs. Its first four
-  // Present records therefore belong to the prepaid package.
-  if(initialPayment){
-    present.slice(0,4).forEach(a=>{
-      const id=String(a['Attendance ID']||'');
-      if(id)covered.add(id);
-    });
-  }
-
-  // Later paid cycles identify the attendance records they cover.
-  paid.forEach(p=>String(p['Attendance IDs Covered']||'')
-    .split(',').map(x=>x.trim()).filter(Boolean)
-    .forEach(id=>covered.add(id)));
-
-  const latestPayment=paid[paid.length-1]||null;
-  const latestCycle=Number(latestPayment?.['Cycle Number'])||initialCycle;
-
-  // A student with no recorded payment has not started a paid package.
-  // Do not label a newly approved student as Paid simply because they have
-  // zero classes. Payment is required before the first cycle becomes active.
   if(!paid.length){
     const result={
       classes:[],
       progress:0,
       status:'Payment Due',
-      coveredIds:covered,
+      coveredIds:new Set(),
       currentCycle:1,
       paid:[],
       activePrepaid:false,
@@ -162,41 +144,32 @@ function calculatePaymentState(payments,attendance,sid){
     return result;
   }
 
-  // While the initial prepaid package is active, its first four Present
-  // records form the current package.
-  if(initialPayment && latestCycle===initialCycle){
-    const classes=present.slice(0,4);
-    const progress=classes.length;
-    const result={
-      classes,
-      progress,
-      status:progress>=4?'Payment Due':progress===3?'Almost Due':'Paid',
-      coveredIds:covered,
-      currentCycle:initialCycle,
-      paid,
-      activePrepaid:progress<4,
-      lastPayment:latestPayment
-    };
-    paymentStateCache.set(cacheKey,result);
-    return result;
-  }
-
-  // For later cycles, Present records not covered by a paid payment belong
-  // to the current package. A completed package therefore reaches 4 / 4 and
-  // shows Payment Due until the next payment covers those four records.
-  const currentClasses=present.filter(a=>!covered.has(String(a['Attendance ID']||'')));
-  const classes=currentClasses.slice(0,4);
+  const currentPackageIndex=Math.max(0,paid.length-1);
+  const classes=present.slice(currentPackageIndex*packageSize,(currentPackageIndex+1)*packageSize);
   const progress=classes.length;
-  const status=progress>=4?'Payment Due':progress===3?'Almost Due':'Paid';
+  const status=progress>=packageSize?'Payment Due':progress===packageSize-1?'Almost Due':'Paid';
+
+  const coveredIds=new Set();
+  paid.forEach((p,index)=>{
+    present
+      .slice(index*packageSize,(index+1)*packageSize)
+      .forEach(a=>{
+        const id=String(a['Attendance ID']||'');
+        if(id)coveredIds.add(id);
+      });
+  });
+
+  const latestPayment=paid[paid.length-1]||null;
+  const latestCycle=Number(latestPayment?.['Cycle Number'])||paid.length;
 
   const result={
     classes,
     progress,
     status,
-    coveredIds:covered,
+    coveredIds,
     currentCycle:latestCycle,
     paid,
-    activePrepaid:false,
+    activePrepaid:progress<packageSize,
     lastPayment:latestPayment
   };
   paymentStateCache.set(cacheKey,result);
@@ -814,17 +787,50 @@ async function run(fn,...args){
     case 'saveAttendance': {const r=args[0];const sid=String(r.studentId||'').trim();const date=String(r.date||'').slice(0,10);const status=String(r.status||'').trim();if(!sid||!date)throw new Error('Student and attendance date are required.');if(!['Present','Absent'].includes(status))throw new Error('Status must be Present or Absent.');const student=DATA.students.find(s=>String(s['Student ID'])===sid);if(!student)throw new Error('Student not found.');if(String(student.Active||'Yes').toLowerCase()==='no')throw new Error('Archived students cannot receive new attendance records.');const actual=status==='Present'?String(r.classTime||'').trim():'';if(status==='Present'&&!DATA.config.classTimes.includes(actual))throw new Error('Invalid class time.');const payload={student_id:sid,attendance_date:date,actual_class_time:actual,status,notes:String(r.notes||'')};if(r.attendanceId){const {error}=await supabaseClient.from('attendance').update(payload).eq('attendance_id',String(r.attendanceId));if(error)throw dbError(error)}else{payload.attendance_id=nextLocalId('ATT',DATA.attendance,'Attendance ID');const {error}=await supabaseClient.from('attendance').upsert(payload,{onConflict:'student_id,attendance_date'});if(error)throw dbError(error)}return {ok:true,action:'saved'};}
     case 'resetAttendance': {const {error}=await supabaseClient.from('attendance').delete().eq('student_id',String(args[0])).eq('attendance_date',String(args[1]).slice(0,10));if(error)throw dbError(error);return loadRemoteData();}
     case 'markPaymentReceived': {
- const sid=String(args[0]);const amount=Number(args[1]||50);
- if(amount!==50)throw new Error('Payment amount must be RM50.');
- const state=paymentStateFor(sid);
- const firstPayment=isNewUnpaidStudent(state);
- if(!firstPayment&&(state.progress!==4||state.status!=='Payment Due'))throw new Error('This student has not reached 4 attended classes yet.');
- const ids=state.classes.map(a=>String(a['Attendance ID'])).filter(Boolean);
- const cycle=Math.max(0,...DATA.payments.filter(p=>String(p['Student ID'])===sid&&String(p.Status||'').toLowerCase()==='paid').map(p=>Number(p['Cycle Number'])||0))+1;
- const paymentId=nextLocalId('PAY',DATA.payments,'Payment ID');
- const payload={payment_id:paymentId,student_id:sid,cycle_number:cycle,amount:50,payment_date:String(args[2]||isoDate(new Date())).slice(0,10),classes_covered:state.classes.map(a=>formatDateClient(a.Date)).join(', '),status:'Paid',notes:firstPayment?'First month fee / registration payment':'',attendance_ids_covered:ids.join(','),payment_type:firstPayment?'First Month Fee':'Regular 4-Class Package',prepaid:'No'};
- const {error}=await supabaseClient.from('payments').insert(payload);if(error)throw dbError(error);return loadRemoteData();
-}
+      const sid=String(args[0]);
+      const amount=Number(args[1]||50);
+      if(amount!==50)throw new Error('Payment amount must be RM50.');
+
+      const state=paymentStateFor(sid);
+      const firstPayment=isNewUnpaidStudent(state);
+      if(!firstPayment&&(state.progress!==4||state.status!=='Payment Due')){
+        throw new Error('This student has not reached 4 attended classes yet.');
+      }
+
+      const present=DATA.attendance
+        .filter(a=>String(a['Student ID'])===sid&&String(a.Status||'')==='Present')
+        .sort((a,b)=>attendanceDateKey(a.Date).localeCompare(attendanceDateKey(b.Date)));
+
+      const paid=DATA.payments
+        .filter(p=>String(p['Student ID'])===sid&&String(p.Status||'').toLowerCase()==='paid')
+        .sort((a,b)=>(Number(a['Cycle Number'])||0)-(Number(b['Cycle Number'])||0));
+
+      // A new payment opens the next package. Any classes already attended
+      // after the previous package are assigned to this new payment, up to 4.
+      // If no such classes exist yet, the new payment starts with zero dates.
+      const pendingClasses=present.slice(paid.length*4,paid.length*4+4);
+      const ids=pendingClasses.map(a=>String(a['Attendance ID']||'')).filter(Boolean);
+      const cycle=Math.max(0,...paid.map(p=>Number(p['Cycle Number'])||0))+1;
+      const paymentId=nextLocalId('PAY',DATA.payments,'Payment ID');
+
+      const payload={
+        payment_id:paymentId,
+        student_id:sid,
+        cycle_number:cycle,
+        amount:50,
+        payment_date:String(args[2]||isoDate(new Date())).slice(0,10),
+        classes_covered:pendingClasses.map(a=>formatDateClient(a.Date)).join(', '),
+        status:'Paid',
+        notes:firstPayment?'First month fee / registration payment':'',
+        attendance_ids_covered:ids.join(','),
+        payment_type:firstPayment?'First Month Fee':'Regular 4-Class Package',
+        prepaid:'No'
+      };
+
+      const {error}=await supabaseClient.from('payments').insert(payload);
+      if(error)throw dbError(error);
+      return loadRemoteData();
+    }
     case 'voidPayment': {const id=String(args[0]);const p=DATA.payments.find(x=>String(x['Payment ID'])===id);if(!p)throw new Error('Payment not found.');if(String(p.Status||'').toLowerCase()!=='paid')throw new Error('Only a Paid payment can be voided.');const notes=(p.Notes?String(p.Notes)+' | ':'')+'Voided on '+new Date().toLocaleString();const {error}=await supabaseClient.from('payments').update({status:'Void',notes}).eq('payment_id',id);if(error)throw dbError(error);return loadRemoteData();}
     case 'saveOrder': {const r=args[0];const product=String(r.product||'').trim();if(!['Scrabble Set','T Shirt'].includes(product))throw new Error('Choose Scrabble Set or T Shirt.');let sid=String(r.studentId||'').trim(),customer=String(r.customerName||'').trim(),phone=String(r.phone||'').trim();if(sid){const st=DATA.students.find(x=>String(x['Student ID'])===sid);if(!st)throw new Error('Selected student was not found.');if(!customer)customer=String(st['Student Name']||'');if(!phone)phone=String(st.WhatsApp||'')}if(!customer)throw new Error('Customer name is required.');const quantity=Math.max(1,Math.floor(Number(r.quantity)||1)),unitPrice=Math.max(0,Number(r.unitPrice)||0);if(product==='T Shirt'&&!String(r.size||'').trim())throw new Error('T Shirt size is required.');const orderStatus=String(r.orderStatus||'Pending Order'),paymentStatus=String(r.paymentStatus||'Unpaid'),collectionStatus=String(r.collectionStatus||'Not Collected');if(!['Pending Order','Pending Payment','Processing','Order Done'].includes(orderStatus))throw new Error('Invalid Order Status.');if(!['Unpaid','Paid'].includes(paymentStatus))throw new Error('Invalid Payment Status.');if(!['Not Collected','Collected'].includes(collectionStatus))throw new Error('Invalid Collection Status.');const payload={student_id:sid||null,customer_name:customer,phone,product,size:product==='T Shirt'?String(r.size||'').trim():'',quantity,unit_price:unitPrice,total:quantity*unitPrice,interest:'Yes',order_status:orderStatus,payment_status:paymentStatus,collection_status:collectionStatus,order_date:String(r.orderDate||isoDate(new Date())).slice(0,10),notes:String(r.notes||'')};if(r.orderId){const {error}=await supabaseClient.from('orders').update(payload).eq('order_id',String(r.orderId));if(error)throw dbError(error)}else{payload.order_id=nextLocalId('ORD',DATA.orders,'Order ID');payload.source='Manual';payload.archived=false;payload.form_source_hash='MANUAL';const {error}=await supabaseClient.from('orders').insert(payload);if(error)throw dbError(error)}return loadRemoteData();}
     case 'updateOrderStatus': {const id=String(args[0]),field=String(args[1]),value=String(args[2]);const map={'Order Status':'order_status','Payment Status':'payment_status','Collection Status':'collection_status'};const allowed={'Order Status':['Pending Order','Pending Payment','Processing','Order Done'],'Payment Status':['Unpaid','Paid'],'Collection Status':['Not Collected','Collected']};if(!map[field]||!allowed[field]?.includes(value))throw new Error('Invalid order status.');if(field==='Payment Status'){const current=orderRecord(id);if(current&&['Submitted','Verified'].includes(String(current['Payment Proof Status']||'')))throw new Error('Payment status is controlled by the payment proof actions.');}const {error}=await supabaseClient.from('orders').update({[map[field]]:value}).eq('order_id',id);if(error)throw dbError(error);return loadRemoteData();}
@@ -1066,14 +1072,17 @@ function paymentHistoryCoveredAttendance(payment){
   const attendance=DATA.attendance
     .filter(a=>String(a['Student ID'])===sid&&String(a.Status||'')==='Present')
     .sort((a,b)=>attendanceDateKey(a.Date).localeCompare(attendanceDateKey(b.Date)));
-  const ids=String(payment['Attendance IDs Covered']||'').split(',').map(x=>x.trim()).filter(Boolean);
-  if(ids.length){
-    const byId=new Map(attendance.map(a=>[String(a['Attendance ID']||''),a]));
-    return ids.map(id=>byId.get(id)).filter(Boolean);
-  }
-  const cycle=Math.max(1,Number(payment['Cycle Number'])||1);
-  const start=(cycle-1)*4;
-  return attendance.slice(start,start+4);
+
+  const paid=DATA.payments
+    .filter(p=>String(p['Student ID'])===sid&&String(p.Status||'').toLowerCase()==='paid')
+    .sort((a,b)=>(Number(a['Cycle Number'])||0)-(Number(b['Cycle Number'])||0));
+
+  const paymentIndex=paid.findIndex(p=>String(p['Payment ID']||'')===String(payment['Payment ID']||''));
+  if(paymentIndex<0)return [];
+
+  // Payment history follows the same four-class package boundaries as the
+  // payment state. Only attendance that already happened is displayed.
+  return attendance.slice(paymentIndex*4,paymentIndex*4+4);
 }
 function paymentHistoryClassMarkup(payment){
   const classes=paymentHistoryCoveredAttendance(payment);
