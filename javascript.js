@@ -1072,7 +1072,6 @@ function studentName(id){return DATA.students.find(s=>String(s['Student ID'])===
 async function changeOrder(id,field,value){try{DATA=await run('updateOrderStatus',id,field,value);renderOrders()}catch(e){appNotify(e.message||e)}}
 function editOrder(id){const o=DATA.orders.find(x=>String(x['Order ID'])===String(id));if(!o)return;showOrderForm(o)}
 function toggleOrderCustomer(){const other=document.getElementById('oType').value==='other';document.getElementById('studentBox').style.display=other?'none':'block';document.getElementById('otherBox').style.display=other?'block':'none'}
-const reportsRenderer=renderReports;renderReports=function(){const reportHead=document.querySelector('#reports #reportStudents')?.closest('table')?.querySelector('thead');if(reportHead)reportHead.innerHTML='<tr><th>Student</th><th>ID</th><th>Normal Class</th><th>Present</th><th>Absent</th><th>Payment Status</th><th>Orders</th></tr>';reportsRenderer()}
 let orderView='active';let currentOrderId='';
 function setOrderView(view){orderView=view;selectedOrderIds.clear();renderOrders()}
 function toggleOrderSelection(id,checked){if(checked)selectedOrderIds.add(String(id));else selectedOrderIds.delete(String(id));updateOrderBulkBar()}
@@ -1344,7 +1343,7 @@ function renderReports(){
     const state=paymentStateFor(sid);
     const sp=sa.filter(a=>['Present','Absent'].includes(a.Status)).length;
     const sr=sp?Math.round(sa.filter(a=>a.Status==='Present').length/sp*100):0;
-    return `<tr class="clickable report-student-row" data-student-name="${esc(String(s['Student Name']).toLowerCase())}" data-student-id="${esc(sid.toLowerCase())}" data-attendance="${sr}" data-payment-status="${esc(state.status)}" onclick="openStudentFromReport('${esc(sid)}')"><td><b>${esc(s['Student Name'])}</b></td><td>${esc(sid)}</td><td>${esc(s['Normal Class Time']||'-')}</td><td><span class="badge present">${sa.filter(a=>a.Status==='Present').length}</span></td><td><span class="badge absent">${sa.filter(a=>a.Status==='Absent').length}</span></td><td>${esc(state.currentCycle)}</td><td>${esc(state.progress)} / 4</td><td>${so.length}</td></tr>`;
+    return `<tr class="clickable report-student-row" data-student-name="${esc(String(s['Student Name']).toLowerCase())}" data-student-id="${esc(sid.toLowerCase())}" data-attendance="${sr}" data-payment-status="${esc(state.status)}" onclick="openStudentFromReport('${esc(sid)}')"><td><b>${esc(s['Student Name'])}</b></td><td>${esc(sid)}</td><td>${esc(s['Normal Class Time']||'-')}</td><td><span class="badge present">${sa.filter(a=>a.Status==='Present').length}</span></td><td><span class="badge absent">${sa.filter(a=>a.Status==='Absent').length}</span></td><td><span class="badge ${state.status==='Payment Due'?'absent':state.status==='Almost Due'?'almost':'present'}">${esc(state.status)}</span></td><td>${esc(state.progress)} / 4</td><td>${so.length}</td></tr>`;
   }).join('');
   document.getElementById('reportStudents').innerHTML=studentRows||'<tr><td colspan="8" class="empty">No active students.</td></tr>';
 
