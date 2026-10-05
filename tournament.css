@@ -1187,3 +1187,22 @@ button.danger:hover{
   }
   .tournament-certificate-actions button{width:100%}
 }
+
+
+/* ===== FINAL TOURNAMENT PRODUCT POLISH ===== */
+.tournament-check-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tournament-check-option{display:flex;align-items:flex-start;gap:9px;padding:11px 12px;border:1px solid #e4e7ec;border-radius:11px;background:#fff;cursor:pointer;transition:border-color .16s ease,box-shadow .16s ease,background .16s ease}
+.tournament-check-option:hover{border-color:#b9c6da;box-shadow:0 4px 12px rgba(16,24,40,.05)}
+.tournament-check-option input{margin-top:2px;accent-color:#315efb}
+.tournament-check-option span{display:grid;gap:2px}.tournament-check-option b{font-size:10px;color:#172033}.tournament-check-option small{font-size:9px;color:#667085}
+.tournament-certificate-panel{border:1px solid #dfe5ee;box-shadow:0 8px 25px rgba(16,24,40,.055)}
+.tournament-review-gate{display:flex;align-items:center;gap:11px;margin:15px 0;padding:12px 13px;border:1px solid #ead7b0;border-radius:12px;background:#fffaf0}
+.tournament-review-gate.reviewed{border-color:#b9dfc7;background:#f3fbf6}
+.tournament-review-icon{width:30px;height:30px;display:grid;place-items:center;border-radius:9px;background:#f1e2bd;color:#825c12;font-size:10px;font-weight:900;flex:none}
+.tournament-review-gate.reviewed .tournament-review-icon{background:#d8f1df;color:#167443}
+.tournament-review-gate div{min-width:0;display:grid;gap:2px;flex:1}.tournament-review-gate strong{font-size:11px;color:#172033}.tournament-review-gate small{font-size:9px;color:#667085;line-height:1.4}.tournament-review-gate button{white-space:nowrap}
+.certificate-teacher-preview{display:grid;gap:12px;justify-items:center;padding:8px 0 4px}
+.certificate-teacher-preview img{display:block;width:min(100%,860px);height:auto;border:1px solid #dfe4eb;border-radius:12px;box-shadow:0 15px 35px rgba(16,24,40,.12);background:#f4f5f7}
+.certificate-teacher-preview-meta{width:min(100%,860px);display:flex;justify-content:space-between;gap:12px;align-items:center;padding:9px 11px;border:1px solid #e4e7ec;border-radius:10px;background:#fafbfc}
+.certificate-teacher-preview-meta span{font-weight:800;font-size:11px;color:#172033}.certificate-teacher-preview-meta small{font-size:9px;color:#667085}
+@media(max-width:650px){.tournament-check-grid{grid-template-columns:1fr}.tournament-review-gate{align-items:flex-start;flex-wrap:wrap}.tournament-review-gate button{margin-left:41px}}
