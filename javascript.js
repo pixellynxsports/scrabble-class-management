@@ -1229,7 +1229,7 @@ function getReportPeriod(){
 }
 function syncReportPicker(){
   const month=document.getElementById('reportMonth')?.value||'';
-  const match=/^(\\d{4})-(\\d{2})$/.exec(month);
+  const match=/^(\d{4})-(\d{2})$/.exec(month);
   if(!match)return;
   const year=Number(match[1]), monthNo=Number(match[2]);
   const yearEl=document.getElementById('reportPickerYear');
@@ -1248,7 +1248,7 @@ function toggleReportPeriodPicker(){
 }
 function shiftReportPickerYear(delta){
   const current=document.getElementById('reportMonth')?.value||'';
-  const match=/^(\\d{4})-(\\d{2})$/.exec(current);
+  const match=/^(\d{4})-(\d{2})$/.exec(current);
   const year=match?Number(match[1]):new Date().getFullYear();
   const monthNo=match?Number(match[2]):new Date().getMonth()+1;
   document.getElementById('reportMonth').value=String(year+delta)+'-'+String(monthNo).padStart(2,'0');
