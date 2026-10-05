@@ -10,7 +10,7 @@ on:
       - main
 
 jobs:
-  javascript-syntax:
+  validation:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -19,6 +19,10 @@ jobs:
         shell: bash
         run: |
           set -e
-          find . -type f -name "*.js" -not -path "./node_modules/*" -print0 | while IFS= read -r -d '' file; do
+          find . -type f -name "*.js" -not -path "./node_modules/*" -not -path "./tests/*" -print0 | while IFS= read -r -d '' file; do
             node --check "$file"
           done
+      - name: Run critical regression tests
+        run: node --test tests/core-rules.test.js
+      - name: Validate local HTML references
+        run: node scripts/validate-references.mjs
