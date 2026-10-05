@@ -160,7 +160,18 @@
 <div class="panel"><div class="row"><div><h3>Monthly Trend</h3><div class="subtle">Six month activity around the selected month</div></div><span class="badge blue">6 months</span></div><div id="reportMonthlyTrend" class="report-chart"></div></div>
 <div class="panel"><div class="row"><div><h3>Class Time Comparison</h3><div class="subtle">Attendance by normal class section</div></div><span class="badge blue" id="rClassTimeBadge">0 sections</span></div><div id="reportClassTimes" class="report-bars"></div></div>
 </div>
-<div class="panel report-growth-panel" style="margin-top:15px"><div class="row"><div><h3>Student Attendance Overview</h3><div class="subtle">Attendance performance for the selected reporting period</div></div><span class="badge blue">Selected period</span></div><div id="reportStudentGrowth" class="student-growth-grid"></div></div>
+<div class="panel report-growth-panel" style="margin-top:15px">
+<div class="row"><div><h3>Student Attendance Overview</h3><div class="subtle">Top 5 attendance performance for the selected reporting period</div></div><button class="secondary report-view-more" type="button" onclick="openReportAttendancePanel()">View More <span>→</span></button></div>
+<div id="reportStudentGrowth" class="student-growth-grid"></div>
+</div>
+<div id="reportAttendancePanel" class="report-overlay hidden" aria-hidden="true">
+<div class="report-overlay-backdrop" onclick="closeReportAttendancePanel()"></div>
+<aside class="report-side-panel" role="dialog" aria-modal="true" aria-labelledby="reportAttendancePanelTitle">
+<div class="report-side-header"><div><div class="eyebrow">ATTENDANCE DETAILS</div><h3 id="reportAttendancePanelTitle">Student Attendance Overview</h3><div class="subtle" id="reportAttendancePanelPeriod">Selected reporting period</div></div><button class="report-panel-close" type="button" onclick="closeReportAttendancePanel()" aria-label="Close">×</button></div>
+<div class="report-side-tools"><input id="reportAttendanceSearch" class="search" placeholder="Search student or ID" oninput="filterReportAttendancePanel()"><span class="badge blue" id="reportAttendanceCount">0 students</span></div>
+<div id="reportAttendanceList" class="report-attendance-list"></div>
+</aside>
+</div>
 <div class="panel report-student-panel" style="margin-top:15px"><div class="row"><div><h3>Student Performance</h3><div class="subtle">Attendance and current package status</div></div><div class="report-export-actions"><span class="badge blue" id="rStudentBadge">0</span><button class="secondary" onclick="exportReportCsv()">Export Excel CSV</button><button class="secondary" onclick="printReport()">Print / Save PDF</button></div></div><div class="report-student-filters"><input id="reportStudentSearch" class="search grow" placeholder="Search student or ID" oninput="filterReportStudents()"><select id="reportPerformanceFilter" onchange="filterReportStudents()"><option value="all">All Students</option><option value="attendance">Attendance 75%+</option><option value="low">Attendance below 75%</option><option value="due">Payment Due</option></select></div><div class="scroll"><table><thead><tr><th>Student</th><th>ID</th><th>Normal Class</th><th>Present</th><th>Absent</th><th>Payment Status</th><th>Package Progress</th><th>Orders</th></tr></thead><tbody id="reportStudents"></tbody></table></div></div></section>
 <section id="orderDashboard" class="page"><div class="toolbar"><button class="secondary" onclick="page('orders')">← Back to Orders</button></div><div id="orderDashboardContent"></div></section>
 </main></div>
@@ -170,7 +181,7 @@
 <script src="data/data.js"></script>
 <script src="utils.js?v=20261003.3"></script>
 <script src="data-mappers.js?v=20261003.1"></script>
-<script src="javascript.js?v=20261005.13"></script>
+<script src="javascript.js?v=20261005.14"></script>
 <script src="registration.js?v=20261003.5"></script>
 <script src="parent-login-email.js?v=20261003.2"></script>
 <script src="tournament.js?v=20261005.8"></script>
