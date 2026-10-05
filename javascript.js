@@ -1260,11 +1260,7 @@ function renderReports(){
   const completedOrders=orders.filter(o=>o['Order Status']==='Order Done').length;
   const collectedOrders=orders.filter(o=>o['Collection Status']==='Collected').length;
   const classSessions=new Set(attendance.map(a=>String(a.Date||'').slice(0,10)+'|'+String(a['Actual Class Time']||a['Normal Class Time']||''))).size;
-  const tournamentResults=DATA.achievements.filter(a=>{
-    const source=String(a.source_type||'').toLowerCase();
-    const category=String(a.category||'').toLowerCase();
-    return source==='tournament'||category.includes('tournament')||category.includes('award');
-  }).filter(a=>inRange(a.achievement_date||a.date)).length;
+  const tournamentResults=0;
   const collectionBase=paidAmount+(due.length*50);
   const collectionRate=collectionBase?Math.round(paidAmount/collectionBase*100):0;
   document.getElementById('rStudents').textContent=active.length;
@@ -1276,8 +1272,9 @@ function renderReports(){
   document.getElementById('rOrderCount').textContent=orders.length+' active orders';
   document.getElementById('rClassesConducted').textContent=classSessions;
   document.getElementById('rClassesDetail').textContent=classSessions+' class session'+(classSessions===1?'':'s')+' recorded';
-  document.getElementById('rTournamentResults').textContent=tournamentResults;
-  document.getElementById('rTournamentDetail').textContent=tournamentResults+' tournament result'+(tournamentResults===1?'':'s')+' recorded';
+  document.getElementById('rTournamentResults').textContent='…';
+  document.getElementById('rTournamentDetail').textContent='Loading tournament results';
+  refreshTournamentReportCount(start,end);
   document.getElementById('rMonthBadge').textContent=period.label;
   document.getElementById('rPaymentBadge').textContent=due.length+' due';
   document.getElementById('rOrderBadge').textContent=orders.length;
@@ -1354,6 +1351,40 @@ function renderReports(){
   }).sort((a,b)=>b.rate-a.rate||b.p-a.p||String(a.name).localeCompare(String(b.name)));
   document.getElementById('reportStudentGrowth').innerHTML=growthRows.length?growthRows.map(x=>`<button class="student-growth-card" onclick="openStudentFromReport('${esc(x.sid)}')"><div class="student-growth-head"><span>${esc(x.name)}</span><strong>${x.rate}%</strong></div><div class="report-bar-track"><div style="width:${x.rate}%"></div></div><small>${x.p} present · ${x.abs} absent · ${x.marked} marked</small></button>`).join(''):'<div class="empty">No active students.</div>';
 }
+async function refreshTournamentReportCount(start,end){
+  const valueEl=document.getElementById('rTournamentResults');
+  const detailEl=document.getElementById('rTournamentDetail');
+  if(!valueEl||!detailEl)return;
+  valueEl.textContent='…';
+  detailEl.textContent='Loading tournament results';
+  try{
+    const {data:tournaments,error:tournamentError}=await supabaseClient
+      .from('tournaments')
+      .select('tournament_id,event_date')
+      .gte('event_date',start)
+      .lte('event_date',end);
+    if(tournamentError)throw tournamentError;
+    const ids=(tournaments||[]).map(x=>x.tournament_id).filter(Boolean);
+    if(!ids.length){
+      valueEl.textContent='0';
+      detailEl.textContent='No tournament results in period';
+      return;
+    }
+    const {data:awards,error:awardError}=await supabaseClient
+      .from('tournament_awards')
+      .select('award_id')
+      .in('tournament_id',ids);
+    if(awardError)throw awardError;
+    const count=(awards||[]).length;
+    valueEl.textContent=String(count);
+    detailEl.textContent=count+' tournament result'+(count===1?'':'s')+' recorded';
+  }catch(error){
+    console.warn('Tournament report data is temporarily unavailable:',error);
+    valueEl.textContent='0';
+    detailEl.textContent='Tournament data unavailable';
+  }
+}
+
 function filterReportStudents(){
   const query=String(document.getElementById('reportStudentSearch')?.value||'').trim().toLowerCase();
   const filter=document.getElementById('reportPerformanceFilter')?.value||'all';
