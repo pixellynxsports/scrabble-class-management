@@ -376,17 +376,115 @@ async function submitOrderReceipt(orderId){
   }catch(e){if(status)status.textContent='';if(input)input.disabled=false;if(button){button.disabled=false;button.textContent='Complete Payment';}appNotify(e.message||'Unable to submit the receipt.');}
 }
 /* ===== PARENT PORTAL UI ===== */
+function parentCertificateRecords(studentId){
+  return (PARENT_CONTEXT.achievements||[])
+    .filter(function(a){
+      return String(a.student_id)===String(studentId)&&
+        String(a.source_type||'')==='tournament'&&
+        String(a.certificate_path||a.file_path||'').length>0;
+    })
+    .sort(function(a,b){
+      const da=new Date(a.achievement_date||0).getTime();
+      const db=new Date(b.achievement_date||0).getTime();
+      return db-da;
+    });
+}
+
+function parentCertificateMonthLabel(value){
+  const d=new Date(value||0);
+  if(Number.isNaN(d.getTime()))return 'Other Certificates';
+  return d.toLocaleDateString(undefined,{month:'long',year:'numeric'});
+}
+
+function parentCertificateCard(a){
+  const path=a.certificate_path||a.file_path||'';
+  const title=a.certificate_caption||a.title||'Certificate';
+  return '<article class="parent-certificate-grid-card">'+
+    '<button class="parent-certificate-grid-preview" type="button" data-certificate-path="'+esc(path)+'" data-certificate-title="'+esc(title)+'" onclick="openParentCertificate(this.dataset.certificatePath,this.dataset.certificateTitle)" aria-label="View '+esc(title)+'">'+
+      '<span class="parent-certificate-grid-thumb-wrap"><img class="parent-certificate-grid-thumb" data-certificate-thumb="'+esc(a.certificate_thumbnail_path||'')+'" alt="Certificate preview"></span>'+
+    '</button>'+
+    '<div class="parent-certificate-grid-info">'+
+      '<strong>'+esc(title)+'</strong>'+
+      '<small>'+esc(formatDateClient(a.achievement_date))+'</small>'+
+      '<div class="parent-certificate-grid-actions">'+
+        '<button class="secondary small" type="button" data-certificate-path="'+esc(path)+'" data-certificate-title="'+esc(title)+'" onclick="openParentCertificate(this.dataset.certificatePath,this.dataset.certificateTitle)">View</button>'+
+        '<button class="secondary small" type="button" data-certificate-path="'+esc(path)+'" data-certificate-title="'+esc(title)+'" onclick="downloadParentCertificate(this.dataset.certificatePath,this.dataset.certificateTitle)">Download</button>'+
+      '</div>'+
+    '</div>'+
+  '</article>';
+}
+
 function renderParentAchievementRows(achievements){
   return achievements.map(a=>{
     const isCertificate=String(a.source_type||'')==='tournament'&&String(a.certificate_path||a.file_path||'').length>0;
-    const path=a.certificate_path||a.file_path||'';
-    if(isCertificate){
-      return `<div class="parent-certificate-card"><button class="parent-certificate-preview" type="button" data-certificate-path="${esc(path)}" data-certificate-title="${esc(a.title||'Certificate')}" onclick="openParentCertificate(this.dataset.certificatePath,this.dataset.certificateTitle)" aria-label="View certificate"><span class="parent-certificate-thumb-wrap"><img class="parent-certificate-thumb" data-certificate-thumb="${esc(a.certificate_thumbnail_path||'')}" alt="Certificate preview"></span></button><div class="parent-certificate-info"><strong>${esc(a.certificate_caption||a.title||'Certificate')}</strong><small>${esc(formatDateClient(a.achievement_date))} · ${esc(a.certificate_number||'Certificate')}</small><div class="parent-certificate-actions"><button class="secondary small" type="button" data-certificate-path="${esc(path)}" data-certificate-title="${esc(a.title||'Certificate')}" onclick="openParentCertificate(this.dataset.certificatePath,this.dataset.certificateTitle)">View</button><button class="secondary small" type="button" data-certificate-path="${esc(path)}" data-certificate-title="${esc(a.title||'Certificate')}" onclick="downloadParentCertificate(this.dataset.certificatePath,this.dataset.certificateTitle)">Download</button></div></div><span class="parent-certificate-arrow">›</span></div>`;
-    }
-    const fileButton=a.file_path?`<button class="secondary" type="button" onclick='downloadAchievement(${JSON.stringify(a.file_path)},${JSON.stringify(a.file_name||'Achievement')})'>Download</button>`:'';
-    return `<div class="parent-achievement-row"><div class="parent-achievement-icon">${a.file_path?'↗':'★'}</div><div class="parent-achievement-copy"><strong>${esc(a.title)}</strong><small>${esc(a.category||'Achievement')} · ${esc(formatDateClient(a.achievement_date))}</small>${a.description?'<p>'+esc(a.description)+'</p>':''}</div>${fileButton}</div>`;
+    if(isCertificate)return parentCertificateCard(a);
+    const fileButton=a.file_path?'<button class="secondary" type="button" onclick=\'downloadAchievement('+JSON.stringify(a.file_path)+','+JSON.stringify(a.file_name||'Achievement')+')\'>Download</button>':'';
+    return '<div class="parent-achievement-row"><div class="parent-achievement-icon">'+(a.file_path?'↗':'★')+'</div><div class="parent-achievement-copy"><strong>'+esc(a.title)+'</strong><small>'+esc(a.category||'Achievement')+' · '+esc(formatDateClient(a.achievement_date))+'</small>'+(a.description?'<p>'+esc(a.description)+'</p>':'')+'</div>'+fileButton+'</div>';
   }).join('')||'<div class="achievement-parent-empty">No achievement records have been added yet.</div>';
 }
+
+function renderParentCertificateDashboardSection(certificates){
+  if(!certificates.length){
+    return '<section class="parent-card parent-certificates-dashboard"><div class="section-head"><div><div class="eyebrow">CERTIFICATES</div><h3>Certificates</h3></div><span class="badge blue">0 certificates</span></div><div class="parent-certificates-empty"><div class="parent-certificates-empty-icon">C</div><strong>No certificates yet</strong><span>Certificates earned through tournaments will appear here.</span></div></section>';
+  }
+  const latest=certificates[0];
+  const path=latest.certificate_path||latest.file_path||'';
+  const title=latest.certificate_caption||latest.title||'Certificate';
+  return '<section class="parent-card parent-certificates-dashboard">'+
+    '<div class="section-head"><div><div class="eyebrow">CERTIFICATES</div><h3>Latest Certificate</h3><p class="parent-certificates-section-subtitle">Your most recently issued tournament certificate.</p></div><span class="badge blue">'+certificates.length+' certificate'+(certificates.length===1?'':'s')+'</span></div>'+
+    '<div class="parent-latest-certificate">'+
+      '<button class="parent-latest-certificate-preview" type="button" data-certificate-path="'+esc(path)+'" data-certificate-title="'+esc(title)+'" onclick="openParentCertificate(this.dataset.certificatePath,this.dataset.certificateTitle)" aria-label="View latest certificate"><span class="parent-latest-certificate-thumb-wrap"><img class="parent-latest-certificate-thumb" data-certificate-thumb="'+esc(latest.certificate_thumbnail_path||'')+'" alt="Latest certificate preview"></span></button>'+
+      '<div class="parent-latest-certificate-info"><span class="eyebrow">MOST RECENT</span><h4>'+esc(title)+'</h4><p>'+esc(formatDateClient(latest.achievement_date))+' · '+esc(latest.certificate_number||'Certificate')+'</p><div class="parent-latest-certificate-actions"><button class="secondary small" type="button" data-certificate-path="'+esc(path)+'" data-certificate-title="'+esc(title)+'" onclick="openParentCertificate(this.dataset.certificatePath,this.dataset.certificateTitle)">View Certificate</button><button class="primary small" type="button" onclick="openParentCertificates()">View All Certificates</button></div></div>'+
+    '</div>'+
+  '</section>';
+}
+
+function renderParentCertificatesPage(studentId){
+  const s=PARENT_CONTEXT.students.find(function(x){return String(x.student_id)===String(studentId);});
+  const certificates=parentCertificateRecords(studentId);
+  const groups={};
+  certificates.forEach(function(a){
+    const key=parentCertificateMonthLabel(a.achievement_date);
+    if(!groups[key])groups[key]=[];
+    groups[key].push(a);
+  });
+  const months=Object.keys(groups).sort(function(a,b){
+    const da=new Date(groups[a][0].achievement_date||0).getTime();
+    const db=new Date(groups[b][0].achievement_date||0).getTime();
+    return db-da;
+  });
+  const monthSections=months.map(function(month){
+    const cards=groups[month].map(parentCertificateCard).join('');
+    return '<section class="parent-certificate-month"><div class="parent-certificate-month-head"><div><div class="eyebrow">CERTIFICATES</div><h2>'+esc(month)+'</h2></div><span>'+groups[month].length+' certificate'+(groups[month].length===1?'':'s')+'</span></div><div class="parent-certificate-grid">'+cards+'</div></section>';
+  }).join('');
+  const name=s?.student_name||'Student';
+  return '<div class="parent-certificates-page">'+
+    '<div class="parent-certificates-page-head"><div><button class="parent-certificates-back" type="button" onclick="closeParentCertificates()">← Back to Parent Portal</button><div class="eyebrow">CERTIFICATE LIBRARY</div><h2>'+esc(name)+' · Certificates</h2><p>All tournament certificates are stored here, with the newest certificates shown first.</p></div><span class="badge blue">'+certificates.length+' total</span></div>'+
+    (certificates.length?monthSections:'<div class="parent-certificates-empty page-empty"><div class="parent-certificates-empty-icon">C</div><strong>No certificates yet</strong><span>Certificates earned through tournaments will appear here.</span></div>')+
+  '</div>';
+}
+
+function openParentCertificates(){
+  const dashboard=document.getElementById('parentDashboard');
+  const selector=document.getElementById('parentChildren');
+  if(!dashboard)return;
+  const sid=String(PARENT_CONTEXT.selectedStudentId||'');
+  if(selector)selector.classList.add('hidden');
+  dashboard.classList.add('parent-certificates-mode');
+  dashboard.innerHTML=renderParentCertificatesPage(sid);
+  hydrateParentCertificateCards();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function closeParentCertificates(){
+  const selector=document.getElementById('parentChildren');
+  const dashboard=document.getElementById('parentDashboard');
+  if(selector)selector.classList.remove('hidden');
+  if(dashboard)dashboard.classList.remove('parent-certificates-mode');
+  renderParentPortal();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
 
 async function hydrateParentCertificateCards(){
   const nodes=[...document.querySelectorAll('[data-certificate-thumb]')];
@@ -546,7 +644,8 @@ function renderParentPortal(){
   const sid=String(s.student_id);const achievements=(PARENT_CONTEXT.achievements||[]).filter(a=>String(a.student_id)===sid).sort((a,b)=>new Date(b.achievement_date)-new Date(a.achievement_date));const attendance=PARENT_CONTEXT.attendance.filter(a=>String(a['Student ID'])===sid).sort((a,b)=>attendanceDateKey(b.Date).localeCompare(attendanceDateKey(a.Date)));const payments=PARENT_CONTEXT.payments.filter(p=>String(p['Student ID'])===sid).sort((a,b)=>new Date(b['Payment Date'])-new Date(a['Payment Date']));const orders=PARENT_CONTEXT.orders.filter(o=>String(o['Student ID'])===sid&&!['yes','true'].includes(String(o.Archived||'').toLowerCase())).sort((a,b)=>new Date(b['Order Date'])-new Date(a['Order Date']));const state=parentPaymentState(sid);const present=attendance.filter(a=>a.Status==='Present').length;const absent=attendance.filter(a=>a.Status==='Absent').length;const attendanceRate=attendance.length?Math.round(present/attendance.length*100):0;const progressWidth=Math.min(100,Math.round(state.progress/4*100));
   const packageClasses=state.classes.slice(0,4).map((a,i)=>`<div class="parent-package-row"><span class="package-number">${i+1}</span><div><b>${esc(formatDateClient(a.Date))}</b><small>${esc(a['Actual Class Time']||'')}</small></div><span class="badge present">Present</span></div>`).join('')||'<div class="empty">No Present classes in the current package yet.</div>';
   const tournamentPanel=renderParentTournamentPanel(sid);
-  dashboard.innerHTML=`<div id="parentActionRequired"></div>${tournamentPanel}<div class="parent-hero"><div><div class="eyebrow">MY CHILD</div><h2>${esc(s.student_name)}</h2><p>${esc(sid)} · ${esc(s.normal_class_time||'Class time not recorded')}</p></div><span class="badge blue">${esc(s.school||'School not recorded')}</span></div><div class="parent-achievement-panel parent-card"><div class="section-head"><div><div class="eyebrow">ACHIEVEMENTS</div><h3>Achievements &amp; Records</h3></div><span class="badge blue">${achievements.length} record${achievements.length===1?'':'s'}</span></div><p class="achievement-parent-intro">Certificates, tournament records, awards and other achievement records are stored here.</p><div class="parent-achievement-list">${renderParentAchievementRows(achievements)}</div></div><div class="parent-metrics"><div class="parent-metric"><span>CLASSES USED</span><strong>${state.progress} / 4</strong><small>${esc(state.status)}</small></div><div class="parent-metric"><span>ATTENDANCE</span><strong>${attendanceRate}%</strong><small>${present} Present · ${absent} Absent</small></div><div class="parent-metric"><span>CURRENT CYCLE</span><strong>${esc(state.currentCycle)}</strong><small>4-class package</small></div><div class="parent-metric"><span>LAST PAYMENT</span><strong>${state.lastPayment?esc(formatDateClient(state.lastPayment['Payment Date'])):'-'}</strong><small>${state.lastPayment?'Payment recorded':'No payment recorded'}</small></div></div><button class="parent-card parent-click-card" onclick="openParentPanel('package')"><div class="section-head"><div><div class="eyebrow">CURRENT PACKAGE</div><h3>4-class package</h3></div>${parentStatusBadge(state)}</div><div class="parent-progress"><div style="width:${progressWidth}%"></div></div><div class="progress-labels"><span>${state.progress} of 4 classes used</span><span>${Math.max(0,4-state.progress)} remaining</span></div><div class="parent-package-list">${packageClasses}</div></button><div class="parent-two-col"><button class="parent-card parent-click-card" onclick="openParentPanel('attendance')"><div class="section-head"><div><div class="eyebrow">ATTENDANCE</div><h3>Attendance History</h3></div><span class="badge blue">${attendance.length} record${attendance.length===1?'':'s'}</span></div><div class="parent-list">${attendance.slice(0,8).map(a=>`<div class="parent-list-row"><div><b>${esc(formatDateClient(a.Date))}</b><small>${esc(a['Actual Class Time']||'')}</small></div>${a.Status==='Present'?'<span class="badge present">Present</span>':a.Status==='Absent'?'<span class="badge absent">Absent</span>':'<span class="badge neutral">Not marked</span>'}</div>`).join('')||'<div class="empty">No attendance records yet.</div>'}</div><div class="card-arrow">›</div></button><button class="parent-card parent-click-card" onclick="openParentPanel('payments')"><div class="section-head"><div><div class="eyebrow">PAYMENTS</div><h3>Payment History</h3></div><span class="badge blue">${payments.length} record${payments.length===1?'':'s'}</span></div><div class="parent-list">${payments.slice(0,6).map(p=>`<div class="parent-list-row"><div><b>Cycle ${esc(p['Cycle Number'])}</b><small>${esc(formatDateClient(p['Payment Date']))} · ${esc(p['Classes Covered']||'')}</small></div><div><strong>RM${esc(p.Amount||0)}</strong><span class="badge paid">${esc(p.Status||'')}</span></div></div>`).join('')||'<div class="empty">No payment records yet.</div>'}</div><div class="card-arrow">›</div></button></div><button class="parent-card parent-click-card" onclick="openParentPanel('orders')"><div class="section-head"><div><div class="eyebrow">ORDERS</div><h3>My Orders</h3></div><span class="badge blue">${orders.length} order${orders.length===1?'':'s'}</span></div><div class="parent-list">${orders.slice(0,8).map(o=>`<div class="parent-list-row"><div><b>${esc(o.Product||'Order')}</b><small>${o.Product==='T Shirt'?`Size ${esc(o.Size||'-')} · `:''}Qty ${esc(o.Quantity||1)} · ${esc(formatDateClient(o['Order Date']))}</small></div><div class="parent-order-status"><span>${esc(o['Order Status']||'')}</span><small>${esc(orderPaymentDisplay(o).label)} · ${esc(o['Collection Status']||'')}</small></div></div>`).join('')||'<div class="empty">No orders recorded.</div>'}<div class="card-arrow">›</div></div></button>`;
+  const certificates=parentCertificateRecords(sid);
+  dashboard.innerHTML=`<div id="parentActionRequired"></div>${tournamentPanel}<div class="parent-hero"><div><div class="eyebrow">MY CHILD</div><h2>${esc(s.student_name)}</h2><p>${esc(sid)} · ${esc(s.normal_class_time||'Class time not recorded')}</p></div><span class="badge blue">${esc(s.school||'School not recorded')}</span></div>${renderParentCertificateDashboardSection(certificates)}<div class="parent-metrics"><div class="parent-metric"><span>CLASSES USED</span><strong>${state.progress} / 4</strong><small>${esc(state.status)}</small></div><div class="parent-metric"><span>ATTENDANCE</span><strong>${attendanceRate}%</strong><small>${present} Present · ${absent} Absent</small></div><div class="parent-metric"><span>CURRENT CYCLE</span><strong>${esc(state.currentCycle)}</strong><small>4-class package</small></div><div class="parent-metric"><span>LAST PAYMENT</span><strong>${state.lastPayment?esc(formatDateClient(state.lastPayment['Payment Date'])):'-'}</strong><small>${state.lastPayment?'Payment recorded':'No payment recorded'}</small></div></div><button class="parent-card parent-click-card" onclick="openParentPanel('package')"><div class="section-head"><div><div class="eyebrow">CURRENT PACKAGE</div><h3>4-class package</h3></div>${parentStatusBadge(state)}</div><div class="parent-progress"><div style="width:${progressWidth}%"></div></div><div class="progress-labels"><span>${state.progress} of 4 classes used</span><span>${Math.max(0,4-state.progress)} remaining</span></div><div class="parent-package-list">${packageClasses}</div></button><div class="parent-two-col"><button class="parent-card parent-click-card" onclick="openParentPanel('attendance')"><div class="section-head"><div><div class="eyebrow">ATTENDANCE</div><h3>Attendance History</h3></div><span class="badge blue">${attendance.length} record${attendance.length===1?'':'s'}</span></div><div class="parent-list">${attendance.slice(0,8).map(a=>`<div class="parent-list-row"><div><b>${esc(formatDateClient(a.Date))}</b><small>${esc(a['Actual Class Time']||'')}</small></div>${a.Status==='Present'?'<span class="badge present">Present</span>':a.Status==='Absent'?'<span class="badge absent">Absent</span>':'<span class="badge neutral">Not marked</span>'}</div>`).join('')||'<div class="empty">No attendance records yet.</div>'}</div><div class="card-arrow">›</div></button><button class="parent-card parent-click-card" onclick="openParentPanel('payments')"><div class="section-head"><div><div class="eyebrow">PAYMENTS</div><h3>Payment History</h3></div><span class="badge blue">${payments.length} record${payments.length===1?'':'s'}</span></div><div class="parent-list">${payments.slice(0,6).map(p=>`<div class="parent-list-row"><div><b>Cycle ${esc(p['Cycle Number'])}</b><small>${esc(formatDateClient(p['Payment Date']))} · ${esc(p['Classes Covered']||'')}</small></div><div><strong>RM${esc(p.Amount||0)}</strong><span class="badge paid">${esc(p.Status||'')}</span></div></div>`).join('')||'<div class="empty">No payment records yet.</div>'}</div><div class="card-arrow">›</div></button></div><button class="parent-card parent-click-card" onclick="openParentPanel('orders')"><div class="section-head"><div><div class="eyebrow">ORDERS</div><h3>My Orders</h3></div><span class="badge blue">${orders.length} order${orders.length===1?'':'s'}</span></div><div class="parent-list">${orders.slice(0,8).map(o=>`<div class="parent-list-row"><div><b>${esc(o.Product||'Order')}</b><small>${o.Product==='T Shirt'?`Size ${esc(o.Size||'-')} · `:''}Qty ${esc(o.Quantity||1)} · ${esc(formatDateClient(o['Order Date']))}</small></div><div class="parent-order-status"><span>${esc(o['Order Status']||'')}</span><small>${esc(orderPaymentDisplay(o).label)} · ${esc(o['Collection Status']||'')}</small></div></div>`).join('')||'<div class="empty">No orders recorded.</div>'}<div class="card-arrow">›</div></div></button>`;
   renderActionRequired(state);
   hydrateParentCertificateCards();
   scheduleParentTournamentExpiry();
