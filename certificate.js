@@ -108,10 +108,10 @@
     if(!signatureImage)return;
     try{
       const source=transparentSignatureSource(signatureImage);
-      const maxW=260,maxH=90;
+      const maxW=250,maxH=72;
       const ratio=Math.min(maxW/source.width,maxH/source.height);
       const w=source.width*ratio,h=source.height*ratio;
-      ctx.drawImage(source,746-w/2,860-h/2,w,h);
+      ctx.drawImage(source,746-w/2,910-h/2,w,h);
     }catch(e){
       console.warn('Certificate signature overlay failed:',e);
     }
@@ -139,8 +139,7 @@
     drawCentered(ctx,eventDate?new Date(eventDate+'T12:00:00').toLocaleDateString(undefined,{day:'2-digit',month:'long',year:'numeric'}):'',770,731,520,22,navy,'Georgia, Times New Roman, serif','600');
 
     drawSignature(ctx);
-    drawCentered(ctx,'Banting Scrabble Academy',746,952,360,17,navy,'Arial, Helvetica, sans-serif','700');
-    drawCentered(ctx,'Certificate No.: '+certificateNo,1125,954,300,15,navy,'Arial, Helvetica, sans-serif','600');
+    drawCentered(ctx,certificateNo,1255,976,250,13,navy,'Arial, Helvetica, sans-serif','600');
 
     return canvas;
   }
