@@ -380,7 +380,7 @@ function renderParentAchievementRows(achievements){
     const isCertificate=String(a.source_type||'')==='tournament'&&String(a.certificate_path||a.file_path||'').length>0;
     const path=a.certificate_path||a.file_path||'';
     if(isCertificate){
-      return `<button class="parent-certificate-card" type="button" data-certificate-path="${esc(path)}" data-certificate-title="${esc(a.title||'Certificate')}" onclick="openParentCertificate(this.dataset.certificatePath,this.dataset.certificateTitle)"><span class="parent-certificate-thumb-wrap"><img class="parent-certificate-thumb" data-certificate-thumb="${esc(a.certificate_thumbnail_path||'')}" alt="Certificate preview"></span><span class="parent-certificate-info"><strong>${esc(a.certificate_caption||a.title||'Certificate')}</strong><small>${esc(formatDateClient(a.achievement_date))} · ${esc(a.certificate_number||'Certificate')}</small><span>View Certificate</span></span><span class="parent-certificate-arrow">›</span></button>`;
+      return `<div class="parent-certificate-card"><button class="parent-certificate-preview" type="button" data-certificate-path="${esc(path)}" data-certificate-title="${esc(a.title||'Certificate')}" onclick="openParentCertificate(this.dataset.certificatePath,this.dataset.certificateTitle)" aria-label="View certificate"><span class="parent-certificate-thumb-wrap"><img class="parent-certificate-thumb" data-certificate-thumb="${esc(a.certificate_thumbnail_path||'')}" alt="Certificate preview"></span></button><div class="parent-certificate-info"><strong>${esc(a.certificate_caption||a.title||'Certificate')}</strong><small>${esc(formatDateClient(a.achievement_date))} · ${esc(a.certificate_number||'Certificate')}</small><div class="parent-certificate-actions"><button class="secondary small" type="button" data-certificate-path="${esc(path)}" data-certificate-title="${esc(a.title||'Certificate')}" onclick="openParentCertificate(this.dataset.certificatePath,this.dataset.certificateTitle)">View</button><button class="secondary small" type="button" data-certificate-path="${esc(path)}" data-certificate-title="${esc(a.title||'Certificate')}" onclick="downloadParentCertificate(this.dataset.certificatePath,this.dataset.certificateTitle)">Download</button></div></div><span class="parent-certificate-arrow">›</span></div>`;
     }
     const fileButton=a.file_path?`<button class="secondary" type="button" onclick='downloadAchievement(${JSON.stringify(a.file_path)},${JSON.stringify(a.file_name||'Achievement')})'>Download</button>`:'';
     return `<div class="parent-achievement-row"><div class="parent-achievement-icon">${a.file_path?'↗':'★'}</div><div class="parent-achievement-copy"><strong>${esc(a.title)}</strong><small>${esc(a.category||'Achievement')} · ${esc(formatDateClient(a.achievement_date))}</small>${a.description?'<p>'+esc(a.description)+'</p>':''}</div>${fileButton}</div>`;
@@ -403,15 +403,34 @@ async function hydrateParentCertificateCards(){
   }
 }
 
+async function getParentCertificateUrl(path){
+  const result=await supabaseClient.storage.from('student-achievements').createSignedUrl(path,600);
+  if(result.error)throw result.error;
+  if(!result.data?.signedUrl)throw new Error('Certificate is unavailable.');
+  return result.data.signedUrl;
+}
 async function openParentCertificate(path,title){
   if(!path)return;
   try{
-    const result=await supabaseClient.storage.from('student-achievements').createSignedUrl(path,600);
-    if(result.error)throw result.error;
-    if(!result.data?.signedUrl)throw new Error('Certificate is unavailable.');
-    window.open(result.data.signedUrl,'_blank','noopener');
+    const url=await getParentCertificateUrl(path);
+    window.open(url,'_blank','noopener');
   }catch(error){
     appNotify(error.message||'Certificate is unavailable.','error','Certificate Unavailable');
+  }
+}
+async function downloadParentCertificate(path,title){
+  if(!path)return;
+  try{
+    const url=await getParentCertificateUrl(path);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=(String(title||'Certificate').replace(/[^a-zA-Z0-9._-]+/g,'_')||'Certificate')+'.pdf';
+    a.target='_blank';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }catch(error){
+    appNotify(error.message||'Certificate download failed.','error','Certificate Download Failed');
   }
 }
 
