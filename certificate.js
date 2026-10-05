@@ -40,7 +40,9 @@
   }
 
   function awardCaption(type,tournamentName){
-    return awardCode(type)+' in '+String(tournamentName||'Tournament');
+    const value=String(type||'').toLowerCase();
+    const label=value==='1st place'?'1st':value==='2nd place'?'2nd':value==='3rd place'?'3rd':value.includes('most improved')?'MIP':value.includes('strategic player')?'SP':value.includes('fighting spirit')?'FS':'Award';
+    return label+' in '+String(tournamentName||'Tournament');
   }
 
   function certificateNumber(tournament,award){
@@ -222,7 +224,8 @@
       certificate_path:pdfPath,
       certificate_number:certificateNo,
       certificate_status:'published',
-      certificate_caption:caption
+      certificate_caption:caption,
+      certificate_generated_at:new Date().toISOString()
     };
     const awardResult=await supabaseClient.from('tournament_awards').update(awardUpdate).eq('award_id',award.award_id);
     if(awardResult.error)throw awardResult.error;
