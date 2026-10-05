@@ -1059,6 +1059,7 @@ function renderPayments(){const active=activeStudents();const states=active.map(
   const topRows=paymentHistoryRows.slice(0,5);
   document.getElementById('paymentsHistory').innerHTML=topRows.map(paymentHistoryTableRow).join('')||'<tr><td colspan="6" class="empty">No payments recorded.</td></tr>';
   updatePaymentHistoryPanel(paymentHistoryRows)
+}
 
 function paymentHistoryClassMarkup(payment,compact=false){
   const raw=String(payment['Classes Covered']||'').trim();
