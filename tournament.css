@@ -1223,6 +1223,73 @@ button.danger:hover{
 .certificate-preview-status>span.pending{border-color:#ead7b0;background:#fffaf0;color:#825c12}
 .certificate-preview-status>span.pending b{background:#f1e2bd;color:#825c12}
 .certificate-preview-footer .primary:disabled{opacity:.48;cursor:not-allowed}
+
+/* Certificate review center */
+.certificate-review-center{display:grid;gap:0;margin:-2px}
+.certificate-review-center-head{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;padding:2px 2px 16px;border-bottom:1px solid #e5e9ef}
+.certificate-review-center-head h2{margin:5px 0 5px;font-size:26px;letter-spacing:-.03em;color:#172033}
+.certificate-review-center-head p{max-width:720px;margin:0;color:#667085;font-size:11px;line-height:1.55}
+.certificate-review-progress{display:grid;grid-template-columns:auto minmax(160px,1fr) auto;align-items:center;gap:14px;padding:13px 0}
+.certificate-review-progress>div:first-child{display:grid;gap:2px}
+.certificate-review-progress strong{font-size:15px;color:#172033}
+.certificate-review-progress span{font-size:9px;color:#667085}
+.certificate-review-progress-track{height:7px;border-radius:999px;background:#edf0f4;overflow:hidden}
+.certificate-review-progress-track>span{display:block;height:100%;border-radius:inherit;background:#315efb;transition:width .2s ease}
+.certificate-review-progress-state{padding:7px 9px;border:1px solid #ead7b0;border-radius:9px;background:#fffaf0;color:#825c12;font-size:9px;font-weight:800;white-space:nowrap}
+.certificate-review-progress-state.done{border-color:#b9dfc7;background:#f3fbf6;color:#167443}
+.certificate-review-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;max-height:56vh;overflow:auto;padding:2px 2px 4px}
+.certificate-review-card{display:grid;grid-template-columns:185px minmax(0,1fr);gap:12px;min-width:0;padding:10px;border:1px solid #e1e6ed;border-radius:13px;background:#fff;box-shadow:0 5px 18px rgba(16,24,40,.05);transition:border-color .15s ease,box-shadow .15s ease,transform .15s ease}
+.certificate-review-card:hover{transform:translateY(-1px);border-color:#cbd5e1;box-shadow:0 10px 24px rgba(16,24,40,.08)}
+.certificate-review-card.is-viewed{border-color:#b9dfc7;background:#fbfefc}
+.certificate-review-thumb{position:relative;align-self:start;overflow:hidden;border-radius:9px;border:1px solid #dfe4eb;background:#f3f5f8;aspect-ratio:1492/1054}
+.certificate-review-thumb img{display:block;width:100%;height:100%;object-fit:cover}
+.certificate-review-thumb-badge{position:absolute;left:7px;bottom:7px;padding:5px 7px;border-radius:6px;background:rgba(16,24,40,.88);color:#fff;font-size:7px;font-weight:850;letter-spacing:.05em}
+.certificate-review-card.is-viewed .certificate-review-thumb-badge{background:#167443}
+.certificate-review-card-body{display:flex;flex-direction:column;min-width:0;padding:2px 2px 2px 0}
+.certificate-review-card-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.certificate-review-index{font-size:9px;font-weight:900;color:#98a2b3}
+.certificate-review-status{padding:5px 7px;border-radius:7px;font-size:7px;font-weight:850;text-transform:uppercase;letter-spacing:.04em}
+.certificate-review-status.pending{background:#fff7e8;color:#825c12}
+.certificate-review-status.done{background:#eaf7ee;color:#167443}
+.certificate-review-status.error{background:#fff0f0;color:#b42318}
+.certificate-review-card h3{margin:11px 0 4px;font-size:13px;line-height:1.25;color:#172033}
+.certificate-review-card p{margin:0;color:#667085;font-size:9px;line-height:1.4}
+.certificate-review-card button{margin-top:auto;align-self:flex-start}
+.certificate-review-card button span{margin-left:5px}
+.certificate-review-card-error{grid-template-columns:1fr;min-height:160px}
+.certificate-review-center-footer{display:flex;justify-content:flex-end;gap:9px;padding-top:14px;margin-top:12px;border-top:1px solid #e5e9ef}
+.certificate-review-center-footer button:disabled,.certificate-full-footer button:disabled{opacity:.45;cursor:not-allowed}
+.certificate-review-note{margin-top:9px;padding:9px 11px;border-radius:9px;background:#f8fafc;color:#667085;font-size:9px;line-height:1.45}
+.certificate-workflow-steps{display:grid;grid-template-columns:minmax(0,1fr) 28px minmax(0,1fr) 28px minmax(0,1fr) 28px minmax(0,1fr);align-items:center;margin:14px 0;padding:12px;border:1px solid #e4e8ee;border-radius:12px;background:#f8fafc}
+.certificate-workflow-step{display:flex;align-items:center;gap:8px;min-width:0}
+.certificate-workflow-step>span{width:26px;height:26px;display:grid;place-items:center;flex:none;border-radius:50%;background:#e5eaf1;color:#667085;font-size:9px;font-weight:900}
+.certificate-workflow-step.done>span{background:#d8f1df;color:#167443}
+.certificate-workflow-step.active>span{background:#e9efff;color:#315efb}
+.certificate-workflow-step>div{display:grid;gap:2px;min-width:0}
+.certificate-workflow-step strong{font-size:9px;color:#344054}
+.certificate-workflow-step small{font-size:8px;color:#98a2b3;line-height:1.3}
+.certificate-workflow-line{height:1px;background:#dfe4eb}
+.certificate-review-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}
+.certificate-review-summary>div{display:grid;gap:2px;padding:10px 11px;border:1px solid #e4e8ee;border-radius:9px;background:#fff}
+.certificate-review-summary strong{font-size:16px;color:#172033}
+.certificate-review-summary span{font-size:8px;color:#98a2b3}
+.certificate-full-review{display:grid;gap:0}
+.certificate-full-review-status{display:flex;gap:7px;flex-wrap:wrap;padding:11px 0}
+.certificate-full-review-status span{padding:6px 8px;border-radius:7px;background:#fff7e8;color:#825c12;font-size:8px;font-weight:800}
+.certificate-full-review-status span.done{background:#eaf7ee;color:#167443}
+.certificate-full-stage{display:flex;align-items:center;justify-content:center;padding:10px;border:1px solid #e0e5eb;border-radius:13px;background:linear-gradient(145deg,#f7f9fc,#eef2f7)}
+.certificate-full-stage img{display:block;width:100%;max-height:66vh;object-fit:contain;border:1px solid #d4dae3;border-radius:8px;box-shadow:0 16px 36px rgba(15,23,42,.14)}
+.certificate-full-meta{display:grid;grid-template-columns:1.5fr 1fr 1.2fr;gap:8px;margin-top:9px}
+.certificate-full-meta span{display:grid;gap:3px;padding:9px 10px;border:1px solid #e4e8ee;border-radius:9px;background:#fff;color:#172033;font-size:9px}
+.certificate-full-meta b{font-size:7px;text-transform:uppercase;letter-spacing:.06em;color:#98a2b3}
+.certificate-full-footer{display:flex;justify-content:flex-end;gap:8px;align-items:center;padding-top:12px;margin-top:12px;border-top:1px solid #e5e9ef}
+.certificate-full-footer .primary{margin-left:auto}
+.certificate-review-loading{padding:42px 20px;text-align:center}
+.certificate-review-loading h2{margin:7px 0 5px;font-size:22px;color:#172033}
+.certificate-review-loading p{margin:0;color:#667085;font-size:11px}
+.certificate-review-loader{width:30px;height:30px;margin:18px auto 0;border:3px solid #e5eaf1;border-top-color:#315efb;border-radius:50%;animation:certificateReviewSpin .8s linear infinite}
+@keyframes certificateReviewSpin{to{transform:rotate(360deg)}}
+
 /* Certificate preview modal */
 .certificate-preview-modal{display:grid;gap:0;margin:-4px}
 .certificate-preview-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;padding:2px 2px 16px;border-bottom:1px solid #e7ebf1}
