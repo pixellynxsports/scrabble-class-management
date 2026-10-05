@@ -4,7 +4,7 @@ let orderTab='Scrabble Set';let currentProfileId='';let studentView='active';let
 const supabaseClient=window.supabase.createClient(window.SUPABASE_URL,window.SUPABASE_PUBLISHABLE_KEY);\nwindow.__scSupabaseClient=supabaseClient;
 let authReady=false;
 let loginMode='teacher';
-let currentUserRole='teacher';
+let currentUserRole='teacher';SCMSStateSync.auth(authReady,currentUserRole);
 let PARENT_CONTEXT={account:null,students:[],achievements:[],tournaments:[]};
 let teacherPreviewMode=false;
 let teacherPreviewPreviousPage='students';
@@ -35,7 +35,7 @@ async function loadAchievementsSafely(studentIds=null){
 async function loadRemoteData(){
   return SCMSDataService.loadTeacherData();
 }
-async function refreshOnline(silent=false){if(currentUserRole==='parent'){await loadParentPortal();return;}try{DATA=await loadRemoteData();document.getElementById('connection').textContent='● Online';document.getElementById('connection').classList.remove('off');renderAll();if(!silent)appNotify('Online data refreshed.')}catch(e){document.getElementById('connection').textContent='● Connection error';document.getElementById('connection').classList.add('off');if(!silent)appNotify(e.message||e);throw e}}
+async function refreshOnline(silent=false){if(currentUserRole==='parent'){await loadParentPortal();return;}try{DATA=await loadRemoteData();SCMSStateSync.teacherData(DATA);document.getElementById('connection').textContent='● Online';document.getElementById('connection').classList.remove('off');renderAll();if(!silent)appNotify('Online data refreshed.')}catch(e){document.getElementById('connection').textContent='● Connection error';document.getElementById('connection').classList.add('off');if(!silent)appNotify(e.message||e);throw e}}
 async function getCurrentParentAccount(){return SCMSDataService.getCurrentParentAccount();}
 async function loadParentPortal(){
   const account=await getCurrentParentAccount();
