@@ -135,8 +135,8 @@
 
     drawCentered(ctx,studentName,746,482,800,38,navy,'Georgia, Times New Roman, serif','700');
     drawCentered(ctx,title,746,598,700,(String(award.award_type||title).match(/^(1st|2nd|3rd) Place$/i)?58:44),'#f8d27a','Georgia, Times New Roman, serif','700');
-    drawCentered(ctx,eventName,770,690,520,24,navy,'Georgia, Times New Roman, serif','700');
-    drawCentered(ctx,eventDate?new Date(eventDate+'T12:00:00').toLocaleDateString(undefined,{day:'2-digit',month:'long',year:'numeric'}):'',770,731,520,22,navy,'Georgia, Times New Roman, serif','600');
+    drawCentered(ctx,eventName,746,690,520,24,navy,'Georgia, Times New Roman, serif','700');
+    drawCentered(ctx,eventDate?new Date(eventDate+'T12:00:00').toLocaleDateString(undefined,{day:'2-digit',month:'long',year:'numeric'}):'',746,731,520,22,navy,'Georgia, Times New Roman, serif','600');
 
     drawSignature(ctx);
     drawCentered(ctx,certificateNo,1255,976,250,13,navy,'Arial, Helvetica, sans-serif','600');
