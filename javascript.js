@@ -5,7 +5,7 @@ const supabaseClient=window.supabase.createClient(window.SUPABASE_URL,window.SUP
 let authReady=false;
 let loginMode='teacher';
 let currentUserRole='teacher';
-let PARENT_CONTEXT={account:null,students:[],achievements:[]};
+let PARENT_CONTEXT={account:null,students:[],achievements:[],tournaments:[]};
 let teacherPreviewMode=false;
 let teacherPreviewPreviousPage='students';
 let parentEntryNoticeShown=false;
@@ -47,7 +47,57 @@ async function loadRemoteData(){
 }
 async function refreshOnline(silent=false){if(currentUserRole==='parent'){await loadParentPortal();return;}try{DATA=await loadRemoteData();document.getElementById('connection').textContent='● Online';document.getElementById('connection').classList.remove('off');renderAll();if(!silent)appNotify('Online data refreshed.')}catch(e){document.getElementById('connection').textContent='● Connection error';document.getElementById('connection').classList.add('off');if(!silent)appNotify(e.message||e);throw e}}
 async function getCurrentParentAccount(){const {data,error}=await supabaseClient.auth.getUser();if(error)throw dbError(error);const uid=data.user?.id;if(!uid)throw new Error('Your session has expired. Please sign in again.');const {data:account,error:accountError}=await supabaseClient.from('parent_accounts').select('user_id,parent_name,email,whatsapp,active,must_change_password').eq('user_id',uid).maybeSingle();if(accountError)throw dbError(accountError);return account;}
-async function loadParentPortal(){const account=await getCurrentParentAccount();if(!account)throw new Error('This account is not registered as a parent account.');if(account.active===false)throw new Error('This parent account is inactive. Please contact the teacher.');const {data:links,error:linkError}=await supabaseClient.from('parent_students').select('student_id').eq('parent_user_id',account.user_id);if(linkError)throw dbError(linkError);const ids=(links||[]).map(x=>x.student_id).filter(Boolean);let students=[],attendance=[],payments=[],orders=[],achievements=[];if(ids.length){const [s,a,p,o]=await Promise.all([supabaseClient.from('students').select('student_id,student_name,school,age,scrabble_experience,parent_guardian,whatsapp,normal_class_time,email,registration_date,active').in('student_id',ids).order('student_name'),supabaseClient.from('attendance').select('*').in('student_id',ids).order('attendance_date',{ascending:false}),supabaseClient.from('payments').select('*').in('student_id',ids).order('payment_date',{ascending:false}),supabaseClient.from('orders').select('*').in('student_id',ids).eq('archived',false).order('order_date',{ascending:false})]);for(const result of [s,a,p,o]){if(result.error)throw dbError(result.error)}students=s.data||[];attendance=(a.data||[]).map(attendanceFromDb);payments=(p.data||[]).map(paymentFromDb);orders=(o.data||[]).map(orderFromDb);}PARENT_CONTEXT={account,students,attendance,payments,orders,achievements:[],selectedStudentId:ids[0]||''};renderParentPortal();setConnection('● Online',false);if(ids.length){loadAchievementsSafely(ids).then(records=>{PARENT_CONTEXT.achievements=records;renderParentPortal();}).catch(()=>{});}if(parentPaymentReturn&&!parentPaymentReturnHandled&&!parentPaymentProcessing){parentPaymentReturnHandled=true;checkReturnedPayment();}}
+async function loadParentPortal(){
+  const account=await getCurrentParentAccount();
+  if(!account)throw new Error('This account is not registered as a parent account.');
+  if(account.active===false)throw new Error('This parent account is inactive. Please contact the teacher.');
+  const {data:links,error:linkError}=await supabaseClient.from('parent_students').select('student_id').eq('parent_user_id',account.user_id);
+  if(linkError)throw dbError(linkError);
+  const ids=(links||[]).map(x=>x.student_id).filter(Boolean);
+  let students=[],attendance=[],payments=[],orders=[],tournaments=[];
+  if(ids.length){
+    const [s,a,p,o,t]=await Promise.all([
+      supabaseClient.from('students').select('student_id,student_name,school,age,scrabble_experience,parent_guardian,whatsapp,normal_class_time,email,registration_date,active').in('student_id',ids).order('student_name'),
+      supabaseClient.from('attendance').select('*').in('student_id',ids).order('attendance_date',{ascending:false}),
+      supabaseClient.from('payments').select('*').in('student_id',ids).order('payment_date',{ascending:false}),
+      supabaseClient.from('orders').select('*').in('student_id',ids).eq('archived',false).order('order_date',{ascending:false}),
+      supabaseClient.from('tournaments').select('*').order('event_date',{ascending:false}).order('created_at',{ascending:false})
+    ]);
+    for(const result of [s,a,p,o,t]){if(result.error)throw dbError(result.error);}
+    students=s.data||[];
+    attendance=(a.data||[]).map(attendanceFromDb);
+    payments=(p.data||[]).map(paymentFromDb);
+    orders=(o.data||[]).map(orderFromDb);
+    const visibleTournamentIds=(t.data||[]).map(x=>x.tournament_id).filter(Boolean);
+    if(visibleTournamentIds.length){
+      const {data:players,error:playerError}=await supabaseClient.from('tournament_players').select('*').in('tournament_id',visibleTournamentIds).in('student_id',ids);
+      if(playerError)throw dbError(playerError);
+      const playerTournamentIds=[...(players||[])].map(x=>x.tournament_id).filter(Boolean);
+      if(playerTournamentIds.length){
+        const [r,m,w]=await Promise.all([
+          supabaseClient.from('tournament_rounds').select('*').in('tournament_id',playerTournamentIds).order('round_number'),
+          supabaseClient.from('tournament_matches').select('*').in('tournament_id',playerTournamentIds).order('round_number').order('match_number'),
+          supabaseClient.from('tournament_awards').select('*').in('tournament_id',playerTournamentIds).order('rank')
+        ]);
+        for(const result of [r,m,w]){if(result.error)throw dbError(result.error);}
+        const byId={};
+        (t.data||[]).filter(x=>playerTournamentIds.includes(x.tournament_id)).forEach(x=>byId[x.tournament_id]={...x,players:[],rounds:[],matches:[],awards:[]});
+        (players||[]).forEach(x=>byId[x.tournament_id]?.players.push(x));
+        (r.data||[]).forEach(x=>byId[x.tournament_id]?.rounds.push(x));
+        (m.data||[]).forEach(x=>byId[x.tournament_id]?.matches.push(x));
+        (w.data||[]).forEach(x=>byId[x.tournament_id]?.awards.push(x));
+        tournaments=Object.values(byId);
+      }
+    }
+  }
+  PARENT_CONTEXT={account,students,attendance,payments,orders,achievements:[],tournaments,selectedStudentId:ids[0]||''};
+  renderParentPortal();
+  setConnection('● Online',false);
+  if(ids.length){
+    loadAchievementsSafely(ids).then(records=>{PARENT_CONTEXT.achievements=records;renderParentPortal();}).catch(()=>{});
+  }
+  if(parentPaymentReturn&&!parentPaymentReturnHandled&&!parentPaymentProcessing){parentPaymentReturnHandled=true;checkReturnedPayment();}
+}
 /* ===== PAYMENT DOMAIN ===== */
 let paymentStateCache=new Map();
 let paymentStateCachePayments=null;
@@ -373,6 +423,72 @@ function renderTeacherAchievementPanel(achievements,studentId){
   }).join('')||'<div class="achievement-record-empty">No achievement records have been added for this student yet.</div>';
   return '<div class="profile-section-title"><div><div class="eyebrow">ACHIEVEMENTS</div><h3>Achievements &amp; Records</h3></div><span class="profile-section-note">'+achievements.length+' record'+(achievements.length===1?'':'s')+'</span></div><div class="profile-achievement-manager panel"><div class="achievement-manager-form"><div class="achievement-manager-heading"><div><strong>Add achievement record</strong><small>Store tournament records, certificates, awards or other student achievements.</small></div></div><div class="achievement-form-grid"><div><label>Title</label><input id="achievementTitle" type="text" placeholder="e.g. October Friendly Tournament"></div><div><label>Category</label><select id="achievementCategory"><option>Friendly Tournament</option><option>Certificate</option><option>Award</option><option>Competition</option><option>Achievement</option><option>Other</option></select></div><div><label>Date</label><input id="achievementDate" type="date" value="'+isoDate(new Date())+'"></div><div class="full"><label>Description</label><textarea id="achievementDescription" rows="2" placeholder="Optional notes about this achievement"></textarea></div><div class="full"><label>Attachment <span class="subtle">Optional · PDF, JPG, PNG, WEBP or DOCX · Max 10 MB</span></label><input id="achievementFile" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.docx,application/pdf,image/jpeg,image/png,image/webp,application/vnd.openxmlformats-officedocument.wordprocessingml.document"></div></div><div class="achievement-form-actions"><button class="primary" type="button" onclick="saveAchievementRecord(\''+esc(studentId)+'\')">Save Achievement</button></div></div><div class="achievement-record-list">'+rows+'</div></div>';
 }
+function parentLocalDateKey(value){
+  if(!value)return '';
+  const d=new Date(value);
+  if(Number.isNaN(d.getTime()))return String(value).slice(0,10);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function parentTournamentVisible(t){
+  if(!t)return false;
+  if(t.status==='active')return true;
+  if(!['completed','archived'].includes(t.status)||!t.completed_at)return false;
+  return parentLocalDateKey(t.completed_at)===parentLocalDateKey(new Date());
+}
+function parentTournamentForStudent(t,sid){
+  return (t.players||[]).some(p=>String(p.student_id)===String(sid));
+}
+function parentTournamentStandings(t){
+  const map={};
+  (t.players||[]).forEach(p=>{map[p.player_id]={player_id:p.player_id,student_id:p.student_id,display_name:p.display_name,points:Number(p.points)||0,wins:Number(p.wins)||0,losses:Number(p.losses)||0,ties:Number(p.ties)||0,score_for:Number(p.score_for)||0,score_against:Number(p.score_against)||0,score_diff:(Number(p.score_for)||0)-(Number(p.score_against)||0),final_rank:p.final_rank};});
+  (t.matches||[]).filter(m=>m.status==='completed').forEach(m=>{
+    const a=map[m.player1_id],b=map[m.player2_id],sa=Number(m.player1_score),sb=Number(m.player2_score);
+    if(a&&Number.isFinite(sa))a.score_for+=sa;
+    if(b&&Number.isFinite(sb))b.score_for+=sb;
+    if(a&&Number.isFinite(sb))a.score_against+=sb;
+    if(b&&Number.isFinite(sa))b.score_against+=sa;
+  });
+  const rows=Object.values(map);
+  if(t.status==='completed'||t.status==='archived'){
+    rows.sort((a,b)=>(Number(a.final_rank)||999)-(Number(b.final_rank)||999)||b.points-a.points||b.score_diff-a.score_diff);
+  }else{
+    rows.sort((a,b)=>b.points-a.points||b.wins-a.wins||b.score_diff-a.score_diff||a.display_name.localeCompare(b.display_name));
+  }
+  return rows;
+}
+function parentTournamentOpponentName(t,m,sid){
+  const player=(t.players||[]).find(p=>String(p.student_id)===String(sid));
+  if(!player)return '';
+  const opponentId=String(m.player1_id)===String(player.player_id)?m.player2_id:m.player1_id;
+  const opponent=(t.players||[]).find(p=>String(p.player_id)===String(opponentId));
+  return opponent?.display_name||'BYE';
+}
+function renderParentTournamentPanel(sid){
+  const visible=(PARENT_CONTEXT.tournaments||[]).filter(t=>parentTournamentVisible(t)&&parentTournamentForStudent(t,sid));
+  if(!visible.length)return '';
+  return visible.map(t=>{
+    const active=t.status==='active';
+    const rows=parentTournamentStandings(t);
+    const player=(t.players||[]).find(p=>String(p.student_id)===String(sid));
+    const currentRound=Number(t.current_round||1);
+    const currentMatches=(t.matches||[]).filter(m=>Number(m.round_number)===currentRound);
+    const studentMatch=currentMatches.find(m=>String(m.player1_id)===String(player?.player_id)||String(m.player2_id)===String(player?.player_id));
+    const completed=(t.matches||[]).filter(m=>m.status==='completed').length;
+    const awards=(t.awards||[]).filter(a=>a.student_id);
+    const podium=rows.slice(0,3).map((p,i)=>'<div class="parent-tournament-podium-place '+(i===0?'first':i===1?'second':'third')+'"><span>'+['1st','2nd','3rd'][i]+'</span><strong>'+esc(p.display_name)+'</strong><small>'+esc(String(p.points))+' pts</small></div>').join('');
+    const standings=rows.map((p,i)=>'<tr class="'+(String(p.student_id)===String(sid)?'self':'')+'"><td><strong>'+esc(String(i+1))+'</strong></td><td><strong>'+esc(p.display_name)+'</strong></td><td>'+p.wins+'</td><td>'+p.losses+'</td><td>'+p.ties+'</td><td><strong>'+p.points+'</strong></td><td>'+(p.score_diff>=0?'+':'')+p.score_diff+'</td></tr>').join('');
+    const pairings=currentMatches.map(m=>{
+      const mine=String(m.player1_id)===String(player?.player_id)||String(m.player2_id)===String(player?.player_id);
+      return '<div class="parent-tournament-match '+(mine?'mine':'')+'"><div><span>Match '+esc(m.match_number)+'</span><strong>'+esc((t.players||[]).find(p=>String(p.player_id)===String(m.player1_id))?.display_name||'BYE')+'</strong><small>vs</small><strong>'+esc((t.players||[]).find(p=>String(p.player_id)===String(m.player2_id))?.display_name||'BYE')+'</strong></div><div class="parent-tournament-score">'+(m.status==='completed'?esc(String(m.player1_score??0))+' : '+esc(String(m.player2_score??0)):'LIVE')+'</div></div>';
+    }).join('')||'<div class="empty">No live pairings are available right now.</div>';
+    const rounds=(t.rounds||[]).map(r=>'<div class="parent-tournament-round"><span>Round '+esc(r.round_number)+'</span><strong>'+esc(r.status==='completed'?'Completed':'Live')+'</strong><small>'+((t.matches||[]).filter(m=>Number(m.round_number)===Number(r.round_number)&&m.status==='completed').length)+' results</small></div>').join('');
+    if(active){
+      return '<section class="parent-tournament-live parent-card"><div class="parent-tournament-header"><div><div class="eyebrow"><span class="live-dot"></span> LIVE TOURNAMENT</div><h2>'+esc(t.name)+'</h2><p>'+esc(formatLabel(t.format))+' · Round '+esc(currentRound)+' · Read only</p></div><span class="badge blue">LIVE</span></div><div class="parent-tournament-live-grid"><div><div class="parent-tournament-section-head"><h3>Live Pairings</h3><span>'+completed+'/'+(t.matches||[]).length+' results</span></div><div class="parent-tournament-matches">'+pairings+'</div></div><div><div class="parent-tournament-section-head"><h3>Live Standings</h3><span>'+rows.length+' players</span></div><div class="scroll"><table class="parent-tournament-table"><thead><tr><th>#</th><th>Player</th><th>W</th><th>L</th><th>T</th><th>Pts</th><th>Diff</th></tr></thead><tbody>'+standings+'</tbody></table></div></div></div><div class="parent-tournament-rounds"><div class="parent-tournament-section-head"><h3>Rounds</h3><span>Read only</span></div>'+rounds+'</div></section>';
+    }
+    const awardCards=awards.map(a=>'<div class="parent-tournament-award"><span>'+esc(a.award_type==='1st Place'?'1st':a.award_type==='2nd Place'?'2nd':a.award_type==='3rd Place'?'3rd':a.award_type.includes('Most Improved')?'MIP':a.award_type.includes('Strategic Player')?'SP':a.award_type.includes('Fighting Spirit')?'FS':a.award_type)+'</span><strong>'+esc(a.student_name||'Award recipient')+'</strong></div>').join('');
+    return '<section class="parent-tournament-complete parent-card"><div class="parent-tournament-header"><div><div class="eyebrow">TOURNAMENT COMPLETE</div><h2>'+esc(t.name)+'</h2><p>Final results · Completed '+esc(formatDateClient(t.completed_at))+'</p></div><span class="badge present">FINAL</span></div><div class="parent-tournament-podium">'+podium+'</div><div class="parent-tournament-final-grid"><div><div class="parent-tournament-section-head"><h3>Final Standings</h3><span>'+rows.length+' players</span></div><div class="scroll"><table class="parent-tournament-table"><thead><tr><th>#</th><th>Player</th><th>W</th><th>L</th><th>T</th><th>Pts</th><th>Diff</th></tr></thead><tbody>'+standings+'</tbody></table></div></div><div><div class="parent-tournament-section-head"><h3>Special Awards</h3></div><div class="parent-tournament-awards">'+(awardCards||'<div class="empty">Special awards have not been recorded yet.</div>')+'</div></div></div></section>';
+  }).join('');
+}
 function renderParentPortal(){
   document.querySelector('.app')?.classList.add('hidden');document.getElementById('parentPortal')?.classList.remove('hidden');
   const account=PARENT_CONTEXT.account||{};const welcome=document.getElementById('parentWelcome');if(welcome)welcome.textContent=`Welcome, ${account.parent_name||'Parent'}.`;
@@ -383,7 +499,8 @@ function renderParentPortal(){
   const s=PARENT_CONTEXT.students.find(x=>String(x.student_id)===String(PARENT_CONTEXT.selectedStudentId));if(!s){dashboard.innerHTML='';return;}
   const sid=String(s.student_id);const achievements=(PARENT_CONTEXT.achievements||[]).filter(a=>String(a.student_id)===sid).sort((a,b)=>new Date(b.achievement_date)-new Date(a.achievement_date));const attendance=PARENT_CONTEXT.attendance.filter(a=>String(a['Student ID'])===sid).sort((a,b)=>attendanceDateKey(b.Date).localeCompare(attendanceDateKey(a.Date)));const payments=PARENT_CONTEXT.payments.filter(p=>String(p['Student ID'])===sid).sort((a,b)=>new Date(b['Payment Date'])-new Date(a['Payment Date']));const orders=PARENT_CONTEXT.orders.filter(o=>String(o['Student ID'])===sid&&!['yes','true'].includes(String(o.Archived||'').toLowerCase())).sort((a,b)=>new Date(b['Order Date'])-new Date(a['Order Date']));const state=parentPaymentState(sid);const present=attendance.filter(a=>a.Status==='Present').length;const absent=attendance.filter(a=>a.Status==='Absent').length;const attendanceRate=attendance.length?Math.round(present/attendance.length*100):0;const progressWidth=Math.min(100,Math.round(state.progress/4*100));
   const packageClasses=state.classes.slice(0,4).map((a,i)=>`<div class="parent-package-row"><span class="package-number">${i+1}</span><div><b>${esc(formatDateClient(a.Date))}</b><small>${esc(a['Actual Class Time']||'')}</small></div><span class="badge present">Present</span></div>`).join('')||'<div class="empty">No Present classes in the current package yet.</div>';
-  dashboard.innerHTML=`<div id="parentActionRequired"></div><div class="parent-hero"><div><div class="eyebrow">MY CHILD</div><h2>${esc(s.student_name)}</h2><p>${esc(sid)} · ${esc(s.normal_class_time||'Class time not recorded')}</p></div><span class="badge blue">${esc(s.school||'School not recorded')}</span></div><div class="parent-achievement-panel parent-card"><div class="section-head"><div><div class="eyebrow">ACHIEVEMENTS</div><h3>Achievements &amp; Records</h3></div><span class="badge blue">${achievements.length} record${achievements.length===1?'':'s'}</span></div><p class="achievement-parent-intro">Certificates, tournament records, awards and other achievement records are stored here.</p><div class="parent-achievement-list">${renderParentAchievementRows(achievements)}</div></div><div class="parent-metrics"><div class="parent-metric"><span>CLASSES USED</span><strong>${state.progress} / 4</strong><small>${esc(state.status)}</small></div><div class="parent-metric"><span>ATTENDANCE</span><strong>${attendanceRate}%</strong><small>${present} Present · ${absent} Absent</small></div><div class="parent-metric"><span>CURRENT CYCLE</span><strong>${esc(state.currentCycle)}</strong><small>4-class package</small></div><div class="parent-metric"><span>LAST PAYMENT</span><strong>${state.lastPayment?esc(formatDateClient(state.lastPayment['Payment Date'])):'-'}</strong><small>${state.lastPayment?'Payment recorded':'No payment recorded'}</small></div></div><button class="parent-card parent-click-card" onclick="openParentPanel('package')"><div class="section-head"><div><div class="eyebrow">CURRENT PACKAGE</div><h3>4-class package</h3></div>${parentStatusBadge(state)}</div><div class="parent-progress"><div style="width:${progressWidth}%"></div></div><div class="progress-labels"><span>${state.progress} of 4 classes used</span><span>${Math.max(0,4-state.progress)} remaining</span></div><div class="parent-package-list">${packageClasses}</div></button><div class="parent-two-col"><button class="parent-card parent-click-card" onclick="openParentPanel('attendance')"><div class="section-head"><div><div class="eyebrow">ATTENDANCE</div><h3>Attendance History</h3></div><span class="badge blue">${attendance.length} record${attendance.length===1?'':'s'}</span></div><div class="parent-list">${attendance.slice(0,8).map(a=>`<div class="parent-list-row"><div><b>${esc(formatDateClient(a.Date))}</b><small>${esc(a['Actual Class Time']||'')}</small></div>${a.Status==='Present'?'<span class="badge present">Present</span>':a.Status==='Absent'?'<span class="badge absent">Absent</span>':'<span class="badge neutral">Not marked</span>'}</div>`).join('')||'<div class="empty">No attendance records yet.</div>'}</div><div class="card-arrow">›</div></button><button class="parent-card parent-click-card" onclick="openParentPanel('payments')"><div class="section-head"><div><div class="eyebrow">PAYMENTS</div><h3>Payment History</h3></div><span class="badge blue">${payments.length} record${payments.length===1?'':'s'}</span></div><div class="parent-list">${payments.slice(0,6).map(p=>`<div class="parent-list-row"><div><b>Cycle ${esc(p['Cycle Number'])}</b><small>${esc(formatDateClient(p['Payment Date']))} · ${esc(p['Classes Covered']||'')}</small></div><div><strong>RM${esc(p.Amount||0)}</strong><span class="badge paid">${esc(p.Status||'')}</span></div></div>`).join('')||'<div class="empty">No payment records yet.</div>'}</div><div class="card-arrow">›</div></button></div><button class="parent-card parent-click-card" onclick="openParentPanel('orders')"><div class="section-head"><div><div class="eyebrow">ORDERS</div><h3>My Orders</h3></div><span class="badge blue">${orders.length} order${orders.length===1?'':'s'}</span></div><div class="parent-list">${orders.slice(0,8).map(o=>`<div class="parent-list-row"><div><b>${esc(o.Product||'Order')}</b><small>${o.Product==='T Shirt'?`Size ${esc(o.Size||'-')} · `:''}Qty ${esc(o.Quantity||1)} · ${esc(formatDateClient(o['Order Date']))}</small></div><div class="parent-order-status"><span>${esc(o['Order Status']||'')}</span><small>${esc(orderPaymentDisplay(o).label)} · ${esc(o['Collection Status']||'')}</small></div></div>`).join('')||'<div class="empty">No orders recorded.</div>'}<div class="card-arrow">›</div></div></button>`;
+  const tournamentPanel=renderParentTournamentPanel(sid);
+  dashboard.innerHTML=`<div id="parentActionRequired"></div>${tournamentPanel}<div class="parent-hero"><div><div class="eyebrow">MY CHILD</div><h2>${esc(s.student_name)}</h2><p>${esc(sid)} · ${esc(s.normal_class_time||'Class time not recorded')}</p></div><span class="badge blue">${esc(s.school||'School not recorded')}</span></div><div class="parent-achievement-panel parent-card"><div class="section-head"><div><div class="eyebrow">ACHIEVEMENTS</div><h3>Achievements &amp; Records</h3></div><span class="badge blue">${achievements.length} record${achievements.length===1?'':'s'}</span></div><p class="achievement-parent-intro">Certificates, tournament records, awards and other achievement records are stored here.</p><div class="parent-achievement-list">${renderParentAchievementRows(achievements)}</div></div><div class="parent-metrics"><div class="parent-metric"><span>CLASSES USED</span><strong>${state.progress} / 4</strong><small>${esc(state.status)}</small></div><div class="parent-metric"><span>ATTENDANCE</span><strong>${attendanceRate}%</strong><small>${present} Present · ${absent} Absent</small></div><div class="parent-metric"><span>CURRENT CYCLE</span><strong>${esc(state.currentCycle)}</strong><small>4-class package</small></div><div class="parent-metric"><span>LAST PAYMENT</span><strong>${state.lastPayment?esc(formatDateClient(state.lastPayment['Payment Date'])):'-'}</strong><small>${state.lastPayment?'Payment recorded':'No payment recorded'}</small></div></div><button class="parent-card parent-click-card" onclick="openParentPanel('package')"><div class="section-head"><div><div class="eyebrow">CURRENT PACKAGE</div><h3>4-class package</h3></div>${parentStatusBadge(state)}</div><div class="parent-progress"><div style="width:${progressWidth}%"></div></div><div class="progress-labels"><span>${state.progress} of 4 classes used</span><span>${Math.max(0,4-state.progress)} remaining</span></div><div class="parent-package-list">${packageClasses}</div></button><div class="parent-two-col"><button class="parent-card parent-click-card" onclick="openParentPanel('attendance')"><div class="section-head"><div><div class="eyebrow">ATTENDANCE</div><h3>Attendance History</h3></div><span class="badge blue">${attendance.length} record${attendance.length===1?'':'s'}</span></div><div class="parent-list">${attendance.slice(0,8).map(a=>`<div class="parent-list-row"><div><b>${esc(formatDateClient(a.Date))}</b><small>${esc(a['Actual Class Time']||'')}</small></div>${a.Status==='Present'?'<span class="badge present">Present</span>':a.Status==='Absent'?'<span class="badge absent">Absent</span>':'<span class="badge neutral">Not marked</span>'}</div>`).join('')||'<div class="empty">No attendance records yet.</div>'}</div><div class="card-arrow">›</div></button><button class="parent-card parent-click-card" onclick="openParentPanel('payments')"><div class="section-head"><div><div class="eyebrow">PAYMENTS</div><h3>Payment History</h3></div><span class="badge blue">${payments.length} record${payments.length===1?'':'s'}</span></div><div class="parent-list">${payments.slice(0,6).map(p=>`<div class="parent-list-row"><div><b>Cycle ${esc(p['Cycle Number'])}</b><small>${esc(formatDateClient(p['Payment Date']))} · ${esc(p['Classes Covered']||'')}</small></div><div><strong>RM${esc(p.Amount||0)}</strong><span class="badge paid">${esc(p.Status||'')}</span></div></div>`).join('')||'<div class="empty">No payment records yet.</div>'}</div><div class="card-arrow">›</div></button></div><button class="parent-card parent-click-card" onclick="openParentPanel('orders')"><div class="section-head"><div><div class="eyebrow">ORDERS</div><h3>My Orders</h3></div><span class="badge blue">${orders.length} order${orders.length===1?'':'s'}</span></div><div class="parent-list">${orders.slice(0,8).map(o=>`<div class="parent-list-row"><div><b>${esc(o.Product||'Order')}</b><small>${o.Product==='T Shirt'?`Size ${esc(o.Size||'-')} · `:''}Qty ${esc(o.Quantity||1)} · ${esc(formatDateClient(o['Order Date']))}</small></div><div class="parent-order-status"><span>${esc(o['Order Status']||'')}</span><small>${esc(orderPaymentDisplay(o).label)} · ${esc(o['Collection Status']||'')}</small></div></div>`).join('')||'<div class="empty">No orders recorded.</div>'}<div class="card-arrow">›</div></div></button>`;
   renderActionRequired(state);
   hydrateParentCertificateCards();
 }
@@ -592,14 +709,14 @@ function showPasswordChangeScreen(message=''){document.getElementById('passwordC
 function hidePasswordChangeScreen(){document.getElementById('passwordChangeScreen')?.classList.add('hidden');}
 function validateParentPassword(value){return value.length>=8&&/[A-Z]/.test(value)&&/[a-z]/.test(value)&&/[0-9]/.test(value);}
 async function changeParentPassword(){if(passwordChangeInProgress)return;const newPassword=document.getElementById('newPassword')?.value||'',confirmPassword=document.getElementById('confirmNewPassword')?.value||'',button=document.getElementById('changePasswordButton'),msg=document.getElementById('passwordChangeMessage');if(!validateParentPassword(newPassword)){msg.textContent='Use at least 8 characters with uppercase, lowercase and a number.';return}if(newPassword!==confirmPassword){msg.textContent='The passwords do not match.';return}passwordChangeInProgress=true;if(button)button.disabled=true;msg.textContent='Updating password...';try{const {data,error}=await supabaseClient.auth.updateUser({password:newPassword,user_metadata:{must_change_password:false}});if(error)throw dbError(error);const uid=data.user?.id;if(!uid)throw new Error('Your session has expired. Please sign in again.');const {error:dbUpdateError}=await supabaseClient.rpc('complete_parent_first_login');if(dbUpdateError)throw dbError(dbUpdateError);msg.textContent='Password updated successfully.';document.getElementById('newPassword').value='';document.getElementById('confirmNewPassword').value='';await new Promise(resolve=>setTimeout(resolve,700));hidePasswordChangeScreen();await loadParentPortal();hideBoot();}catch(e){msg.textContent=e.message||'Unable to update your password.';}finally{passwordChangeInProgress=false;if(button)button.disabled=false;}}
-async function signOut(){if(teacherPreviewMode){closeTeacherParentPreview();return;}await supabaseClient.auth.signOut();authReady=false;currentUserRole='teacher';PARENT_CONTEXT={account:null,students:[],achievements:[]};hidePasswordChangeScreen();hideParentPortal();showLogin('You have signed out.');}
+async function signOut(){if(teacherPreviewMode){closeTeacherParentPreview();return;}await supabaseClient.auth.signOut();authReady=false;currentUserRole='teacher';PARENT_CONTEXT={account:null,students:[],achievements:[],tournaments:[]};hidePasswordChangeScreen();hideParentPortal();showLogin('You have signed out.');}
 async function enterSession(session){
   showBoot();
 
   if(!session){
     authReady=false;
     currentUserRole='teacher';
-    PARENT_CONTEXT={account:null,students:[]};
+    PARENT_CONTEXT={account:null,students:[],tournaments:[]};
     hideParentPortal();
     hidePasswordChangeScreen();
     hideBoot();
@@ -619,7 +736,7 @@ async function enterSession(session){
       if(account.active===false){
         await supabaseClient.auth.signOut();
         currentUserRole='teacher';
-        PARENT_CONTEXT={account:null,students:[]};
+        PARENT_CONTEXT={account:null,students:[],tournaments:[]};
         hideParentPortal();
         hidePasswordChangeScreen();
         hideBoot();
@@ -653,7 +770,7 @@ async function enterSession(session){
 
   }catch(e){
     currentUserRole='teacher';
-    PARENT_CONTEXT={account:null,students:[]};
+    PARENT_CONTEXT={account:null,students:[],tournaments:[]};
     hideParentPortal();
     hidePasswordChangeScreen();
     try{await supabaseClient.auth.signOut();}catch(_){}
