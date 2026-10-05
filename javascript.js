@@ -944,8 +944,8 @@ function isNewUnpaidStudent(state){return !!state&&!state.paid?.length&&Number(s
 function badge(c,state){const s=state?.status||statusFor(c);if(isNewUnpaidStudent(state))return '<span class="badge new-student">New Student · Payment Due</span>';const cls=s==='Payment Due'?'absent':s==='Almost Due'?'almost':'present';return `<span class="badge ${cls}">${s}</span>`}
 function activeStudents(){return DATA.students.filter(s=>String(s.Active||'yes').toLowerCase()!=='no')}
 function selectedAttendanceDate(){const value=document.getElementById('attDate')?.value;return value&&value>=CLASS_START_DATE?value:isoDate(latestSunday())}
-function attendanceDateKey(value){if(!value)return '';const text=String(value);if(/^\d{4}-\d{2}-\d{2}$/.test(text))return text;const date=new Date(value);if(isNaN(date.getTime()))return text.slice(0,10);return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`}
-function registrationDateKey(value){return attendanceDateKey(value);}
+const attendanceDateKey=window.SCMSAttendanceRules.attendanceDateKey;
+const registrationDateKey=window.SCMSAttendanceRules.registrationDateKey;
 function attendanceForDate(date){return DATA.attendance.filter(a=>attendanceDateKey(a.Date)===date)}
 function studentButton(studentId,name,extraClass=''){const student=DATA.students.find(s=>String(s['Student ID'])===String(studentId));const attendance=attendanceForDate(selectedAttendanceDate()).find(a=>String(a['Student ID'])===String(studentId)&&a.Status==='Present');const visualClass=extraClass==='normal-attendance'&&student&&attendance&&student['Normal Class Time']!==attendance['Actual Class Time']?'other-attendance':extraClass;return `<div class="att-row ${visualClass}"><button class="linkbtn" onclick="openStudent('${esc(studentId)}')">${esc(name)}</button></div>`}
 function formatDateClient(v){if(!v)return '';const d=new Date(v);return isNaN(d)?String(v):d.toLocaleDateString(undefined,{day:'2-digit',month:'short',year:'numeric'})}
