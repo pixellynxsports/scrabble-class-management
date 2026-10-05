@@ -1128,3 +1128,62 @@ button.danger:hover{
   .tournament-no-live{align-items:flex-start;flex-wrap:wrap}
   .tournament-no-live>button{margin-left:66px;width:calc(100% - 66px)}
 }
+
+
+/* ===== FINAL CERTIFICATE DELIVERY PANEL ===== */
+.tournament-award-mini>div{
+  grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);
+  align-items:start;
+}
+.tournament-award-mini>div small{
+  grid-column:2;
+  display:block;
+  color:#98a2b3;
+  font-size:9px;
+  margin-top:2px;
+}
+.tournament-certificate-panel{
+  margin-top:16px;
+}
+.tournament-certificate-status-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px;
+  margin-top:16px;
+}
+.tournament-certificate-status-grid>div{
+  padding:14px;
+  border:1px solid #e7ebf1;
+  border-radius:11px;
+  background:#fafbfc;
+}
+.tournament-certificate-status-grid strong{
+  display:block;
+  font-size:22px;
+  color:#172033;
+}
+.tournament-certificate-status-grid span{
+  display:block;
+  margin-top:3px;
+  color:#667085;
+  font-size:10px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+}
+.tournament-certificate-actions{
+  display:flex;
+  gap:9px;
+  flex-wrap:wrap;
+  margin-top:15px;
+}
+@media(max-width:650px){
+  .tournament-certificate-status-grid{
+    grid-template-columns:1fr 1fr 1fr;
+  }
+  .tournament-certificate-actions{
+    display:grid;
+    grid-template-columns:1fr;
+  }
+  .tournament-certificate-actions button{width:100%}
+}
