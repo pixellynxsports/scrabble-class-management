@@ -819,10 +819,10 @@ async function run(fn,...args){
  const state=paymentStateFor(sid);
  const firstPayment=isNewUnpaidStudent(state);
  if(!firstPayment&&(state.progress!==4||state.status!=='Payment Due'))throw new Error('This student has not reached 4 attended classes yet.');
- const ids=firstPayment?[]:state.classes.map(a=>String(a['Attendance ID']));
+ const ids=state.classes.map(a=>String(a['Attendance ID'])).filter(Boolean);
  const cycle=Math.max(0,...DATA.payments.filter(p=>String(p['Student ID'])===sid&&String(p.Status||'').toLowerCase()==='paid').map(p=>Number(p['Cycle Number'])||0))+1;
  const paymentId=nextLocalId('PAY',DATA.payments,'Payment ID');
- const payload={payment_id:paymentId,student_id:sid,cycle_number:cycle,amount:50,payment_date:String(args[2]||isoDate(new Date())).slice(0,10),classes_covered:firstPayment?'':state.classes.map(a=>formatDateClient(a.Date)).join(', '),status:'Paid',notes:firstPayment?'First month fee / registration payment':'',attendance_ids_covered:ids.join(','),payment_type:firstPayment?'First Month Fee':'Regular 4-Class Package',prepaid:'No'};
+ const payload={payment_id:paymentId,student_id:sid,cycle_number:cycle,amount:50,payment_date:String(args[2]||isoDate(new Date())).slice(0,10),classes_covered:state.classes.map(a=>formatDateClient(a.Date)).join(', '),status:'Paid',notes:firstPayment?'First month fee / registration payment':'',attendance_ids_covered:ids.join(','),payment_type:firstPayment?'First Month Fee':'Regular 4-Class Package',prepaid:'No'};
  const {error}=await supabaseClient.from('payments').insert(payload);if(error)throw dbError(error);return loadRemoteData();
 }
     case 'voidPayment': {const id=String(args[0]);const p=DATA.payments.find(x=>String(x['Payment ID'])===id);if(!p)throw new Error('Payment not found.');if(String(p.Status||'').toLowerCase()!=='paid')throw new Error('Only a Paid payment can be voided.');const notes=(p.Notes?String(p.Notes)+' | ':'')+'Voided on '+new Date().toLocaleString();const {error}=await supabaseClient.from('payments').update({status:'Void',notes}).eq('payment_id',id);if(error)throw dbError(error);return loadRemoteData();}
@@ -1061,22 +1061,39 @@ function renderPayments(){const active=activeStudents();const states=active.map(
   updatePaymentHistoryPanel(paymentHistoryRows)
 }
 
-function paymentHistoryClassMarkup(payment,compact=false){
+function paymentHistoryCoveredAttendance(payment){
+  const sid=String(payment['Student ID']||'');
+  const attendance=DATA.attendance
+    .filter(a=>String(a['Student ID'])===sid&&String(a.Status||'')==='Present')
+    .sort((a,b)=>attendanceDateKey(a.Date).localeCompare(attendanceDateKey(b.Date)));
+  const ids=String(payment['Attendance IDs Covered']||'').split(',').map(x=>x.trim()).filter(Boolean);
+  if(ids.length){
+    const byId=new Map(attendance.map(a=>[String(a['Attendance ID']||''),a]));
+    return ids.map(id=>byId.get(id)).filter(Boolean);
+  }
+  const cycle=Math.max(1,Number(payment['Cycle Number'])||1);
+  const start=(cycle-1)*4;
+  return attendance.slice(start,start+4);
+}
+function paymentHistoryClassMarkup(payment){
+  const classes=paymentHistoryCoveredAttendance(payment);
+  if(classes.length){
+    const chips=classes.map(a=>`<span class="payment-class-chip">${esc(formatDateClient(a.Date))}</span>`).join('');
+    return `<div class="payment-class-chips">${chips}</div>`;
+  }
   const raw=String(payment['Classes Covered']||'').trim();
-  const first=String(payment['Payment Type']||'').toLowerCase().includes('first month') || (!raw && Number(payment['Cycle Number'])===1);
-  if(first)return '<span class="payment-class-first">First Month Fee</span>';
-  if(!raw)return '<span class="payment-class-empty">No classes linked</span>';
-  const values=raw.split(',').map(x=>x.trim()).filter(Boolean);
-  const visible=compact?values.slice(0,2):values;
-  const chips=visible.map(x=>`<span class="payment-class-chip">${esc(x)}</span>`).join('');
-  const more=compact&&values.length>2?`<span class="payment-class-more">+${values.length-2} more</span>`:'';
-  return `<div class="payment-class-chips">${chips}${more}</div>`;
+  if(raw){
+    const chips=raw.split(',').map(x=>x.trim()).filter(Boolean).map(x=>`<span class="payment-class-chip">${esc(x)}</span>`).join('');
+    if(chips)return `<div class="payment-class-chips">${chips}</div>`;
+  }
+  if(String(payment['Payment Type']||'').toLowerCase().includes('first month'))return '<span class="payment-class-first">First Month Fee</span>';
+  return '<span class="payment-class-empty">No class dates recorded</span>';
 }
 function paymentHistoryTableRow(p){
   const sid=String(p['Student ID']||'');
   const st=DATA.students.find(x=>String(x['Student ID'])===sid);
   const status=String(p.Status||'');
-  return `<tr><td><button class="linkbtn" onclick="openStudent('${esc(sid)}')">${esc(st?.['Student Name']||sid)}</button></td><td>${esc(p['Cycle Number']||'-')}</td><td>RM${esc(p.Amount||0)}</td><td>${esc(formatDateClient(p['Payment Date']))}</td><td>${status.toLowerCase()==='paid'?'<span class="badge paid">Paid</span>':'<span class="badge absent">'+esc(status||'')+'</span>'}</td><td class="payment-classes-cell">${paymentHistoryClassMarkup(p,true)}</td></tr>`;
+  return `<tr><td><button class="linkbtn" onclick="openStudent('${esc(sid)}')">${esc(st?.['Student Name']||sid)}</button></td><td>${esc(p['Cycle Number']||'-')}</td><td>RM${esc(p.Amount||0)}</td><td>${esc(formatDateClient(p['Payment Date']))}</td><td>${status.toLowerCase()==='paid'?'<span class="badge paid">Paid</span>':'<span class="badge absent">'+esc(status||'')+'</span>'}</td><td class="payment-classes-cell">${paymentHistoryClassMarkup(p)}</td></tr>`;
 }
 function updatePaymentHistoryPanel(rows){
   const count=document.getElementById('paymentHistoryPanelCount');
