@@ -131,7 +131,19 @@
   function awardMiniList(){
     const map={};state.awards.forEach(function(a){map[a.award_type]=a;});
     const names=['1st Place','2nd Place','3rd Place','Most Improved Player Award','Strategic Player Award','Fighting Spirit Award'];
-    return '<div class="tournament-award-mini">'+names.map(function(name){const a=map[name];return '<div><span>'+escT(name)+'</span><b>'+escT(a?a.student_name||'Recorded':'Pending')+'</b></div>';}).join('')+'</div>';
+    return '<div class="tournament-award-mini">'+names.map(function(name){
+      const a=map[name];
+      const status=a&&a.certificate_status==='published'?'Certificate ready':a&&a.certificate_status==='failed'?'Certificate failed':'Pending';
+      return '<div><span>'+escT(name)+'</span><b>'+escT(a?a.student_name||'Recorded':'Pending')+'</b><small>'+escT(status)+'</small></div>';
+    }).join('')+'</div>';
+  }
+
+  function certificateControlPanel(){
+    const eligible=state.awards.filter(function(a){return !!a.student_id;});
+    const ready=eligible.filter(function(a){return a.certificate_status==='published'&&a.certificate_path;}).length;
+    const failed=eligible.filter(function(a){return a.certificate_status==='failed';}).length;
+    const pending=Math.max(0,eligible.length-ready-failed);
+    return '<div class="panel tournament-certificate-panel"><div class="row"><div><div class="eyebrow">AUTOMATIC CERTIFICATES</div><h3>Certificate Delivery</h3><p class="subtle">Generated certificates are stored with the tournament record and linked to the student's Parent Portal.</p></div><span class="badge '+(failed?'almost':'present')+'">'+ready+'/'+eligible.length+' ready</span></div><div class="tournament-certificate-status-grid"><div><strong>'+ready+'</strong><span>Ready</span></div><div><strong>'+pending+'</strong><span>Pending</span></div><div><strong>'+failed+'</strong><span>Failed</span></div></div><div class="tournament-certificate-actions"><button class="primary" type="button" onclick="SCMSTournament.generateCertificates()">'+(ready?'Regenerate Certificates':'Generate Certificates')+'</button>'+(failed?'<button class="secondary" type="button" onclick="SCMSTournament.retryCertificates()">Retry Failed</button>':'')+'</div></div>';
   }
 
   function renderCompletedDashboard(t){
@@ -142,6 +154,7 @@
     return '<div class="tournament-completed-dashboard"><div class="eyebrow">TOURNAMENT COMPLETE</div><h3>'+escT(t.name)+'</h3><p>The competition has ended and the final record is preserved. Review the podium, standings and awards below.</p><div class="tournament-final-podium">'+podium('1st Place',first)+podium('2nd Place',second)+podium('3rd Place',third)+'</div></div>'+
       '<div class="tournament-work-metrics tournament-final-metrics">'+statCard('PLAYERS',String(state.players.length),'Final participants','')+statCard('ROUNDS',String(state.rounds.length),'Completed','')+statCard('MATCHES',String(completedMatches),'Results recorded','')+statCard('LEADER',first?first.display_name:'—','Champion','')+'</div>'+
       '<div class="tournament-completed-grid"><div>'+renderStandings()+'</div><div class="panel"><div class="eyebrow">FINAL AWARDS</div><h3>Placement & Special Awards</h3><p class="subtle">The final ranking is preserved here. Special awards are teacher-selected.</p>'+awardMiniList()+'</div></div>'+
+      certificateControlPanel()+
       specialAwardForm();
   }
 
@@ -597,7 +610,10 @@ async function saveParticipants(){
       }
       const upd=await supabaseClient.from('tournaments').update({status:'completed',completed_at:new Date().toISOString()}).eq('tournament_id',t.tournament_id);if(upd.error)throw upd.error;
       await createPlacementAwards(standings);
-      await loadTournaments();await open(t.tournament_id);notifyT('Final ranking recorded. Choose the three special awards when you are ready.','success','Tournament Completed',{variant:'registration'});
+      if(window.SCMSCertificates){
+        await SCMSCertificates.generateForAwards(state.selected,state.awards.filter(function(a){return ['1st Place','2nd Place','3rd Place'].includes(a.award_type);}));
+      }
+      await loadTournaments();await open(t.tournament_id);notifyT('Final ranking recorded and placement certificates were processed. Choose the three special awards when you are ready.','success','Tournament Completed',{variant:'registration'});
     }catch(error){notifyT(error.message||String(error),'error','Tournament Could Not End',{variant:'critical'});}
   }
 
@@ -637,8 +653,31 @@ async function saveParticipants(){
         const student=state.standings.find(function(p){return String(p.student_id)===String(studentId);});
         const result=await supabaseClient.from('tournament_awards').upsert({tournament_id:state.selected.tournament_id,student_id:studentId,student_name:student?student.display_name:studentId,award_type:awardType,rank:null,title:awardType,certificate_path:null},{onConflict:'tournament_id,award_type'});if(result.error)throw result.error;
       }
-      await loadTournamentData(state.selected.tournament_id);await syncAwardsToAchievements();renderWorkspace();notifyT('Special awards saved and recorded in the student achievement system. Certificate files will use your supplied templates.','success','Awards Saved',{variant:'registration'});
+      await loadTournamentData(state.selected.tournament_id);await syncAwardsToAchievements();
+      if(window.SCMSCertificates){
+        await SCMSCertificates.generateForAwards(state.selected,state.awards.filter(function(a){return ['Most Improved Player Award','Strategic Player Award','Fighting Spirit Award'].includes(a.award_type);}));
+        await loadTournamentData(state.selected.tournament_id);
+      }
+      renderWorkspace();notifyT('Special awards saved and certificate processing completed.','success','Awards Saved',{variant:'registration'});
     }catch(error){notifyT(error.message||String(error),'error','Awards Not Saved',{variant:'critical'});}
+  }
+
+  async function generateCertificates(){
+    if(!state.selected||!['completed','archived'].includes(state.selected.status)||!window.SCMSCertificates)return;
+    await loadTournamentData(state.selected.tournament_id);
+    const result=await SCMSCertificates.generateForAwards(state.selected,state.awards.filter(function(a){return !!a.student_id;}));
+    await loadTournamentData(state.selected.tournament_id);
+    renderWorkspace();
+    return result;
+  }
+
+  async function retryCertificates(){
+    if(!state.selected||!window.SCMSCertificates)return;
+    try{
+      await SCMSCertificates.retryFailed(state.selected.tournament_id);
+      await loadTournamentData(state.selected.tournament_id);
+      renderWorkspace();
+    }catch(error){notifyT(error.message||String(error),'error','Certificate Retry Failed',{variant:'critical'});}
   }
 
   async function archive(){
@@ -663,7 +702,7 @@ async function saveParticipants(){
   function back(){state.selected=null;state.players=[];state.rounds=[];state.matches=[];state.awards=[];renderHome();}
   async function refresh(){await loadTournaments();if(state.selected)await open(state.selected.tournament_id);}
 
-  window.SCMSTournament={init:async function(){await loadTournaments();},refresh:refresh,create:create,open:open,back:back,tab:tab,viewRound:viewRound,clearRoundView:clearRoundView,closeModal:closeModal,formatChanged:formatChanged,filterParticipants:filterParticipants,selectAllParticipants:selectAllParticipants,clearParticipants:clearParticipants,saveParticipants:saveParticipants,editParticipants:editParticipants,seedParticipants:seedParticipants,moveSeed:moveSeed,saveSeeding:saveSeeding,removePlayer:removePlayer,start:start,score:score,finish:finish,finishRound:finishRound,addRound:addRound,immediateEnd:immediateEnd,deleteTournament:deleteTournament,saveSpecialAwards:saveSpecialAwards,archive:archive,reopen:reopen,editTournament:editTournament};
+  window.SCMSTournament={init:async function(){await loadTournaments();},refresh:refresh,create:create,open:open,back:back,tab:tab,viewRound:viewRound,clearRoundView:clearRoundView,closeModal:closeModal,formatChanged:formatChanged,filterParticipants:filterParticipants,selectAllParticipants:selectAllParticipants,clearParticipants:clearParticipants,saveParticipants:saveParticipants,editParticipants:editParticipants,seedParticipants:seedParticipants,moveSeed:moveSeed,saveSeeding:saveSeeding,removePlayer:removePlayer,start:start,score:score,finish:finish,finishRound:finishRound,addRound:addRound,immediateEnd:immediateEnd,deleteTournament:deleteTournament,saveSpecialAwards:saveSpecialAwards,generateCertificates:generateCertificates,retryCertificates:retryCertificates,archive:archive,reopen:reopen,editTournament:editTournament};
 
   const originalPage=window.page;
   window.page=function(name){originalPage(name);if(name==='tournament'){const title=document.getElementById('title');if(title)title.textContent='Tournament';SCMSTournament.init();}};
