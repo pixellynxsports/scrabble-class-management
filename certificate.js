@@ -17,11 +17,7 @@
   let templateImage = null;
   let signatureImage = null;
 
-  function esc(value){
-    return String(value == null ? '' : value).replace(/[&<>"']/g,function(m){
-      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];
-    });
-  }
+  const esc = window.SCMSRuntime.escapeHtml;
 
   function notify(message,type,title,options){
     if(typeof appNotify === 'function') appNotify(message,type||'info',title||'',options||{});
