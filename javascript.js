@@ -1,7 +1,8 @@
 /* Scrabble Class Management, Supabase online version */
 let DATA={students:[],attendance:[],payments:[],orders:[],achievements:[],config:{fee:50,classesPerCycle:4,classTimes:['10:30 AM','2:00 PM']}};
 let orderTab='Scrabble Set';let currentProfileId='';let studentView='active';let selectedOrderIds=new Set();let studentSortKey='studentName';let studentSortDirection='asc';
-const supabaseClient=window.supabase.createClient(window.SUPABASE_URL,window.SUPABASE_PUBLISHABLE_KEY);\nwindow.__scSupabaseClient=supabaseClient;
+const supabaseClient=window.supabase.createClient(window.SUPABASE_URL,window.SUPABASE_PUBLISHABLE_KEY);
+window.__scSupabaseClient=supabaseClient;
 let authReady=false;
 let loginMode='teacher';
 let currentUserRole='teacher';SCMSStateSync.auth(authReady,currentUserRole);
