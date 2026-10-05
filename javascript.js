@@ -1,7 +1,7 @@
 /* Scrabble Class Management, Supabase online version */
 let DATA={students:[],attendance:[],payments:[],orders:[],achievements:[],config:{fee:50,classesPerCycle:4,classTimes:['10:30 AM','2:00 PM']}};
 let orderTab='Scrabble Set';let currentProfileId='';let studentView='active';let selectedOrderIds=new Set();let studentSortKey='studentName';let studentSortDirection='asc';
-const supabaseClient=window.supabase.createClient(window.SUPABASE_URL,window.SUPABASE_PUBLISHABLE_KEY);
+const supabaseClient=window.supabase.createClient(window.SUPABASE_URL,window.SUPABASE_PUBLISHABLE_KEY);\nwindow.__scSupabaseClient=supabaseClient;
 let authReady=false;
 let loginMode='teacher';
 let currentUserRole='teacher';
@@ -33,22 +33,10 @@ async function loadAchievementsSafely(studentIds=null){
   }
 }
 async function loadRemoteData(){
-  const [s,a,p,o,settings]=await Promise.all([
-    supabaseClient.from('students').select('*').order('student_name'),
-    supabaseClient.from('attendance').select('*').order('attendance_date',{ascending:false}),
-    supabaseClient.from('payments').select('*').order('payment_date',{ascending:false}),
-    supabaseClient.from('orders').select('*').order('order_date',{ascending:false}),
-    supabaseClient.from('settings').select('*')
-  ]);
-  for(const result of [s,a,p,o,settings]){if(result.error)throw dbError(result.error)}
-  const cfg={fee:50,classesPerCycle:4,classTimes:['10:30 AM','2:00 PM']};
-  settings.data?.forEach(x=>{if(x.setting==='fee')cfg.fee=Number(x.value)||50;if(x.setting==='classesPerCycle')cfg.classesPerCycle=Number(x.value)||4;if(x.setting==='classTimes'){try{const v=JSON.parse(x.value);if(Array.isArray(v)&&v.length)cfg.classTimes=v}catch(e){}}});
-  // Achievements are loaded separately so an optional achievements table or storage issue
-  // can never block the main Teacher Portal startup.
-  return {students:(s.data||[]).map(studentFromDb),attendance:(a.data||[]).map(attendanceFromDb),payments:(p.data||[]).map(paymentFromDb),orders:(o.data||[]).map(orderFromDb),achievements:[],config:cfg};
+  return SCMSDataService.loadTeacherData();
 }
 async function refreshOnline(silent=false){if(currentUserRole==='parent'){await loadParentPortal();return;}try{DATA=await loadRemoteData();document.getElementById('connection').textContent='● Online';document.getElementById('connection').classList.remove('off');renderAll();if(!silent)appNotify('Online data refreshed.')}catch(e){document.getElementById('connection').textContent='● Connection error';document.getElementById('connection').classList.add('off');if(!silent)appNotify(e.message||e);throw e}}
-async function getCurrentParentAccount(){const {data,error}=await supabaseClient.auth.getUser();if(error)throw dbError(error);const uid=data.user?.id;if(!uid)throw new Error('Your session has expired. Please sign in again.');const {data:account,error:accountError}=await supabaseClient.from('parent_accounts').select('user_id,parent_name,email,whatsapp,active,must_change_password').eq('user_id',uid).maybeSingle();if(accountError)throw dbError(accountError);return account;}
+async function getCurrentParentAccount(){return SCMSDataService.getCurrentParentAccount();}
 async function loadParentPortal(){
   const account=await getCurrentParentAccount();
   if(!account)throw new Error('This account is not registered as a parent account.');
