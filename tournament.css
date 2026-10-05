@@ -1214,6 +1214,15 @@ button.danger:hover{
 .certificate-teacher-preview-meta span{font-weight:800;font-size:11px;color:#172033}.certificate-teacher-preview-meta small{font-size:9px;color:#667085}
 @media(max-width:650px){.tournament-check-grid{grid-template-columns:1fr}.tournament-review-gate{align-items:flex-start;flex-wrap:wrap}.tournament-review-gate button{margin-left:41px}}
 
+
+.certificate-preview-status{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.certificate-preview-status>span{display:inline-flex;align-items:center;gap:6px;padding:7px 9px;border:1px solid #e1e6ed;border-radius:9px;background:#f8fafc;color:#667085;font-size:9px;font-weight:750}
+.certificate-preview-status>span b{width:18px;height:18px;display:grid;place-items:center;border-radius:50%;background:#e5eaf1;color:#667085;font-size:9px}
+.certificate-preview-status>span.done{border-color:#b9dfc7;background:#f3fbf6;color:#167443}
+.certificate-preview-status>span.done b{background:#d8f1df;color:#167443}
+.certificate-preview-status>span.pending{border-color:#ead7b0;background:#fffaf0;color:#825c12}
+.certificate-preview-status>span.pending b{background:#f1e2bd;color:#825c12}
+.certificate-preview-footer .primary:disabled{opacity:.48;cursor:not-allowed}
 /* Certificate preview modal */
 .certificate-preview-modal{display:grid;gap:0;margin:-4px}
 .certificate-preview-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;padding:2px 2px 16px;border-bottom:1px solid #e7ebf1}
