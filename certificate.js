@@ -183,12 +183,12 @@
     if(existing.error)throw existing.error;
 
     if(existing.data){
-      const result=await supabaseClient.from('student_achievements').update(payload).eq('achievement_id',existing.data.achievement_id);
+      const result=await supabaseClient.from('student_achievements').update(payload).eq('achievement_id',existing.data.achievement_id).select('achievement_id').single();
       if(result.error)throw result.error;
       return result.data;
     }
 
-    const result=await supabaseClient.from('student_achievements').insert(payload);
+    const result=await supabaseClient.from('student_achievements').insert(payload).select('achievement_id').single();
     if(result.error)throw result.error;
     return result.data;
   }
@@ -230,8 +230,12 @@
     const awardResult=await supabaseClient.from('tournament_awards').update(awardUpdate).eq('award_id',award.award_id);
     if(awardResult.error)throw awardResult.error;
 
-    await upsertAchievement(tournament,workingAward,pdfPath,thumbnailPath);
-    return {certificateNo:certificateNo,pdfPath:pdfPath,thumbnailPath:thumbnailPath};
+    const achievement=await upsertAchievement(tournament,workingAward,pdfPath,thumbnailPath);
+    if(achievement?.achievement_id){
+      const linkResult=await supabaseClient.from('tournament_awards').update({achievement_id:achievement.achievement_id}).eq('award_id',award.award_id);
+      if(linkResult.error)throw linkResult.error;
+    }
+    return {certificateNo:certificateNo,pdfPath:pdfPath,thumbnailPath:thumbnailPath,achievementId:achievement?.achievement_id||null};
   }
 
   async function generateForAwards(tournament,awards){
