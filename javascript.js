@@ -244,39 +244,6 @@ const registrationDateKey=window.SCMSAttendanceRules.registrationDateKey;
 function attendanceForDate(date){return DATA.attendance.filter(a=>attendanceDateKey(a.Date)===date)}
 function studentButton(studentId,name,extraClass=''){const student=DATA.students.find(s=>String(s['Student ID'])===String(studentId));const attendance=attendanceForDate(selectedAttendanceDate()).find(a=>String(a['Student ID'])===String(studentId)&&a.Status==='Present');const visualClass=extraClass==='normal-attendance'&&student&&attendance&&student['Normal Class Time']!==attendance['Actual Class Time']?'other-attendance':extraClass;return `<div class="att-row ${visualClass}"><button class="linkbtn" onclick="openStudent('${esc(studentId)}')">${esc(name)}</button></div>`}
 function formatDateClient(v){if(!v)return '';const d=new Date(v);return isNaN(d)?String(v):d.toLocaleDateString(undefined,{day:'2-digit',month:'short',year:'numeric'})}
-function filterReportStudents(){
-  const query=String(document.getElementById('reportStudentSearch')?.value||'').trim().toLowerCase();
-  const filter=document.getElementById('reportPerformanceFilter')?.value||'all';
-  document.querySelectorAll('#reportStudents .report-student-row').forEach(row=>{
-    const matchesText=!query||row.dataset.studentName.includes(query)||row.dataset.studentId.includes(query);
-    const rate=Number(row.dataset.attendance||0);
-    const status=row.dataset.paymentStatus||'';
-    const matchesFilter=filter==='all'||(filter==='attendance'&&rate>=75)||(filter==='low'&&rate<75)||(filter==='due'&&status==='Payment Due');
-    row.style.display=matchesText&&matchesFilter?'':'none';
-  });
-}
-
-function exportReportCsv(){
-  const period=getReportPeriod();
-  const {start,end}=period;
-  const active=activeStudents();
-  const inRange=value=>{const v=String(value||'').slice(0,10);return v>=start&&v<=end;};
-  const attendance=DATA.attendance.filter(a=>inRange(a.Date));
-  const orders=DATA.orders.filter(o=>inRange(o['Order Date'])&&String(o.Archived||'').toLowerCase()!=='yes');
-  const rows=active.map(s=>{
-    const sid=String(s['Student ID']);
-    const sa=attendance.filter(a=>String(a['Student ID'])===sid);
-    const state=paymentStateFor(sid);
-    const so=orders.filter(o=>String(o['Student ID'])===sid);
-    return [s['Student Name'],sid,s['Normal Class Time']||'',sa.filter(a=>a.Status==='Present').length,sa.filter(a=>a.Status==='Absent').length,state.currentCycle,state.progress+'/4',so.length];
-  });
-  const csv=[['Student','ID','Normal Time','Present','Absent','Cycle','Package','Orders'],...rows].map(row=>row.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\n');
-  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');a.href=url;a.download=`scrabble-report-${start}-to-${end}.csv`;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
-}
-function printReport(){window.print();}
-
 function showStudentForm(){
   showModal(`<div class="student-form-modal">
     <div class="student-form-header"><div><div class="eyebrow">STUDENT MANAGEMENT</div><h2>Add New Student</h2><p>Register a student and assign the initial four class package.</p></div><button class="modal-close" onclick="closeModal()" aria-label="Close">×</button></div>
