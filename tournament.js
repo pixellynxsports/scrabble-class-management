@@ -16,7 +16,7 @@
     leaderboard:'Leaderboard'
   };
 
-  function escT(value){return String(value==null?'':value).replace(/[&<>"']/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];});}
+  const escT = window.SCMSRuntime.escapeHtml;
   function notifyT(message,type,title,options){if(typeof appNotify==='function')appNotify(message,type||'info',title||'',options||{});else console.warn(message);}
   function confirmT(message,title){if(typeof appConfirm==='function')return appConfirm(message,title||'Confirm Action','TOURNAMENT');return Promise.resolve(window.confirm(message));}
   function root(){return document.getElementById('tournamentContent');}
