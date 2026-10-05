@@ -30,6 +30,9 @@ alter table if exists public.student_achievements
 alter table if exists public.student_achievements
   add column if not exists certificate_caption text;
 
+alter table if exists public.student_achievements
+  add column if not exists certificate_generated_at timestamptz;
+
 create unique index if not exists tournament_awards_certificate_number_idx
   on public.tournament_awards(certificate_number)
   where certificate_number is not null;
