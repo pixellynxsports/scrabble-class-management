@@ -1236,6 +1236,8 @@ function renderReports(){
   const period=getReportPeriod();
   const {month,start,end}=period;
   document.getElementById('reportMonth').value=month;
+  const periodSummary=document.getElementById('reportPeriodSummary');
+  if(periodSummary)periodSummary.textContent=period.label;
   const inRange=value=>{const v=String(value||'').slice(0,10);return v>=start&&v<=end;};
   const active=activeStudents();
   const attendance=DATA.attendance.filter(a=>inRange(a.Date));
