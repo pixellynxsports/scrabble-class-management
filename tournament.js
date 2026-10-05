@@ -143,7 +143,7 @@
     const ready=eligible.filter(function(a){return a.certificate_status==='published'&&a.certificate_path;}).length;
     const failed=eligible.filter(function(a){return a.certificate_status==='failed';}).length;
     const pending=Math.max(0,eligible.length-ready-failed);
-    return '<div class="panel tournament-certificate-panel"><div class="row"><div><div class="eyebrow">AUTOMATIC CERTIFICATES</div><h3>Certificate Delivery</h3><p class="subtle">Generated certificates are stored with the tournament record and linked to the student Parent Portal.</p></div><span class="badge '+(failed?'almost':'present')+'">'+ready+'/'+eligible.length+' ready</span></div><div class="tournament-certificate-status-grid"><div><strong>'+ready+'</strong><span>Ready</span></div><div><strong>'+pending+'</strong><span>Pending</span></div><div><strong>'+failed+'</strong><span>Failed</span></div></div><div class="tournament-certificate-actions"><button class="primary" type="button" onclick="SCMSTournament.generateCertificates()">'+(ready?'Regenerate Certificates':'Generate Certificates')+'</button>'+(failed?'<button class="secondary" type="button" onclick="SCMSTournament.retryCertificates()">Retry Failed</button>':'')+'</div></div>';
+    return '<div class="panel tournament-certificate-panel"><div class="row"><div><div class="eyebrow">AUTOMATIC CERTIFICATES</div><h3>Certificate Delivery</h3><p class="subtle">Review the final podium and standings first. Generate certificates only after you approve the final results.</p></div><span class="badge '+(failed?'almost':'present')+'">'+ready+'/'+eligible.length+' ready</span></div><div class="tournament-certificate-status-grid"><div><strong>'+ready+'</strong><span>Ready</span></div><div><strong>'+pending+'</strong><span>Pending</span></div><div><strong>'+failed+'</strong><span>Failed</span></div></div><div class="tournament-certificate-actions"><button class="primary" type="button" onclick="SCMSTournament.generateCertificates()">'+(ready?'Regenerate Certificates':'Generate Certificates')+'</button>'+(failed?'<button class="secondary" type="button" onclick="SCMSTournament.retryCertificates()">Retry Failed</button>':'')+'</div></div>';
   }
 
   function renderCompletedDashboard(t){
@@ -610,10 +610,7 @@ async function saveParticipants(){
       }
       const upd=await supabaseClient.from('tournaments').update({status:'completed',completed_at:new Date().toISOString()}).eq('tournament_id',t.tournament_id);if(upd.error)throw upd.error;
       await createPlacementAwards(standings);
-      if(window.SCMSCertificates){
-        await SCMSCertificates.generateForAwards(state.selected,state.awards.filter(function(a){return ['1st Place','2nd Place','3rd Place'].includes(a.award_type);}));
-      }
-      await loadTournaments();await open(t.tournament_id);notifyT('Final ranking recorded and placement certificates were processed. Choose the three special awards when you are ready.','success','Tournament Completed',{variant:'registration'});
+      await loadTournaments();await open(t.tournament_id);notifyT('Final ranking recorded. Review the podium and standings, then generate certificates when you are satisfied with the final results.','success','Tournament Completed',{variant:'registration'});
     }catch(error){notifyT(error.message||String(error),'error','Tournament Could Not End',{variant:'critical'});}
   }
 
