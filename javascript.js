@@ -441,22 +441,31 @@ function parentTournamentForStudent(t,sid){
 }
 function parentTournamentStandings(t){
   const map={};
-  (t.players||[]).forEach(p=>{map[p.player_id]={player_id:p.player_id,student_id:p.student_id,display_name:p.display_name,points:Number(p.points)||0,wins:Number(p.wins)||0,losses:Number(p.losses)||0,ties:Number(p.ties)||0,score_for:Number(p.score_for)||0,score_against:Number(p.score_against)||0,score_diff:(Number(p.score_for)||0)-(Number(p.score_against)||0),final_rank:p.final_rank};});
+  (t.players||[]).forEach(p=>{
+    map[p.player_id]={player_id:p.player_id,student_id:p.student_id,display_name:p.display_name,seed:Number(p.seed)||999,wins:0,losses:0,ties:0,points:0,score_for:0,score_against:0,score_diff:0,final_rank:p.final_rank};
+  });
   (t.matches||[]).filter(m=>m.status==='completed').forEach(m=>{
     const a=map[m.player1_id],b=map[m.player2_id],sa=Number(m.player1_score),sb=Number(m.player2_score);
     if(a&&Number.isFinite(sa))a.score_for+=sa;
-    if(b&&Number.isFinite(sb))b.score_for+=sb;
     if(a&&Number.isFinite(sb))a.score_against+=sb;
+    if(b&&Number.isFinite(sb))b.score_for+=sb;
     if(b&&Number.isFinite(sa))b.score_against+=sa;
+    if(!m.winner_player_id){if(a)a.ties++;if(b)b.ties++;return;}
+    const w=map[m.winner_player_id],l=w&&String(w.player_id)===String(m.player1_id)?b:a;
+    if(w){w.wins++;w.points+=1;}
+    if(l)l.losses++;
   });
   const rows=Object.values(map);
-  if(t.status==='completed'||t.status==='archived'){
-    rows.sort((a,b)=>(Number(a.final_rank)||999)-(Number(b.final_rank)||999)||b.points-a.points||b.score_diff-a.score_diff);
-  }else{
-    rows.sort((a,b)=>b.points-a.points||b.wins-a.wins||b.score_diff-a.score_diff||a.display_name.localeCompare(b.display_name));
-  }
+  rows.forEach(p=>{p.score_diff=p.score_for-p.score_against;});
+  rows.sort((a,b)=>
+    (t.status==='completed'||t.status==='archived'
+      ?(Number(a.final_rank)||999)-(Number(b.final_rank)||999)
+      :b.points-a.points||b.wins-a.wins||b.score_diff-a.score_diff||a.seed-b.seed||a.display_name.localeCompare(b.display_name)
+    )
+  );
   return rows;
 }
+
 function parentTournamentOpponentName(t,m,sid){
   const player=(t.players||[]).find(p=>String(p.student_id)===String(sid));
   if(!player)return '';
