@@ -1591,3 +1591,29 @@ body.sc-dialog-open{overflow:hidden}
     grid-template-columns:1fr 1fr;
   }
 }
+
+.parent-certificate-card{
+  cursor:default;
+}
+.parent-certificate-preview{
+  width:100%;
+  padding:0;
+  border:0;
+  background:transparent;
+  cursor:pointer;
+  display:block;
+}
+.parent-certificate-preview:focus-visible{
+  outline:2px solid #315efb;
+  outline-offset:3px;
+  border-radius:10px;
+}
+.parent-certificate-actions{
+  display:flex;
+  gap:7px;
+  margin-top:4px;
+}
+.parent-certificate-actions .small{
+  padding:5px 9px;
+  font-size:10px;
+}
