@@ -94,6 +94,32 @@
     try{await loadTournamentData(id);renderWorkspace();}catch(error){notifyT(error.message||String(error),'error','Tournament Could Not Open',{variant:'critical'});}
   }
 
+  async function ensureActiveRound(){
+    const t=state.selected;
+    if(!t||t.status!=='active')return;
+    const roundNumber=Math.max(1,Number(t.current_round)||1);
+    const configuredRounds=Math.max(1,Number(t.rounds_total)||1);
+    if(Number(t.rounds_total)!==configuredRounds){
+      const fixed=await supabaseClient.from('tournaments').update({rounds_total:configuredRounds,current_round:roundNumber}).eq('tournament_id',t.tournament_id);
+      if(fixed.error)throw fixed.error;
+      t.rounds_total=configuredRounds;t.current_round=roundNumber;
+    }
+    const existing=state.rounds.find(function(r){return Number(r.round_number)===roundNumber;});
+    if(existing)return;
+    const pairs=generatePairs(roundNumber);
+    if(t.format==='leaderboard'){
+      const result=await supabaseClient.from('tournament_rounds').insert({tournament_id:t.tournament_id,round_number:roundNumber,status:'active'}).select().single();
+      if(result.error)throw result.error;
+    }else{
+      if(!pairs.length)throw new Error('Round '+roundNumber+' has no valid pairings. Check the selected players and tournament format.');
+      await createRoundAndMatches(roundNumber,pairs);
+    }
+    const refreshed=await supabaseClient.from('tournament_rounds').select('*').eq('tournament_id',t.tournament_id).eq('round_number',roundNumber).maybeSingle();
+    if(refreshed.error)throw refreshed.error;
+    if(!refreshed.data)throw new Error('Round '+roundNumber+' was not created successfully.');
+    state.rounds.push(refreshed.data);
+  }
+
   async function loadTournamentData(id){
     const results=await Promise.all([
       supabaseClient.from('tournament_players').select('*').eq('tournament_id',id).order('seed'),
@@ -103,6 +129,13 @@
     ]);
     for(const r of results){if(r.error)throw r.error;}
     state.players=results[0].data||[];state.rounds=results[1].data||[];state.matches=results[2].data||[];state.awards=results[3].data||[];state.standings=calculateStandings();
+    await ensureActiveRound();
+    if(state.selected?.status==='active'){
+      const refreshed=await supabaseClient.from('tournament_matches').select('*').eq('tournament_id',id).order('round_number').order('match_number');
+      if(refreshed.error)throw refreshed.error;
+      state.matches=refreshed.data||[];
+      state.standings=calculateStandings();
+    }
   }
 
   function workspaceTabs(){return ['overview','pairings','standings','players','rounds','settings'].map(function(tab){return '<button type="button" class="tournament-tab '+(state.view===tab?'active':'')+'" onclick="SCMSTournament.tab(\''+tab+'\')">'+tab[0].toUpperCase()+tab.slice(1)+'</button>';}).join('');}
@@ -131,7 +164,45 @@
   function awardMiniList(){
     const map={};state.awards.forEach(function(a){map[a.award_type]=a;});
     const names=['1st Place','2nd Place','3rd Place','Most Improved Player Award','Strategic Player Award','Fighting Spirit Award'];
-    return '<div class="tournament-award-mini">'+names.map(function(name){const a=map[name];return '<div><span>'+escT(name)+'</span><b>'+escT(a?a.student_name||'Recorded':'Pending')+'</b></div>';}).join('')+'</div>';
+    return '<div class="tournament-award-mini">'+names.map(function(name){
+      const a=map[name];
+      const status=a&&a.certificate_status==='published'?'Certificate ready':a&&a.certificate_status==='failed'?'Certificate failed':'Pending';
+      return '<div><span>'+escT(name)+'</span><b>'+escT(a?a.student_name||'Recorded':'Pending')+'</b><small>'+escT(status)+'</small></div>';
+    }).join('')+'</div>';
+  }
+
+  function certificateControlPanel(){
+    const eligible=state.awards.filter(function(a){return !!a.student_id;});
+    const ready=eligible.filter(function(a){return a.certificate_status==='published'&&a.certificate_path;}).length;
+    const failed=eligible.filter(function(a){return a.certificate_status==='failed';}).length;
+    const pending=Math.max(0,eligible.length-ready-failed);
+    const reviewed=state.selected?.settings?.certificate_reviewed===true;
+    const previewAward=eligible.find(function(a){return a.award_type==='1st Place';})||eligible[0];
+    return '<div class="panel tournament-certificate-panel"><div class="row"><div><div class="eyebrow">AUTOMATIC CERTIFICATES</div><h3>Certificate Delivery</h3><p class="subtle">Review the final podium and standings before publishing certificates to student records.</p></div><span class="badge '+(failed?'almost':ready===eligible.length&&eligible.length?'present':'blue')+'">'+ready+'/'+eligible.length+' ready</span></div><div class="tournament-review-gate '+(reviewed?'reviewed':'')+'"><span class="tournament-review-icon">'+(reviewed?'✓':'01')+'</span><div><strong>'+(reviewed?'Final results reviewed':'Final results require review')+'</strong><small>'+(reviewed?'Certificate generation is unlocked.':'Check the podium, standings and awards before publishing certificates.')+'</small></div><button class="secondary small" type="button" onclick="SCMSTournament.reviewFinalResults()">'+(reviewed?'Review Again':'Mark Reviewed')+'</button></div><div class="tournament-certificate-status-grid"><div><strong>'+ready+'</strong><span>Ready</span></div><div><strong>'+pending+'</strong><span>Pending</span></div><div><strong>'+failed+'</strong><span>Failed</span></div></div><div class="tournament-certificate-actions">'+(previewAward?'<button class="secondary" type="button" onclick="SCMSTournament.previewCertificate(\''+escT(previewAward.award_id)+'\')">Preview Certificate</button>':'')+'<button class="primary" type="button" '+(reviewed?'':'disabled')+' onclick="SCMSTournament.generateCertificates()">'+(ready?'Regenerate Certificates':'Generate Certificates')+'</button>'+(failed?'<button class="secondary" type="button" onclick="SCMSTournament.retryCertificates()">Retry Failed</button>':'')+'</div></div>';
+  }
+
+  async function reviewFinalResults(){
+    if(!state.selected||!['completed','archived'].includes(state.selected.status))return;
+    const ok=await confirmT('Confirm the final podium, standings and award selections have been reviewed. Certificate generation will be unlocked.','Review Final Results');
+    if(!ok)return;
+    try{
+      const settings=Object.assign({},state.selected.settings||{}, {certificate_reviewed:true,certificate_reviewed_at:new Date().toISOString()});
+      const result=await supabaseClient.from('tournaments').update({settings:settings}).eq('tournament_id',state.selected.tournament_id);
+      if(result.error)throw result.error;
+      state.selected.settings=settings;
+      renderWorkspace();
+      notifyT('Final results marked as reviewed. Certificate generation is now available.','success','Results Reviewed',{variant:'registration'});
+    }catch(error){notifyT(error.message||String(error),'error','Review Status Not Saved',{variant:'critical'});}
+  }
+
+  async function previewCertificate(awardId){
+    if(!window.SCMSCertificates)return;
+    const award=state.awards.find(function(a){return String(a.award_id)===String(awardId);});
+    if(!award){notifyT('No certificate award is available for preview.','warning','Certificate Preview');return;}
+    try{
+      const data=await SCMSCertificates.preview(state.selected,award);
+      showModal('<div class="tournament-modal-head"><div><div class="eyebrow">CERTIFICATE PREVIEW</div><h2>'+escT(award.certificate_caption||award.title||award.award_type)+'</h2><p>Review the actual template before certificates are published.</p></div><button class="parent-close-button" type="button" onclick="SCMSTournament.closeModal()">×</button></div><div class="certificate-teacher-preview"><img src="'+data.imageData+'" alt="Certificate preview for '+escT(award.student_name||'student')+'"><div class="certificate-teacher-preview-meta"><span>'+escT(award.student_name||'Student')+'</span><small>'+escT(data.certificateNumber)+'</small></div></div><div class="tournament-form-footer"><button type="button" class="secondary" onclick="SCMSTournament.closeModal()">Close Preview</button><button type="button" class="primary" onclick="SCMSTournament.closeModal();SCMSTournament.reviewFinalResults()">Looks Good · Mark Reviewed</button></div>');
+    }catch(error){notifyT(error.message||String(error),'error','Certificate Preview Failed',{variant:'critical'});}
   }
 
   function renderCompletedDashboard(t){
@@ -142,6 +213,7 @@
     return '<div class="tournament-completed-dashboard"><div class="eyebrow">TOURNAMENT COMPLETE</div><h3>'+escT(t.name)+'</h3><p>The competition has ended and the final record is preserved. Review the podium, standings and awards below.</p><div class="tournament-final-podium">'+podium('1st Place',first)+podium('2nd Place',second)+podium('3rd Place',third)+'</div></div>'+
       '<div class="tournament-work-metrics tournament-final-metrics">'+statCard('PLAYERS',String(state.players.length),'Final participants','')+statCard('ROUNDS',String(state.rounds.length),'Completed','')+statCard('MATCHES',String(completedMatches),'Results recorded','')+statCard('LEADER',first?first.display_name:'—','Champion','')+'</div>'+
       '<div class="tournament-completed-grid"><div>'+renderStandings()+'</div><div class="panel"><div class="eyebrow">FINAL AWARDS</div><h3>Placement & Special Awards</h3><p class="subtle">The final ranking is preserved here. Special awards are teacher-selected.</p>'+awardMiniList()+'</div></div>'+
+      certificateControlPanel()+
       specialAwardForm();
   }
 
@@ -159,9 +231,10 @@
     const matches=state.matches.filter(function(m){return Number(m.round_number)===currentRound;});
     const roundRecord=state.rounds.find(function(r){return Number(r.round_number)===currentRound;});
     const roundEnded=roundRecord&&roundRecord.status==='completed';
-    if(!matches.length||roundEnded){
-      const totalRounds=state.rounds.length;
+    if((!matches.length&&roundEnded)||(!matches.length&&!roundRecord)){
+      const totalRounds=Math.max(1,Number(state.selected.rounds_total)||state.rounds.length||1);
       const completedRounds=state.rounds.filter(function(r){return r.status==='completed';}).length;
+      if(!roundRecord&&state.selected.status==='active')return '<div class="tournament-ended-round-panel"><div class="tournament-ended-round-icon">…</div><div class="eyebrow">PREPARING ROUND</div><h3>Round '+escT(currentRound)+' of '+escT(totalRounds)+'</h3><p>The tournament is active. Round data is being prepared.</p></div>';
       return '<div class="tournament-ended-round-panel"><div class="tournament-ended-round-icon">✓</div><div class="eyebrow">ALL ROUNDS ENDED</div><h3>Round '+escT(currentRound)+' is complete</h3><p>All '+escT(completedRounds)+' round'+(completedRounds===1?'':'s')+' currently scheduled for this tournament have been completed. There is no live round right now.</p><div class="tournament-ended-round-stats"><div><b>'+escT(completedRounds)+'</b><span>Rounds completed</span></div><div><b>'+escT(totalRounds)+'</b><span>Rounds scheduled</span></div><div><b>'+escT(state.players.length)+'</b><span>Players</span></div></div><button class="primary tournament-add-round-button" type="button" onclick="SCMSTournament.addRound()">+ Add One More Round</button><small class="tournament-ended-round-note">Adding a round will generate fresh pairings from the current standings and make the new round live immediately.</small></div>';
     }
     const completed=matches.filter(function(m){return m.status==='completed';}).length;
@@ -298,7 +371,14 @@
           '</div>'+
         '</section>'+
         '<section class="tournament-form-section">'+
-          '<div class="tournament-form-section-head"><span>04</span><div><strong>Event note</strong><small>Optional information for your tournament record.</small></div></div>'+
+          '<div class="tournament-form-section-head"><span>04</span><div><strong>Category & certificates</strong><small>Define the competition identity and certificate plan before the event starts.</small></div></div>'+
+          '<div class="tournament-form-grid">'+
+            '<div class="tournament-field"><label for="tCategory">Category</label><select id="tCategory"><option value="Primary">Primary</option><option value="Secondary">Secondary</option><option value="Open">Open</option></select></div>'+
+            '<div class="tournament-field"><label>Certificate plan</label><div class="tournament-check-grid"><label class="tournament-check-option"><input id="certPosition" type="checkbox" checked><span><b>Position certificates</b><small>1st, 2nd and 3rd</small></span></label><label class="tournament-check-option"><input id="certSpecial" type="checkbox" checked><span><b>Special awards</b><small>MIP, SP and FS</small></span></label></div></div>'+
+          '</div>'+
+        '</section>'+
+        '<section class="tournament-form-section">'+
+          '<div class="tournament-form-section-head"><span>05</span><div><strong>Event note</strong><small>Optional information for your tournament record.</small></div></div>'+
           '<div class="tournament-field"><label for="tDescription">Description</label><textarea id="tDescription" placeholder="Friendly monthly Scrabble tournament"></textarea></div>'+
         '</section>'+
         '<div class="tournament-form-footer tournament-create-footer"><div class="tournament-footer-note"><span>●</span><div><strong>Draft first, start when ready</strong><small>You can manage participants and seeding before the tournament begins.</small></div></div><div class="tournament-footer-actions"><button type="button" class="secondary" onclick="SCMSTournament.closeModal()">Cancel</button><button class="primary" type="submit">Create Tournament <span>→</span></button></div></div>'+
@@ -332,7 +412,7 @@
     const format=document.getElementById('tFormat').value,rounds=Math.max(1,Number(document.getElementById('tRounds').value)||1),selectedStudents=state.students.filter(function(s){return ids.includes(String(s.student_id));});
     try{
       const user=await supabaseClient.auth.getUser();
-      const payload={name:name,description:document.getElementById('tDescription').value.trim(),event_date:document.getElementById('tDate').value,start_time:document.getElementById('tTime').value||null,game:'Scrabble',format:format,status:'draft',rounds_total:rounds,current_round:0,settings:{scoring:'Scrabble points',tie_breaks:['Wins','Points','Score Differential'],participants:'manual'},created_by:user.data.user?.id||null};
+      const payload={name:name,description:document.getElementById('tDescription').value.trim(),event_date:document.getElementById('tDate').value,start_time:document.getElementById('tTime').value||null,game:'Scrabble',format:format,status:'draft',rounds_total:rounds,current_round:0,settings:{scoring:'Scrabble points',tie_breaks:['Wins','Points','Score Differential'],participants:'manual',category:document.getElementById('tCategory')?.value||'Open',certificates:{position:!!document.getElementById('certPosition')?.checked,special:!!document.getElementById('certSpecial')?.checked,participation:false},certificate_reviewed:false},created_by:user.data.user?.id||null};
       const result=await supabaseClient.from('tournaments').insert(payload).select().single();if(result.error)throw result.error;
       const rows=selectedStudents.map(function(s,i){return {tournament_id:result.data.tournament_id,student_id:String(s.student_id),display_name:s.student_name,seed:i+1,status:'active'};});
       const players=await supabaseClient.from('tournament_players').insert(rows);
@@ -449,12 +529,21 @@ async function saveParticipants(){
     const t=state.selected;if(!t||!['draft','ready'].includes(t.status))return;
     if(state.players.length<2){notifyT('Add at least two participants before starting.','warning','Tournament Not Ready');return;}
     if(state.tournaments.some(function(x){return x.status==='active'&&String(x.tournament_id)!==String(t.tournament_id);})){notifyT('Another tournament is already active. End or archive it before starting a new one.','warning','Active Tournament Exists');return;}
-    if(!(await confirmT('Start the tournament now? Pairings will be generated from the selected format and participants.','Start Tournament')))return;
+    const configuredRounds=Math.max(1,Number(t.rounds_total)||1);
+    if(!(await confirmT('Start the tournament now? Round 1 of '+configuredRounds+' will be generated from the selected format and participants.','Start Tournament')))return;
     try{
-      const upd=await supabaseClient.from('tournaments').update({status:'active',started_at:new Date().toISOString(),current_round:1}).eq('tournament_id',t.tournament_id);if(upd.error)throw upd.error;
-      const pairs=generatePairs(1);if(t.format==='leaderboard'){await supabaseClient.from('tournament_rounds').insert({tournament_id:t.tournament_id,round_number:1,status:'active'});}else await createRoundAndMatches(1,pairs);
-      await loadTournaments();await open(t.tournament_id);notifyT('Tournament is now active and Round 1 is ready.','success','Tournament Started',{variant:'registration'});
-    }catch(error){notifyT(error.message||String(error),'error','Tournament Could Not Start',{variant:'critical'});}
+      const now=new Date().toISOString();
+      const upd=await supabaseClient.from('tournaments').update({status:'active',started_at:now,current_round:1,rounds_total:configuredRounds}).eq('tournament_id',t.tournament_id);
+      if(upd.error)throw upd.error;
+      t.status='active';t.started_at=now;t.current_round=1;t.rounds_total=configuredRounds;
+      await loadTournamentData(t.tournament_id);
+      if(!state.rounds.some(function(r){return Number(r.round_number)===1;}))throw new Error('Round 1 could not be created. The tournament was not started.');
+      await loadTournaments();await open(t.tournament_id);
+      notifyT('Tournament is now active. Round 1 of '+configuredRounds+' is ready.','success','Tournament Started',{variant:'registration'});
+    }catch(error){
+      await supabaseClient.from('tournaments').update({status:'draft',started_at:null,current_round:0}).eq('tournament_id',t.tournament_id);
+      notifyT(error.message||String(error),'error','Tournament Could Not Start',{variant:'critical'});
+    }
   }
 
   async function score(matchId){
@@ -597,11 +686,13 @@ async function saveParticipants(){
       }
       const upd=await supabaseClient.from('tournaments').update({status:'completed',completed_at:new Date().toISOString()}).eq('tournament_id',t.tournament_id);if(upd.error)throw upd.error;
       await createPlacementAwards(standings);
-      await loadTournaments();await open(t.tournament_id);notifyT('Final ranking recorded. Choose the three special awards when you are ready.','success','Tournament Completed',{variant:'registration'});
+      await loadTournaments();await open(t.tournament_id);notifyT('Final ranking recorded. Review the podium and standings, then generate certificates when you are satisfied with the final results.','success','Tournament Completed',{variant:'registration'});
     }catch(error){notifyT(error.message||String(error),'error','Tournament Could Not End',{variant:'critical'});}
   }
 
   async function createPlacementAwards(standings){
+    const enabled=state.selected?.settings?.certificates?.position!==false;
+    if(!enabled){await loadTournamentData(state.selected.tournament_id);return;}
     const top=standings.slice(0,3),names=['1st Place','2nd Place','3rd Place'];
     const rows=top.map(function(p,i){return {tournament_id:state.selected.tournament_id,student_id:p.student_id,student_name:p.display_name,award_type:names[i],rank:i+1,title:names[i],certificate_path:null};});
     if(rows.length){const result=await supabaseClient.from('tournament_awards').upsert(rows,{onConflict:'tournament_id,award_type'});if(result.error)throw result.error;}
@@ -622,6 +713,7 @@ async function saveParticipants(){
   }
 
   function specialAwardForm(){
+    if(state.selected?.settings?.certificates?.special===false)return '<div class="panel tournament-special-awards tournament-special-disabled"><div class="eyebrow">CERTIFICATE PLAN</div><h3>Special Awards Disabled</h3><p class="subtle">Special award certificates were disabled when this tournament was created.</p></div>';
     const map={};state.awards.forEach(function(a){map[a.award_type]=a;});
     const options=state.standings.map(function(p){return '<option value="'+escT(p.student_id)+'">'+escT(p.display_name)+' ('+escT(p.student_id)+')</option>';}).join('');
     const awards=['Most Improved Player Award','Strategic Player Award','Fighting Spirit Award'];
@@ -629,6 +721,8 @@ async function saveParticipants(){
   }
 
   async function saveSpecialAwards(){
+    if(state.selected?.settings?.certificates?.special===false){notifyT('Special awards are disabled for this tournament.','info','Certificate Plan');return;}
+    if(!state.selected?.settings?.certificate_reviewed){notifyT('Review the final standings before publishing special award certificates.','warning','Review Required');return;}
     try{
       const controls=[...document.querySelectorAll('[data-special-award]')];
       for(const control of controls){
@@ -637,8 +731,28 @@ async function saveParticipants(){
         const student=state.standings.find(function(p){return String(p.student_id)===String(studentId);});
         const result=await supabaseClient.from('tournament_awards').upsert({tournament_id:state.selected.tournament_id,student_id:studentId,student_name:student?student.display_name:studentId,award_type:awardType,rank:null,title:awardType,certificate_path:null},{onConflict:'tournament_id,award_type'});if(result.error)throw result.error;
       }
-      await loadTournamentData(state.selected.tournament_id);await syncAwardsToAchievements();renderWorkspace();notifyT('Special awards saved and recorded in the student achievement system. Certificate files will use your supplied templates.','success','Awards Saved',{variant:'registration'});
+      await loadTournamentData(state.selected.tournament_id);await syncAwardsToAchievements();
+      renderWorkspace();notifyT('Special awards saved. Review them once more, then generate certificates from the Certificate Delivery panel.','success','Awards Saved',{variant:'registration'});
     }catch(error){notifyT(error.message||String(error),'error','Awards Not Saved',{variant:'critical'});}
+  }
+
+  async function generateCertificates(){
+    if(!state.selected||!['completed','archived'].includes(state.selected.status)||!window.SCMSCertificates)return;
+    if(!state.selected.settings?.certificate_reviewed){notifyT('Review the final results before generating certificates.','warning','Review Required');return;}
+    await loadTournamentData(state.selected.tournament_id);
+    const result=await SCMSCertificates.generateForAwards(state.selected,state.awards.filter(function(a){return !!a.student_id;}));
+    await loadTournamentData(state.selected.tournament_id);
+    renderWorkspace();
+    return result;
+  }
+
+  async function retryCertificates(){
+    if(!state.selected||!window.SCMSCertificates)return;
+    try{
+      await SCMSCertificates.retryFailed(state.selected.tournament_id);
+      await loadTournamentData(state.selected.tournament_id);
+      renderWorkspace();
+    }catch(error){notifyT(error.message||String(error),'error','Certificate Retry Failed',{variant:'critical'});}
   }
 
   async function archive(){
@@ -663,7 +777,7 @@ async function saveParticipants(){
   function back(){state.selected=null;state.players=[];state.rounds=[];state.matches=[];state.awards=[];renderHome();}
   async function refresh(){await loadTournaments();if(state.selected)await open(state.selected.tournament_id);}
 
-  window.SCMSTournament={init:async function(){await loadTournaments();},refresh:refresh,create:create,open:open,back:back,tab:tab,viewRound:viewRound,clearRoundView:clearRoundView,closeModal:closeModal,formatChanged:formatChanged,filterParticipants:filterParticipants,selectAllParticipants:selectAllParticipants,clearParticipants:clearParticipants,saveParticipants:saveParticipants,editParticipants:editParticipants,seedParticipants:seedParticipants,moveSeed:moveSeed,saveSeeding:saveSeeding,removePlayer:removePlayer,start:start,score:score,finish:finish,finishRound:finishRound,addRound:addRound,immediateEnd:immediateEnd,deleteTournament:deleteTournament,saveSpecialAwards:saveSpecialAwards,archive:archive,reopen:reopen,editTournament:editTournament};
+  window.SCMSTournament={init:async function(){await loadTournaments();},refresh:refresh,create:create,open:open,back:back,tab:tab,viewRound:viewRound,clearRoundView:clearRoundView,closeModal:closeModal,formatChanged:formatChanged,filterParticipants:filterParticipants,selectAllParticipants:selectAllParticipants,clearParticipants:clearParticipants,saveParticipants:saveParticipants,editParticipants:editParticipants,seedParticipants:seedParticipants,moveSeed:moveSeed,saveSeeding:saveSeeding,removePlayer:removePlayer,start:start,score:score,finish:finish,finishRound:finishRound,addRound:addRound,immediateEnd:immediateEnd,deleteTournament:deleteTournament,saveSpecialAwards:saveSpecialAwards,generateCertificates:generateCertificates,retryCertificates:retryCertificates,reviewFinalResults:reviewFinalResults,previewCertificate:previewCertificate,archive:archive,reopen:reopen,editTournament:editTournament};
 
   const originalPage=window.page;
   window.page=function(name){originalPage(name);if(name==='tournament'){const title=document.getElementById('title');if(title)title.textContent='Tournament';SCMSTournament.init();}};
