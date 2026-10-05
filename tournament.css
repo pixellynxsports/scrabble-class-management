@@ -1213,3 +1213,26 @@ button.danger:hover{
 .certificate-teacher-preview-meta{width:min(100%,860px);display:flex;justify-content:space-between;gap:12px;align-items:center;padding:9px 11px;border:1px solid #e4e7ec;border-radius:10px;background:#fafbfc}
 .certificate-teacher-preview-meta span{font-weight:800;font-size:11px;color:#172033}.certificate-teacher-preview-meta small{font-size:9px;color:#667085}
 @media(max-width:650px){.tournament-check-grid{grid-template-columns:1fr}.tournament-review-gate{align-items:flex-start;flex-wrap:wrap}.tournament-review-gate button{margin-left:41px}}
+
+/* Certificate preview modal */
+.certificate-preview-modal{display:grid;gap:0;margin:-4px}
+.certificate-preview-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;padding:2px 2px 16px;border-bottom:1px solid #e7ebf1}
+.certificate-preview-head h2{margin:5px 0 4px;font-size:25px;letter-spacing:-.025em;color:#172033}
+.certificate-preview-head p{margin:0;color:#667085;font-size:11px;line-height:1.5}
+.certificate-preview-close{width:36px;height:36px;border:1px solid #dfe4eb;border-radius:10px;background:#fff;color:#667085;font-size:24px;line-height:1;cursor:pointer}
+.certificate-preview-close:hover{background:#f7f9fc;color:#172033}
+.certificate-preview-body{padding:18px 0 16px}
+.certificate-preview-stage{display:flex;align-items:center;justify-content:center;padding:12px;border:1px solid #e1e6ed;border-radius:14px;background:linear-gradient(145deg,#f7f9fc,#eef2f7);box-shadow:inset 0 1px 0 rgba(255,255,255,.8)}
+.certificate-preview-stage img{display:block;width:100%;max-width:900px;height:auto;border:1px solid #d5dbe5;border-radius:9px;box-shadow:0 18px 38px rgba(15,23,42,.16)}
+.certificate-preview-body .certificate-teacher-preview-meta{width:100%;margin-top:10px;padding:11px 13px;border-radius:11px;background:#fff}
+.certificate-teacher-preview-meta>div{display:grid;gap:3px}
+.certificate-teacher-preview-meta span{font-size:11px;font-weight:850;color:#172033}
+.certificate-teacher-preview-meta small{font-size:9px;color:#667085}
+.certificate-teacher-preview-meta strong{font-size:10px;color:#667085;font-weight:750;letter-spacing:.03em}
+.certificate-preview-footer{display:flex;justify-content:flex-end;gap:9px;padding-top:14px;border-top:1px solid #e7ebf1}
+@media(max-width:650px){
+  .certificate-preview-head h2{font-size:20px}
+  .certificate-preview-stage{padding:6px}
+  .certificate-preview-footer{display:grid;grid-template-columns:1fr}
+  .certificate-preview-footer button{width:100%}
+}
