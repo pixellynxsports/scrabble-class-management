@@ -134,7 +134,7 @@
     const certificateNo=String(award.certificate_number||certificateNumber(tournament,award));
 
     drawCentered(ctx,studentName,746,482,800,38,navy,'Georgia, Times New Roman, serif','700');
-    drawCentered(ctx,title,746,600,650,38,'#f8d27a','Georgia, Times New Roman, serif','700');
+    drawCentered(ctx,title,746,600,700,50,'#f8d27a','Georgia, Times New Roman, serif','700');
     drawCentered(ctx,eventName,770,690,520,24,navy,'Georgia, Times New Roman, serif','700');
     drawCentered(ctx,eventDate?new Date(eventDate+'T12:00:00').toLocaleDateString(undefined,{day:'2-digit',month:'long',year:'numeric'}):'',770,731,520,22,navy,'Georgia, Times New Roman, serif','600');
 
