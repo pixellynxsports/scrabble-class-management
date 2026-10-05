@@ -94,6 +94,32 @@
     try{await loadTournamentData(id);renderWorkspace();}catch(error){notifyT(error.message||String(error),'error','Tournament Could Not Open',{variant:'critical'});}
   }
 
+  async function ensureActiveRound(){
+    const t=state.selected;
+    if(!t||t.status!=='active')return;
+    const roundNumber=Math.max(1,Number(t.current_round)||1);
+    const configuredRounds=Math.max(1,Number(t.rounds_total)||1);
+    if(Number(t.rounds_total)!==configuredRounds){
+      const fixed=await supabaseClient.from('tournaments').update({rounds_total:configuredRounds,current_round:roundNumber}).eq('tournament_id',t.tournament_id);
+      if(fixed.error)throw fixed.error;
+      t.rounds_total=configuredRounds;t.current_round=roundNumber;
+    }
+    const existing=state.rounds.find(function(r){return Number(r.round_number)===roundNumber;});
+    if(existing)return;
+    const pairs=generatePairs(roundNumber);
+    if(t.format==='leaderboard'){
+      const result=await supabaseClient.from('tournament_rounds').insert({tournament_id:t.tournament_id,round_number:roundNumber,status:'active'}).select().single();
+      if(result.error)throw result.error;
+    }else{
+      if(!pairs.length)throw new Error('Round '+roundNumber+' has no valid pairings. Check the selected players and tournament format.');
+      await createRoundAndMatches(roundNumber,pairs);
+    }
+    const refreshed=await supabaseClient.from('tournament_rounds').select('*').eq('tournament_id',t.tournament_id).eq('round_number',roundNumber).maybeSingle();
+    if(refreshed.error)throw refreshed.error;
+    if(!refreshed.data)throw new Error('Round '+roundNumber+' was not created successfully.');
+    state.rounds.push(refreshed.data);
+  }
+
   async function loadTournamentData(id){
     const results=await Promise.all([
       supabaseClient.from('tournament_players').select('*').eq('tournament_id',id).order('seed'),
@@ -103,6 +129,13 @@
     ]);
     for(const r of results){if(r.error)throw r.error;}
     state.players=results[0].data||[];state.rounds=results[1].data||[];state.matches=results[2].data||[];state.awards=results[3].data||[];state.standings=calculateStandings();
+    await ensureActiveRound();
+    if(state.selected?.status==='active'){
+      const refreshed=await supabaseClient.from('tournament_matches').select('*').eq('tournament_id',id).order('round_number').order('match_number');
+      if(refreshed.error)throw refreshed.error;
+      state.matches=refreshed.data||[];
+      state.standings=calculateStandings();
+    }
   }
 
   function workspaceTabs(){return ['overview','pairings','standings','players','rounds','settings'].map(function(tab){return '<button type="button" class="tournament-tab '+(state.view===tab?'active':'')+'" onclick="SCMSTournament.tab(\''+tab+'\')">'+tab[0].toUpperCase()+tab.slice(1)+'</button>';}).join('');}
@@ -198,9 +231,10 @@
     const matches=state.matches.filter(function(m){return Number(m.round_number)===currentRound;});
     const roundRecord=state.rounds.find(function(r){return Number(r.round_number)===currentRound;});
     const roundEnded=roundRecord&&roundRecord.status==='completed';
-    if(!matches.length||roundEnded){
-      const totalRounds=state.rounds.length;
+    if((!matches.length&&roundEnded)||(!matches.length&&!roundRecord)){
+      const totalRounds=Math.max(1,Number(state.selected.rounds_total)||state.rounds.length||1);
       const completedRounds=state.rounds.filter(function(r){return r.status==='completed';}).length;
+      if(!roundRecord&&state.selected.status==='active')return '<div class="tournament-ended-round-panel"><div class="tournament-ended-round-icon">…</div><div class="eyebrow">PREPARING ROUND</div><h3>Round '+escT(currentRound)+' of '+escT(totalRounds)+'</h3><p>The tournament is active. Round data is being prepared.</p></div>';
       return '<div class="tournament-ended-round-panel"><div class="tournament-ended-round-icon">✓</div><div class="eyebrow">ALL ROUNDS ENDED</div><h3>Round '+escT(currentRound)+' is complete</h3><p>All '+escT(completedRounds)+' round'+(completedRounds===1?'':'s')+' currently scheduled for this tournament have been completed. There is no live round right now.</p><div class="tournament-ended-round-stats"><div><b>'+escT(completedRounds)+'</b><span>Rounds completed</span></div><div><b>'+escT(totalRounds)+'</b><span>Rounds scheduled</span></div><div><b>'+escT(state.players.length)+'</b><span>Players</span></div></div><button class="primary tournament-add-round-button" type="button" onclick="SCMSTournament.addRound()">+ Add One More Round</button><small class="tournament-ended-round-note">Adding a round will generate fresh pairings from the current standings and make the new round live immediately.</small></div>';
     }
     const completed=matches.filter(function(m){return m.status==='completed';}).length;
@@ -495,12 +529,21 @@ async function saveParticipants(){
     const t=state.selected;if(!t||!['draft','ready'].includes(t.status))return;
     if(state.players.length<2){notifyT('Add at least two participants before starting.','warning','Tournament Not Ready');return;}
     if(state.tournaments.some(function(x){return x.status==='active'&&String(x.tournament_id)!==String(t.tournament_id);})){notifyT('Another tournament is already active. End or archive it before starting a new one.','warning','Active Tournament Exists');return;}
-    if(!(await confirmT('Start the tournament now? Pairings will be generated from the selected format and participants.','Start Tournament')))return;
+    const configuredRounds=Math.max(1,Number(t.rounds_total)||1);
+    if(!(await confirmT('Start the tournament now? Round 1 of '+configuredRounds+' will be generated from the selected format and participants.','Start Tournament')))return;
     try{
-      const upd=await supabaseClient.from('tournaments').update({status:'active',started_at:new Date().toISOString(),current_round:1}).eq('tournament_id',t.tournament_id);if(upd.error)throw upd.error;
-      const pairs=generatePairs(1);if(t.format==='leaderboard'){await supabaseClient.from('tournament_rounds').insert({tournament_id:t.tournament_id,round_number:1,status:'active'});}else await createRoundAndMatches(1,pairs);
-      await loadTournaments();await open(t.tournament_id);notifyT('Tournament is now active and Round 1 is ready.','success','Tournament Started',{variant:'registration'});
-    }catch(error){notifyT(error.message||String(error),'error','Tournament Could Not Start',{variant:'critical'});}
+      const now=new Date().toISOString();
+      const upd=await supabaseClient.from('tournaments').update({status:'active',started_at:now,current_round:1,rounds_total:configuredRounds}).eq('tournament_id',t.tournament_id);
+      if(upd.error)throw upd.error;
+      t.status='active';t.started_at=now;t.current_round=1;t.rounds_total=configuredRounds;
+      await loadTournamentData(t.tournament_id);
+      if(!state.rounds.some(function(r){return Number(r.round_number)===1;}))throw new Error('Round 1 could not be created. The tournament was not started.');
+      await loadTournaments();await open(t.tournament_id);
+      notifyT('Tournament is now active. Round 1 of '+configuredRounds+' is ready.','success','Tournament Started',{variant:'registration'});
+    }catch(error){
+      await supabaseClient.from('tournaments').update({status:'draft',started_at:null,current_round:0}).eq('tournament_id',t.tournament_id);
+      notifyT(error.message||String(error),'error','Tournament Could Not Start',{variant:'critical'});
+    }
   }
 
   async function score(matchId){
