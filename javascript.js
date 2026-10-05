@@ -1227,9 +1227,45 @@ function getReportPeriod(){
   if(start>end)[start,end]=[end,start];
   return {mode,month,start,end,label:mode==='custom'?`${start} to ${end}`:mode==='year'?String(y):mode==='quarter'?`Q${Math.floor((m-1)/3)+1} ${y}`:mode==='lastMonth'?new Date(y,m-2,1).toLocaleDateString('en-MY',{month:'long',year:'numeric'}):new Date(y,m-1,1).toLocaleDateString('en-MY',{month:'long',year:'numeric'})};
 }
+function syncReportPicker(){
+  const month=document.getElementById('reportMonth')?.value||'';
+  const match=/^(\\d{4})-(\\d{2})$/.exec(month);
+  if(!match)return;
+  const year=Number(match[1]), monthNo=Number(match[2]);
+  const yearEl=document.getElementById('reportPickerYear');
+  if(yearEl)yearEl.textContent=String(year);
+  document.querySelectorAll('#reportPickerMonths button[data-month]').forEach(btn=>{
+    btn.classList.toggle('selected',Number(btn.dataset.month)===monthNo);
+  });
+}
+function toggleReportPeriodPicker(){
+  const picker=document.getElementById('reportPeriodPicker');
+  const trigger=document.querySelector('.report-period-trigger');
+  if(!picker)return;
+  const open=picker.classList.toggle('hidden')===false;
+  if(trigger)trigger.setAttribute('aria-expanded',open?'true':'false');
+  syncReportPicker();
+}
+function shiftReportPickerYear(delta){
+  const current=document.getElementById('reportMonth')?.value||'';
+  const match=/^(\\d{4})-(\\d{2})$/.exec(current);
+  const year=match?Number(match[1]):new Date().getFullYear();
+  const monthNo=match?Number(match[2]):new Date().getMonth()+1;
+  document.getElementById('reportMonth').value=String(year+delta)+'-'+String(monthNo).padStart(2,'0');
+  syncReportPicker();
+}
+function selectReportPickerMonth(monthNo){
+  const year=Number(document.getElementById('reportPickerYear')?.textContent)||new Date().getFullYear();
+  document.getElementById('reportRange').value='month';
+  document.getElementById('reportMonth').value=String(year)+'-'+String(monthNo).padStart(2,'0');
+  const picker=document.getElementById('reportPeriodPicker');
+  const trigger=document.querySelector('.report-period-trigger');
+  if(picker)picker.classList.add('hidden');
+  if(trigger)trigger.setAttribute('aria-expanded','false');
+  renderReports();
+}
 function setReportRange(){
-  const mode=document.getElementById('reportRange')?.value||'month';
-  document.getElementById('reportCustomRange')?.classList.toggle('hidden',mode!=='custom');
+  document.getElementById('reportRange').value='month';
   renderReports();
 }
 function renderReports(){
@@ -1238,6 +1274,7 @@ function renderReports(){
   document.getElementById('reportMonth').value=month;
   const periodSummary=document.getElementById('reportPeriodSummary');
   if(periodSummary)periodSummary.textContent=period.label;
+  syncReportPicker();
   const inRange=value=>{const v=String(value||'').slice(0,10);return v>=start&&v<=end;};
   const active=activeStudents();
   const attendance=DATA.attendance.filter(a=>inRange(a.Date));
