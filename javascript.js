@@ -1387,7 +1387,42 @@ function renderReports(){
     const md=p+ab;
     return {name:s['Student Name'],sid,p,abs:ab,marked:md,rate:md?Math.round(p/md*100):0};
   }).sort((a,b)=>b.rate-a.rate||b.p-a.p||String(a.name).localeCompare(String(b.name)));
-  document.getElementById('reportStudentGrowth').innerHTML=growthRows.length?growthRows.map(x=>`<button class="student-growth-card" onclick="openStudentFromReport('${esc(x.sid)}')"><div class="student-growth-head"><span>${esc(x.name)}</span><strong>${x.rate}%</strong></div><div class="report-bar-track"><div style="width:${x.rate}%"></div></div><small>${x.p} present · ${x.abs} absent · ${x.marked} marked</small></button>`).join(''):'<div class="empty">No active students.</div>';
+  window.reportAttendanceOverviewRows=growthRows;
+  document.getElementById('reportStudentGrowth').innerHTML=growthRows.length?growthRows.slice(0,5).map(x=>`<button class="student-growth-card" onclick="openStudentFromReport('${esc(x.sid)}')"><div class="student-growth-head"><span>${esc(x.name)}</span><strong>${x.rate}%</strong></div><div class="report-bar-track"><div style="width:${x.rate}%"></div></div><small>${x.p} present · ${x.abs} absent · ${x.marked} marked</small></button>`).join(''):'<div class="empty">No active students.</div>';
+  updateReportAttendancePanel(growthRows);
+}
+function updateReportAttendancePanel(rows){
+  const count=document.getElementById('reportAttendanceCount');
+  const period=document.getElementById('reportAttendancePanelPeriod');
+  if(count)count.textContent=rows.length+' student'+(rows.length===1?'':'s');
+  if(period)period.textContent=document.getElementById('reportPeriodSummary')?.textContent||'Selected reporting period';
+  renderReportAttendanceList(rows);
+}
+function renderReportAttendanceList(rows){
+  const target=document.getElementById('reportAttendanceList');
+  if(!target)return;
+  const query=String(document.getElementById('reportAttendanceSearch')?.value||'').trim().toLowerCase();
+  const filtered=rows.filter(x=>!query||String(x.name).toLowerCase().includes(query)||String(x.sid).toLowerCase().includes(query));
+  target.innerHTML=filtered.length?filtered.map(x=>`<button class="report-attendance-item" type="button" onclick="openStudentFromReport('${esc(x.sid)}')"><div class="report-attendance-item-head"><span>${esc(x.name)}</span><strong>${x.rate}%</strong></div><div class="report-bar-track"><div style="width:${x.rate}%"></div></div><small>${x.p} present · ${x.abs} absent · ${x.marked} marked</small></button>`).join(''):'<div class="empty">No students match your search.</div>';
+}
+function filterReportAttendancePanel(){
+  renderReportAttendanceList(window.reportAttendanceOverviewRows||[]);
+}
+function openReportAttendancePanel(){
+  const panel=document.getElementById('reportAttendancePanel');
+  if(!panel)return;
+  panel.classList.remove('hidden');
+  panel.setAttribute('aria-hidden','false');
+  document.body.classList.add('report-panel-open');
+  updateReportAttendancePanel(window.reportAttendanceOverviewRows||[]);
+  setTimeout(()=>document.getElementById('reportAttendanceSearch')?.focus(),40);
+}
+function closeReportAttendancePanel(){
+  const panel=document.getElementById('reportAttendancePanel');
+  if(!panel)return;
+  panel.classList.add('hidden');
+  panel.setAttribute('aria-hidden','true');
+  document.body.classList.remove('report-panel-open');
 }
 async function refreshTournamentReportCount(start,end){
   const valueEl=document.getElementById('rTournamentResults');
