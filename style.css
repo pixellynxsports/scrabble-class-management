@@ -2535,3 +2535,30 @@ button,a,input,select,textarea{
   .report-kpi{min-height:104px}
   .report-kpi strong{font-size:25px}
 }
+
+/* Reports Attendance Overview Panel */
+.report-view-more{white-space:nowrap;min-height:36px;font-weight:700}
+.report-view-more span{margin-left:4px}
+.report-overlay{position:fixed;inset:0;z-index:1000}
+.report-overlay.hidden{display:none!important}
+.report-overlay-backdrop{position:absolute;inset:0;background:rgba(15,23,42,.28);backdrop-filter:blur(2px)}
+.report-side-panel{position:absolute;top:0;right:0;height:100%;width:min(520px,92vw);background:var(--ui-surface);border-left:1px solid var(--ui-border);box-shadow:-16px 0 40px rgba(15,23,42,.14);padding:22px;overflow:auto}
+.report-side-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding-bottom:16px;border-bottom:1px solid var(--ui-border)}
+.report-side-header h3{margin:4px 0 3px}
+.report-panel-close{width:34px;height:34px;border:1px solid var(--ui-border);border-radius:9px;background:var(--ui-surface);color:var(--ui-muted);font-size:22px;line-height:1;cursor:pointer}
+.report-panel-close:hover{background:var(--ui-surface-soft);color:var(--ui-text)}
+.report-side-tools{display:flex;align-items:center;gap:9px;margin:16px 0}
+.report-side-tools .search{flex:1;min-width:0}
+.report-attendance-list{display:grid;gap:8px}
+.report-attendance-item{display:block;width:100%;padding:12px;border:1px solid var(--ui-border);border-radius:10px;background:var(--ui-surface);text-align:left;cursor:pointer}
+.report-attendance-item:hover{border-color:var(--ui-border-strong);background:var(--ui-surface-soft)}
+.report-attendance-item-head{display:flex;justify-content:space-between;gap:12px;align-items:center;font-weight:700;font-size:12px;color:var(--ui-text)}
+.report-attendance-item-head strong{font-size:13px}
+.report-attendance-item .report-bar-track{margin-top:7px}
+.report-attendance-item small{display:block;margin-top:6px;color:var(--ui-muted);font-size:10px}
+body.report-panel-open{overflow:hidden}
+@media(max-width:650px){
+ .report-view-more{min-height:34px;padding:7px 10px}
+ .report-side-panel{width:100%;padding:18px 14px}
+ .report-side-tools{align-items:stretch;flex-direction:column}
+}
