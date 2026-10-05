@@ -3,7 +3,7 @@
 <head>
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="stylesheet" href="style.css?v=20261005.20">
+<link rel="stylesheet" href="style.css?v=20261005.22">
 <link rel="stylesheet" href="tournament.css?v=20261005.10">
 </head>
 <body>
@@ -119,12 +119,37 @@
 <section id="studentProfile" class="page"><div class="toolbar profile-toolbar"><button class="secondary" id="profileBack" onclick="page('students')">← Back to Students</button></div><div id="profileContent"></div></section>
 <section id="payments" class="page"><div class="grid three"><div class="metric"><h3>PAYMENT DUE</h3><strong id="payDueCount">0</strong><small>Ready for RM50 payment</small></div><div class="metric"><h3>ALMOST DUE</h3><strong id="payAlmostCount">0</strong><small>One attended class left</small></div><div class="metric"><h3>PAYMENTS RECORDED</h3><strong id="payHistoryCount">0</strong><small>Payment history is retained</small></div></div><div class="panel" style="margin-top:15px"><div class="row"><h3>Active Student Payment Cycles</h3><span class="badge blue" id="paymentStudentCount">0</span></div><div class="scroll"><table><thead><tr><th>Student</th><th>ID</th><th>Current Cycle</th><th>Progress</th><th>Status</th><th>Amount</th><th>Last Payment</th><th>Action</th></tr></thead><tbody id="paymentStudents"></tbody></table></div></div><div class="panel" style="margin-top:15px"><div class="row"><h3>Payment Due</h3><span class="badge absent" id="dueBadge">0</span></div><div id="paymentsDue"></div></div><div class="panel" style="margin-top:15px"><div class="row"><h3>Almost Due</h3><span class="badge almost">3 / 4</span></div><div id="paymentsAlmost"></div></div><div class="panel" style="margin-top:15px"><h3>Payment History</h3><div class="scroll"><table><thead><tr><th>Student</th><th>Cycle</th><th>Amount</th><th>Paid</th><th>Status</th><th>Classes Covered</th></tr></thead><tbody id="paymentsHistory"></tbody></table></div></div></section>
 <section id="orders" class="page"><div class="tabs"><button class="tab active" id="tabSets" onclick="setOrderTab('Scrabble Set')">Scrabble Sets</button><button class="tab" id="tabShirts" onclick="setOrderTab('T Shirt')">T Shirts</button></div><div class="toolbar"><input id="orderSearch" class="search grow" placeholder="Search customer, student or phone" oninput="renderOrders()"><button class="primary" onclick="showOrderForm()">+ Add Sale / Order</button></div><div id="orderSummaryCards" class="order-summary-cards"></div><div class="order-bulkbar"><div class="order-bulk-left"><span id="orderSelectedCount"></span></div><button id="orderBulkAction" class="secondary" onclick="bulkArchiveRestoreOrders()" disabled>Archive Selected</button></div><div class="panel"><div class="row"><h3 id="orderTitle">Scrabble Sets</h3><span class="badge blue" id="orderCount">0</span></div><div class="scroll"><table><thead><tr><th><input id="orderSelectAll" type="checkbox" onchange="toggleAllOrders(this.checked)" aria-label="Select all orders"></th><th>Order ID</th><th>Customer</th><th>Student</th><th>Size</th><th>Qty</th><th>Total</th><th>Order</th><th>Payment</th><th>Collection</th><th>Date</th><th>Action</th></tr></thead><tbody id="ordersBody"></tbody></table></div></div></section>
-<section id="reports" class="page"><div class="page-intro"><div><div class="eyebrow">PERFORMANCE OVERVIEW</div><h2>Reports</h2><p>Attendance, payments, orders and tournament outcomes for the selected reporting period.</p></div><div class="report-controls report-controls-phase3">
-<div class="report-period-label"><span>REPORT PERIOD</span><small id="reportPeriodSummary">Selected month</small></div>
-<select id="reportRange" aria-label="Report period" onchange="setReportRange()"><option value="month">Selected Month</option><option value="lastMonth">Last Month</option><option value="quarter">Quarter</option><option value="year">Year</option><option value="custom">Custom Range</option></select>
-<input id="reportMonth" type="month" aria-label="Report month" onchange="renderReports()">
-<div id="reportCustomRange" class="report-custom-range hidden"><input id="reportStartDate" type="date" aria-label="Report start date" onchange="renderReports()"><span>to</span><input id="reportEndDate" type="date" aria-label="Report end date" onchange="renderReports()"></div>
-<button class="secondary report-refresh" onclick="renderReports()">Refresh</button></div></div><div class="grid report-metrics">
+<section id="reports" class="page"><div class="page-intro"><div><div class="eyebrow">PERFORMANCE OVERVIEW</div><h2>Reports</h2><p>Attendance, payments, orders and tournament outcomes for the selected reporting period.</p></div><div class="report-period-wrap">
+<button class="report-period-trigger" type="button" onclick="toggleReportPeriodPicker()" aria-expanded="false" aria-controls="reportPeriodPicker">
+<span class="report-period-trigger-copy"><span class="report-period-eyebrow">REPORT PERIOD</span><strong id="reportPeriodSummary">October 2026</strong></span><span class="report-period-chevron">⌄</span>
+</button>
+<div id="reportPeriodPicker" class="report-period-picker hidden" role="dialog" aria-label="Select report period">
+<div class="report-picker-year-row">
+<button type="button" class="report-picker-arrow" onclick="shiftReportPickerYear(-1)" aria-label="Previous year">‹</button>
+<strong id="reportPickerYear">2026</strong>
+<button type="button" class="report-picker-arrow" onclick="shiftReportPickerYear(1)" aria-label="Next year">›</button>
+</div>
+<div id="reportPickerMonths" class="report-picker-months">
+<button type="button" data-month="1" onclick="selectReportPickerMonth(1)">JAN</button>
+<button type="button" data-month="2" onclick="selectReportPickerMonth(2)">FEB</button>
+<button type="button" data-month="3" onclick="selectReportPickerMonth(3)">MAR</button>
+<button type="button" data-month="4" onclick="selectReportPickerMonth(4)">APR</button>
+<button type="button" data-month="5" onclick="selectReportPickerMonth(5)">MAY</button>
+<button type="button" data-month="6" onclick="selectReportPickerMonth(6)">JUN</button>
+<button type="button" data-month="7" onclick="selectReportPickerMonth(7)">JUL</button>
+<button type="button" data-month="8" onclick="selectReportPickerMonth(8)">AUG</button>
+<button type="button" data-month="9" onclick="selectReportPickerMonth(9)">SEP</button>
+<button type="button" data-month="10" onclick="selectReportPickerMonth(10)">OCT</button>
+<button type="button" data-month="11" onclick="selectReportPickerMonth(11)">NOV</button>
+<button type="button" data-month="12" onclick="selectReportPickerMonth(12)">DEC</button>
+</div>
+</div>
+<input id="reportRange" type="hidden" value="month">
+<input id="reportMonth" type="hidden">
+<input id="reportStartDate" type="hidden">
+<input id="reportEndDate" type="hidden">
+<button class="secondary report-refresh" onclick="renderReports()">Refresh</button>
+</div></div><div class="grid report-metrics">
 <div class="metric report-kpi"><h3>ACTIVE STUDENTS</h3><strong id="rStudents">0</strong><small>Current active enrolment</small></div>
 <div class="metric report-kpi"><h3>ATTENDANCE RATE</h3><strong id="rAttendanceRate">0%</strong><small id="rAttendanceDetail">0 present of 0 marked</small></div>
 <div class="metric report-kpi"><h3>PAYMENT COLLECTION</h3><strong id="rPaymentRevenue">RM0.00</strong><small id="rPayments">0 paid payments</small></div>
