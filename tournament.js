@@ -171,15 +171,127 @@
     }).join('')+'</div>';
   }
 
+  function certificateEligibleAwards(){
+    return (state.awards||[]).filter(function(a){return !!a.student_id;});
+  }
+
+  function certificateViewedIds(){
+    const ids=state.selected?.settings?.certificate_reviewed_award_ids;
+    return Array.isArray(ids)?ids.map(String):[];
+  }
+
+  async function saveCertificateReviewSettings(patch){
+    const settings=Object.assign({},state.selected?.settings||{},patch||{});
+    const result=await supabaseClient.from('tournaments').update({settings:settings}).eq('tournament_id',state.selected.tournament_id);
+    if(result.error)throw result.error;
+    state.selected.settings=settings;
+    return settings;
+  }
+
+  async function markCertificateViewed(awardId){
+    const id=String(awardId);
+    const ids=certificateViewedIds();
+    if(ids.includes(id))return ids;
+    ids.push(id);
+    await saveCertificateReviewSettings({certificate_reviewed_award_ids:ids,certificate_template_approved:false,certificate_template_approved_at:null});
+    return ids;
+  }
+
+  async function openCertificateReviewCenter(){
+    if(!state.selected||!window.SCMSCertificates)return;
+    const awards=certificateEligibleAwards();
+    if(!awards.length){
+      notifyT('There are no certificate awards with students assigned.','warning','Certificate Review');
+      return;
+    }
+    showModal('<div class="certificate-review-center certificate-review-loading"><div class="eyebrow">CERTIFICATE REVIEW CENTER</div><h2>Preparing all certificate previews…</h2><p>Loading every certificate example so you can review the complete set before publishing.</p><div class="certificate-review-loader"></div></div>');
+    try{
+      const previews=await Promise.all(awards.map(async function(award){
+        try{return {award:award,data:await SCMSCertificates.preview(state.selected,award)};}
+        catch(error){return {award:award,error:error.message||String(error)};}
+      }));
+      renderCertificateReviewCenter(previews);
+    }catch(error){
+      notifyT(error.message||String(error),'error','Certificate Review Could Not Open',{variant:'critical'});
+    }
+  }
+
+  function renderCertificateReviewCenter(previews){
+    const viewed=new Set(certificateViewedIds());
+    const reviewedCount=previews.filter(function(item){return viewed.has(String(item.award.award_id));}).length;
+    const allReviewed=reviewedCount===previews.length&&previews.length>0;
+    const approved=state.selected?.settings?.certificate_template_approved===true;
+    const cards=previews.map(function(item,index){
+      const a=item.award,id=String(a.award_id),isViewed=viewed.has(id);
+      if(item.error){
+        return '<article class="certificate-review-card certificate-review-card-error"><div class="certificate-review-card-top"><span class="certificate-review-index">'+String(index+1).padStart(2,'0')+'</span><span class="certificate-review-status error">Preview error</span></div><h3>'+escT(a.student_name||'Student')+'</h3><p>'+escT(item.error)+'</p><button class="secondary small" type="button" onclick="SCMSTournament.openCertificateReviewCenter()">Retry Preview</button></article>';
+      }
+      return '<article class="certificate-review-card '+(isViewed?'is-viewed':'')+'"><div class="certificate-review-thumb"><img src="'+item.data.imageData+'" alt="Certificate preview for '+escT(a.student_name||'student')+'"><span class="certificate-review-thumb-badge">'+(isViewed?'✓ REVIEWED':'OPEN TO REVIEW')+'</span></div><div class="certificate-review-card-body"><div class="certificate-review-card-top"><span class="certificate-review-index">'+String(index+1).padStart(2,'0')+'</span><span class="certificate-review-status '+(isViewed?'done':'pending')+'">'+(isViewed?'Reviewed':'Needs review')+'</span></div><h3>'+escT(a.student_name||'Student')+'</h3><p>'+escT(a.award_type||'Certificate')+'</p><button class="secondary small" type="button" onclick="SCMSTournament.reviewCertificateAward(\''+escT(id)+'\')">'+(isViewed?'Review Again':'Open Full Preview')+' <span>→</span></button></div></article>';
+    }).join('');
+
+    showModal('<div class="certificate-review-center"><div class="certificate-review-center-head"><div><div class="eyebrow">CERTIFICATE REVIEW CENTER</div><h2>Review every certificate</h2><p>Open each certificate in full size and check the student name, award, tournament, date, signature and certificate number before approving the template.</p></div><button class="certificate-preview-close" type="button" aria-label="Close review center" onclick="SCMSTournament.closeModal()">×</button></div><div class="certificate-review-progress"><div><strong>'+reviewedCount+' of '+previews.length+'</strong><span>certificates reviewed</span></div><div class="certificate-review-progress-track"><span style="width:'+Math.round((reviewedCount/previews.length)*100)+'%"></span></div><span class="certificate-review-progress-state '+(allReviewed?'done':'pending')+'">'+(allReviewed?'Ready for template approval':'Review remaining certificates')+'</span></div><div class="certificate-review-grid">'+cards+'</div><div class="certificate-review-center-footer"><button type="button" class="secondary" onclick="SCMSTournament.closeModal()">Close</button><button type="button" class="primary" '+(allReviewed?'':'disabled')+' onclick="SCMSTournament.approveCertificateTemplateFromCenter()">'+(approved?'Template Approved ✓':'Approve Certificate Template')+'</button></div></div>');
+  }
+
+  async function reviewCertificateAward(awardId){
+    const awards=certificateEligibleAwards();
+    const index=awards.findIndex(function(a){return String(a.award_id)===String(awardId);});
+    const award=index>=0?awards[index]:null;
+    if(!award)return;
+    try{
+      await markCertificateViewed(award.award_id);
+      const data=await SCMSCertificates.preview(state.selected,award);
+      const viewed=new Set(certificateViewedIds());
+      const allReviewed=awards.every(function(a){return viewed.has(String(a.award_id));});
+      const next=awards[index+1],previous=awards[index-1];
+      const approved=state.selected?.settings?.certificate_template_approved===true;
+      showModal('<div class="certificate-full-review"><div class="certificate-preview-head"><div><div class="eyebrow">CERTIFICATE '+String(index+1).padStart(2,'0')+' OF '+String(awards.length).padStart(2,'0')+'</div><h2>'+escT(award.student_name||'Student')+'</h2><p>'+escT(award.award_type||'Certificate')+' · '+escT(award.certificate_caption||'')+'</p></div><button class="certificate-preview-close" type="button" aria-label="Close preview" onclick="SCMSTournament.openCertificateReviewCenter()">×</button></div><div class="certificate-full-review-status"><span class="done">✓ Reviewed</span><span class="'+(allReviewed?'done':'pending')+'">'+(allReviewed?'✓ All certificates reviewed':'Review all certificates before approval')+'</span></div><div class="certificate-full-stage"><img src="'+data.imageData+'" alt="Full certificate preview for '+escT(award.student_name||'student')+'"></div><div class="certificate-full-meta"><span><b>Student</b>'+escT(award.student_name||'Student')+'</span><span><b>Award</b>'+escT(award.award_type||'Certificate')+'</span><span><b>Certificate No.</b>'+escT(data.certificateNumber)+'</span></div><div class="certificate-full-footer"><button type="button" class="secondary" '+(!previous?'disabled':'')+' onclick="SCMSTournament.reviewCertificateAward(\''+(previous?escT(previous.award_id):'')+'\')">← Previous</button><button type="button" class="secondary" onclick="SCMSTournament.openCertificateReviewCenter()">Review Center</button>'+(next?'<button type="button" class="secondary" onclick="SCMSTournament.reviewCertificateAward(\''+escT(next.award_id)+'\')">Next →</button>':'')+'<button type="button" class="primary" '+(allReviewed?'':'disabled')+' onclick="SCMSTournament.approveCertificateTemplateFromCenter()">'+(approved?'Template Approved ✓':'Approve Template')+'</button></div></div>');
+    }catch(error){
+      notifyT(error.message||String(error),'error','Certificate Preview Failed',{variant:'critical'});
+    }
+  }
+
+  async function approveCertificateTemplateFromCenter(){
+    const awards=certificateEligibleAwards();
+    const viewed=new Set(certificateViewedIds());
+    if(!awards.length||!awards.every(function(a){return viewed.has(String(a.award_id));})){
+      notifyT('Open every certificate in full preview before approving the template.','warning','Review Required');
+      return;
+    }
+    await approveCertificateTemplate(awards[0].award_id);
+  }
+
   function certificateControlPanel(){
-    const eligible=state.awards.filter(function(a){return !!a.student_id;});
+    const eligible=certificateEligibleAwards();
     const ready=eligible.filter(function(a){return a.certificate_status==='published'&&a.certificate_path;}).length;
     const failed=eligible.filter(function(a){return a.certificate_status==='failed';}).length;
     const pending=Math.max(0,eligible.length-ready-failed);
     const reviewed=state.selected?.settings?.certificate_reviewed===true;
+    const viewed=new Set(certificateViewedIds());
+    const reviewedCertificates=eligible.filter(function(a){return viewed.has(String(a.award_id));}).length;
+    const allCertificatesReviewed=eligible.length>0&&reviewedCertificates===eligible.length;
     const templateApproved=state.selected?.settings?.certificate_template_approved===true;
     const previewAward=eligible.find(function(a){return a.award_type==='1st Place';})||eligible[0];
-    return '<div class="panel tournament-certificate-panel"><div class="row"><div><div class="eyebrow">AUTOMATIC CERTIFICATES</div><h3>Certificate Delivery</h3><p class="subtle">Review the final podium and standings before publishing certificates to student records.</p></div><span class="badge '+(failed?'almost':ready===eligible.length&&eligible.length?'present':'blue')+'">'+ready+'/'+eligible.length+' ready</span></div><div class="tournament-review-gate '+(reviewed?'reviewed':'')+'"><span class="tournament-review-icon">'+(reviewed?'✓':'01')+'</span><div><strong>'+(reviewed?'Final results reviewed':'Final results require review')+'</strong><small>'+(reviewed?'The final ranking is approved.':'Check the podium, standings and awards before publishing certificates.')+'</small></div><button class="secondary small" type="button" onclick="SCMSTournament.reviewFinalResults()">'+(reviewed?'Review Again':'Mark Results Reviewed')+'</button></div><div class="tournament-certificate-status-grid"><div><strong>'+ready+'</strong><span>Ready</span></div><div><strong>'+pending+'</strong><span>Pending</span></div><div><strong>'+failed+'</strong><span>Failed</span></div></div><div class="tournament-certificate-actions">'+(previewAward?'<button class="secondary" type="button" onclick="SCMSTournament.previewCertificate(\''+escT(previewAward.award_id)+'\')">Preview & Approve Template</button>':'')+'<button class="primary" type="button" '+(reviewed&&templateApproved?'':'disabled')+' onclick="SCMSTournament.generateCertificates()">'+(ready?'Regenerate Certificates':'Generate Certificates')+'</button>'+(failed?'<button class="secondary" type="button" onclick="SCMSTournament.retryCertificates()">Retry Failed</button>':'')+'</div></div>';
+
+    return '<div class="panel tournament-certificate-panel"><div class="row"><div><div class="eyebrow">CERTIFICATE WORKFLOW</div><h3>Certificate Review & Delivery</h3><p class="subtle">Review the final results, inspect every certificate, approve the fixed template, then publish the certificates.</p></div><span class="badge '+(failed?'almost':ready===eligible.length&&eligible.length?'present':'blue')+'">'+ready+'/'+eligible.length+' published</span></div>'+
+      '<div class="certificate-workflow-steps">'+
+        '<div class="certificate-workflow-step '+(reviewed?'done':'active')+'"><span>'+(reviewed?'✓':'1')+'</span><div><strong>Final results</strong><small>'+(reviewed?'Reviewed':'Review podium, standings and awards')+'</small></div></div>'+
+        '<div class="certificate-workflow-line"></div>'+
+        '<div class="certificate-workflow-step '+(allCertificatesReviewed?'done':'active')+'"><span>'+(allCertificatesReviewed?'✓':'2')+'</span><div><strong>All certificates</strong><small>'+reviewedCertificates+'/'+eligible.length+' individually reviewed</small></div></div>'+
+        '<div class="certificate-workflow-line"></div>'+
+        '<div class="certificate-workflow-step '+(templateApproved?'done':allCertificatesReviewed?'active':'')+'"><span>'+(templateApproved?'✓':'3')+'</span><div><strong>Template approval</strong><small>'+(templateApproved?'Approved':'Approve after every certificate is checked')+'</small></div></div>'+
+        '<div class="certificate-workflow-line"></div>'+
+        '<div class="certificate-workflow-step '+(ready===eligible.length&&eligible.length?'done':'')+'"><span>'+(ready===eligible.length&&eligible.length?'✓':'4')+'</span><div><strong>Publish</strong><small>'+ready+'/'+eligible.length+' certificates ready</small></div></div>'+
+      '</div>'+
+      '<div class="tournament-review-gate '+(reviewed?'reviewed':'')+'"><span class="tournament-review-icon">'+(reviewed?'✓':'01')+'</span><div><strong>'+(reviewed?'Final results reviewed':'Final results require review')+'</strong><small>'+(reviewed?'The final ranking is approved.':'Confirm the podium, standings and special award selections first.')+'</small></div><button class="secondary small" type="button" onclick="SCMSTournament.reviewFinalResults()">'+(reviewed?'Review Again':'Mark Results Reviewed')+'</button></div>'+
+      '<div class="certificate-review-summary"><div><strong>'+reviewedCertificates+'/'+eligible.length+'</strong><span>Certificates reviewed</span></div><div><strong>'+ready+'/'+eligible.length+'</strong><span>Published</span></div><div><strong>'+failed+'</strong><span>Failed</span></div><div><strong>'+(templateApproved?'YES':'NO')+'</strong><span>Template approved</span></div></div>'+
+      '<div class="tournament-certificate-actions">'+
+        (previewAward?'<button class="primary" type="button" onclick="SCMSTournament.openCertificateReviewCenter()">Review All Certificates</button>':'')+
+        '<button class="secondary" type="button" '+(allCertificatesReviewed?'':'disabled')+' onclick="SCMSTournament.approveCertificateTemplateFromCenter()">'+(templateApproved?'Template Approved ✓':'Approve Template')+'</button>'+
+        '<button class="primary" type="button" '+(reviewed&&allCertificatesReviewed&&templateApproved?'':'disabled')+' onclick="SCMSTournament.generateCertificates()">'+(ready?'Regenerate Certificates':'Generate Certificates')+'</button>'+
+        (failed?'<button class="secondary" type="button" onclick="SCMSTournament.retryCertificates()">Retry Failed</button>':'')+
+      '</div>'+
+      '<div class="certificate-review-note">'+(templateApproved?'All checks are complete. Generation will use the same approved template for every reviewed award.':allCertificatesReviewed?'Every certificate has been reviewed. Approve the template to unlock generation.':'Open Review All Certificates and inspect each certificate in full size before approval.')+'</div>'+
+    '</div>';
   }
 
   async function reviewFinalResults(){
@@ -187,7 +299,7 @@
     const ok=await confirmT('Confirm the final podium, standings and award selections have been reviewed. Certificate generation will be unlocked.','Review Final Results');
     if(!ok)return;
     try{
-      const settings=Object.assign({},state.selected.settings||{}, {certificate_reviewed:true,certificate_reviewed_at:new Date().toISOString()});
+      const settings=Object.assign({},state.selected.settings||{}, {certificate_reviewed:true,certificate_reviewed_at:new Date().toISOString(),certificate_reviewed_award_ids:[],certificate_template_approved:false,certificate_template_approved_at:null,certificate_template_approved_award_id:null});
       const result=await supabaseClient.from('tournaments').update({settings:settings}).eq('tournament_id',state.selected.tournament_id);
       if(result.error)throw result.error;
       state.selected.settings=settings;
@@ -785,6 +897,8 @@ async function saveParticipants(){
         const result=await supabaseClient.from('tournament_awards').upsert({tournament_id:state.selected.tournament_id,student_id:studentId,student_name:student?student.display_name:studentId,award_type:awardType,rank:null,title:awardType,certificate_path:null},{onConflict:'tournament_id,award_type'});if(result.error)throw result.error;
       }
       await loadTournamentData(state.selected.tournament_id);await syncAwardsToAchievements();
+      const settings=Object.assign({},state.selected.settings||{},{certificate_reviewed_award_ids:[],certificate_template_approved:false,certificate_template_approved_at:null,certificate_template_approved_award_id:null});
+      await saveCertificateReviewSettings(settings);
       renderWorkspace();notifyT('Special awards saved. Review them once more, then generate certificates from the Certificate Delivery panel.','success','Awards Saved',{variant:'registration'});
     }catch(error){notifyT(error.message||String(error),'error','Awards Not Saved',{variant:'critical'});}
   }
@@ -792,7 +906,10 @@ async function saveParticipants(){
   async function generateCertificates(){
     if(!state.selected||!['completed','archived'].includes(state.selected.status)||!window.SCMSCertificates)return;
     if(!state.selected.settings?.certificate_reviewed){notifyT('Review the final results before generating certificates.','warning','Review Required');return;}
-    if(!state.selected.settings?.certificate_template_approved){notifyT('Preview and approve the certificate template before generating certificates.','warning','Certificate Template Review Required');return;}
+    const eligible=certificateEligibleAwards();
+    const viewed=new Set(certificateViewedIds());
+    if(!eligible.length||!eligible.every(function(a){return viewed.has(String(a.award_id));})){notifyT('Review every certificate before generating certificates. Open Review All Certificates and inspect each one in full size.','warning','All Certificates Must Be Reviewed');return;}
+    if(!state.selected.settings?.certificate_template_approved){notifyT('Approve the certificate template after reviewing every certificate.','warning','Template Approval Required');return;}
     await loadTournamentData(state.selected.tournament_id);
     const result=await SCMSCertificates.generateForAwards(state.selected,state.awards.filter(function(a){return !!a.student_id;}));
     await loadTournamentData(state.selected.tournament_id);
@@ -819,7 +936,8 @@ async function saveParticipants(){
   async function reopen(){
     if(!state.selected||!['completed','archived'].includes(state.selected.status))return;
     if(!(await confirmT('Reopen this tournament for result corrections? Final ranking and generated achievement records can change after you finalize it again.','Reopen Tournament')))return;
-    const result=await supabaseClient.from('tournaments').update({status:'active',completed_at:null,archived_at:null}).eq('tournament_id',state.selected.tournament_id);if(result.error){notifyT(result.error.message,'error','Reopen Failed',{variant:'critical'});return;}
+    const reopenedSettings=Object.assign({},state.selected.settings||{},{certificate_reviewed:false,certificate_reviewed_at:null,certificate_reviewed_award_ids:[],certificate_template_approved:false,certificate_template_approved_at:null,certificate_template_approved_award_id:null});
+    const result=await supabaseClient.from('tournaments').update({status:'active',completed_at:null,archived_at:null,settings:reopenedSettings}).eq('tournament_id',state.selected.tournament_id);if(result.error){notifyT(result.error.message,'error','Reopen Failed',{variant:'critical'});return;}
     await loadTournaments();await open(state.selected.tournament_id);notifyT('Tournament reopened. Correct the relevant results, then end it again.','info','Tournament Reopened');
   }
 
@@ -831,7 +949,7 @@ async function saveParticipants(){
   function back(){state.selected=null;state.players=[];state.rounds=[];state.matches=[];state.awards=[];renderHome();}
   async function refresh(){await loadTournaments();if(state.selected)await open(state.selected.tournament_id);}
 
-  window.SCMSTournament={init:async function(){await loadTournaments();},refresh:refresh,create:create,open:open,back:back,tab:tab,viewRound:viewRound,clearRoundView:clearRoundView,closeModal:closeModal,formatChanged:formatChanged,filterParticipants:filterParticipants,selectAllParticipants:selectAllParticipants,clearParticipants:clearParticipants,saveParticipants:saveParticipants,editParticipants:editParticipants,seedParticipants:seedParticipants,moveSeed:moveSeed,saveSeeding:saveSeeding,removePlayer:removePlayer,start:start,score:score,finish:finish,finishRound:finishRound,addRound:addRound,immediateEnd:immediateEnd,deleteTournament:deleteTournament,saveSpecialAwards:saveSpecialAwards,generateCertificates:generateCertificates,retryCertificates:retryCertificates,reviewFinalResults:reviewFinalResults,previewCertificate:previewCertificate,approveCertificateTemplate:approveCertificateTemplate,archive:archive,reopen:reopen,editTournament:editTournament};
+  window.SCMSTournament={init:async function(){await loadTournaments();},refresh:refresh,create:create,open:open,back:back,tab:tab,viewRound:viewRound,clearRoundView:clearRoundView,closeModal:closeModal,formatChanged:formatChanged,filterParticipants:filterParticipants,selectAllParticipants:selectAllParticipants,clearParticipants:clearParticipants,saveParticipants:saveParticipants,editParticipants:editParticipants,seedParticipants:seedParticipants,moveSeed:moveSeed,saveSeeding:saveSeeding,removePlayer:removePlayer,start:start,score:score,finish:finish,finishRound:finishRound,addRound:addRound,immediateEnd:immediateEnd,deleteTournament:deleteTournament,saveSpecialAwards:saveSpecialAwards,generateCertificates:generateCertificates,retryCertificates:retryCertificates,reviewFinalResults:reviewFinalResults,previewCertificate:previewCertificate,approveCertificateTemplate:approveCertificateTemplate,openCertificateReviewCenter:openCertificateReviewCenter,reviewCertificateAward:reviewCertificateAward,approveCertificateTemplateFromCenter:approveCertificateTemplateFromCenter,archive:archive,reopen:reopen,editTournament:editTournament};
 
   const originalPage=window.page;
   window.page=function(name){originalPage(name);if(name==='tournament'){const title=document.getElementById('title');if(title)title.textContent='Tournament';SCMSTournament.init();}};
