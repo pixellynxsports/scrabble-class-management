@@ -1054,8 +1054,72 @@ async function archiveStudent(id){if(!(await appConfirm('Historical attendance, 
 async function restoreStudent(id){try{DATA=await run('restoreStudent',id);renderAll()}catch(e){appNotify(e.message||e)}}
 function renderProfile(id){if(document.getElementById('studentProfile').classList.contains('active'))openStudent(id)}
 /* ===== PAYMENTS ===== */
-function renderPayments(){const active=activeStudents();const states=active.map(s=>({s,state:paymentStateFor(s['Student ID'])}));const due=states.filter(x=>x.state.progress===4&&x.state.status==='Payment Due');const almost=states.filter(x=>x.state.progress===3&&x.state.status==='Almost Due');document.getElementById('payDueCount').textContent=due.length;document.getElementById('payAlmostCount').textContent=almost.length;document.getElementById('payHistoryCount').textContent=DATA.payments.filter(p=>String(p.Status||'').toLowerCase()==='paid').length;document.getElementById('dueBadge').textContent=due.length;document.getElementById('paymentStudentCount').textContent=active.length;document.getElementById('paymentStudents').innerHTML=states.map(({s,state})=>{const cycle=state.currentCycle||1;const amount=state.activePrepaid?'RM50':state.progress===4?'RM50':'-';const action=state.progress===4&&state.status==='Payment Due'?`<button class="primary" onclick="pay('${esc(s['Student ID'])}')">Record Payment</button>`:isNewUnpaidStudent(state)?`<button class="primary" onclick="pay('${esc(s['Student ID'])}')">Record Payment</button>`:'<span class="badge paid">Paid</span>';return `<tr><td><button class="linkbtn" onclick="openStudent('${esc(s['Student ID'])}')">${esc(s['Student Name'])}</button></td><td>${esc(s['Student ID'])}</td><td>${cycle}</td><td>${state.progress} / 4</td><td>${badge(state.progress,state)}</td><td>${amount}</td><td>${esc(state.lastPayment?formatDateClient(state.lastPayment['Payment Date']):'-')}</td><td>${action}</td></tr>`}).join('')||'<tr><td colspan="8" class="empty">No active students.</td></tr>';document.getElementById('paymentsDue').innerHTML=due.map(({s})=>`<div class="pay-row"><div><button class="linkbtn" onclick="openStudent('${esc(s['Student ID'])}')">${esc(s['Student Name'])}</button><div class="subtle">${esc(s['Student ID'])} · 4 / 4 attended</div></div><b>RM50</b><button class="primary" onclick="pay('${esc(s['Student ID'])}')">Record Payment</button></div>`).join('')||'<div class="empty">No payments due.</div>';document.getElementById('paymentsAlmost').innerHTML=almost.map(({s})=>`<div class="pay-row"><div><button class="linkbtn" onclick="openStudent('${esc(s['Student ID'])}')">${esc(s['Student Name'])}</button><div class="subtle">${esc(s['Student ID'])} · 3 / 4 attended</div></div><span class="badge almost">Almost Due</span><button class="secondary" onclick="openStudent('${esc(s['Student ID'])}')">View</button></div>`).join('')||'<div class="empty">No students are almost due.</div>';const rows=[...DATA.payments].sort((a,b)=>new Date(b['Payment Date'])-new Date(a['Payment Date'])).map(p=>{const st=DATA.students.find(x=>String(x['Student ID'])===String(p['Student ID']));return `<tr><td><button class="linkbtn" onclick="openStudent('${esc(p['Student ID'])}')">${esc(st?.['Student Name']||p['Student ID'])}</button></td><td>${esc(p['Cycle Number'])}</td><td>RM${esc(p.Amount)}</td><td>${esc(formatDateClient(p['Payment Date']))}</td><td>${String(p.Status||'').toLowerCase()==='paid'?'<span class="badge paid">Paid</span>':'<span class="badge absent">'+esc(p.Status||'')+'</span>'}</td><td>${esc(p['Classes Covered']||'')}</td></tr>`}).join('');document.getElementById('paymentsHistory').innerHTML=rows||'<tr><td colspan="6" class="empty">No payments recorded.</td></tr>'}
+function renderPayments(){const active=activeStudents();const states=active.map(s=>({s,state:paymentStateFor(s['Student ID'])}));const due=states.filter(x=>x.state.progress===4&&x.state.status==='Payment Due');const almost=states.filter(x=>x.state.progress===3&&x.state.status==='Almost Due');document.getElementById('payDueCount').textContent=due.length;document.getElementById('payAlmostCount').textContent=almost.length;document.getElementById('payHistoryCount').textContent=DATA.payments.filter(p=>String(p.Status||'').toLowerCase()==='paid').length;document.getElementById('dueBadge').textContent=due.length;document.getElementById('paymentStudentCount').textContent=active.length;document.getElementById('paymentStudents').innerHTML=states.map(({s,state})=>{const cycle=state.currentCycle||1;const amount=state.activePrepaid?'RM50':state.progress===4?'RM50':'-';const action=state.progress===4&&state.status==='Payment Due'?`<button class="primary" onclick="pay('${esc(s['Student ID'])}')">Record Payment</button>`:isNewUnpaidStudent(state)?`<button class="primary" onclick="pay('${esc(s['Student ID'])}')">Record Payment</button>`:'<span class="badge paid">Paid</span>';return `<tr><td><button class="linkbtn" onclick="openStudent('${esc(s['Student ID'])}')">${esc(s['Student Name'])}</button></td><td>${esc(s['Student ID'])}</td><td>${cycle}</td><td>${state.progress} / 4</td><td>${badge(state.progress,state)}</td><td>${amount}</td><td>${esc(state.lastPayment?formatDateClient(state.lastPayment['Payment Date']):'-')}</td><td>${action}</td></tr>`}).join('')||'<tr><td colspan="8" class="empty">No active students.</td></tr>';document.getElementById('paymentsDue').innerHTML=due.map(({s})=>`<div class="pay-row"><div><button class="linkbtn" onclick="openStudent('${esc(s['Student ID'])}')">${esc(s['Student Name'])}</button><div class="subtle">${esc(s['Student ID'])} · 4 / 4 attended</div></div><b>RM50</b><button class="primary" onclick="pay('${esc(s['Student ID'])}')">Record Payment</button></div>`).join('')||'<div class="empty">No payments due.</div>';document.getElementById('paymentsAlmost').innerHTML=almost.map(({s})=>`<div class="pay-row"><div><button class="linkbtn" onclick="openStudent('${esc(s['Student ID'])}')">${esc(s['Student Name'])}</button><div class="subtle">${esc(s['Student ID'])} · 3 / 4 attended</div></div><span class="badge almost">Almost Due</span><button class="secondary" onclick="openStudent('${esc(s['Student ID'])}')">View</button></div>`).join('')||'<div class="empty">No students are almost due.</div>';const paymentHistoryRows=[...DATA.payments].sort((a,b)=>new Date(b['Payment Date'])-new Date(a['Payment Date']));
+  window.paymentHistoryRows=paymentHistoryRows;
+  const topRows=paymentHistoryRows.slice(0,5);
+  document.getElementById('paymentsHistory').innerHTML=topRows.map(paymentHistoryTableRow).join('')||'<tr><td colspan="6" class="empty">No payments recorded.</td></tr>';
+  updatePaymentHistoryPanel(paymentHistoryRows)
 
+function paymentHistoryClassMarkup(payment,compact=false){
+  const raw=String(payment['Classes Covered']||'').trim();
+  const first=String(payment['Payment Type']||'').toLowerCase().includes('first month') || (!raw && Number(payment['Cycle Number'])===1);
+  if(first)return '<span class="payment-class-first">First Month Fee</span>';
+  if(!raw)return '<span class="payment-class-empty">No classes linked</span>';
+  const values=raw.split(',').map(x=>x.trim()).filter(Boolean);
+  const visible=compact?values.slice(0,2):values;
+  const chips=visible.map(x=>`<span class="payment-class-chip">${esc(x)}</span>`).join('');
+  const more=compact&&values.length>2?`<span class="payment-class-more">+${values.length-2} more</span>`:'';
+  return `<div class="payment-class-chips">${chips}${more}</div>`;
+}
+function paymentHistoryTableRow(p){
+  const sid=String(p['Student ID']||'');
+  const st=DATA.students.find(x=>String(x['Student ID'])===sid);
+  const status=String(p.Status||'');
+  return `<tr><td><button class="linkbtn" onclick="openStudent('${esc(sid)}')">${esc(st?.['Student Name']||sid)}</button></td><td>${esc(p['Cycle Number']||'-')}</td><td>RM${esc(p.Amount||0)}</td><td>${esc(formatDateClient(p['Payment Date']))}</td><td>${status.toLowerCase()==='paid'?'<span class="badge paid">Paid</span>':'<span class="badge absent">'+esc(status||'')+'</span>'}</td><td class="payment-classes-cell">${paymentHistoryClassMarkup(p,true)}</td></tr>`;
+}
+function updatePaymentHistoryPanel(rows){
+  const count=document.getElementById('paymentHistoryPanelCount');
+  if(count)count.textContent=rows.length+' payment'+(rows.length===1?'':'s');
+  renderPaymentHistoryPanel(rows);
+}
+function renderPaymentHistoryPanel(rows){
+  const target=document.getElementById('paymentHistoryList');
+  if(!target)return;
+  const query=String(document.getElementById('paymentHistorySearch')?.value||'').trim().toLowerCase();
+  const filtered=rows.filter(p=>{
+    const sid=String(p['Student ID']||'').toLowerCase();
+    const st=DATA.students.find(x=>String(x['Student ID'])===String(p['Student ID']));
+    const name=String(st?.['Student Name']||'').toLowerCase();
+    return !query||sid.includes(query)||name.includes(query);
+  });
+  target.innerHTML=filtered.length?filtered.map(p=>{
+    const sid=String(p['Student ID']||'');
+    const st=DATA.students.find(x=>String(x['Student ID'])===sid);
+    const status=String(p.Status||'');
+    return `<button class="payment-history-item" type="button" onclick="openStudent('${esc(sid)}')">
+      <div class="payment-history-item-head"><div><strong>${esc(st?.['Student Name']||sid)}</strong><small>${esc(sid)} · Cycle ${esc(p['Cycle Number']||'-')}</small></div><strong>RM${esc(p.Amount||0)}</strong></div>
+      <div class="payment-history-item-meta"><span>${esc(formatDateClient(p['Payment Date']))}</span>${status.toLowerCase()==='paid'?'<span class="badge paid">Paid</span>':'<span class="badge absent">'+esc(status||'')+'</span>'}</div>
+      <div class="payment-history-item-classes"><span class="payment-history-item-label">Classes Covered</span>${paymentHistoryClassMarkup(p,false)}</div>
+    </button>`;
+  }).join(''):'<div class="empty">No payment records match your search.</div>';
+}
+function filterPaymentHistoryPanel(){renderPaymentHistoryPanel(window.paymentHistoryRows||[])}
+function openPaymentHistoryPanel(){
+  const panel=document.getElementById('paymentHistoryPanel');
+  if(!panel)return;
+  panel.classList.remove('hidden');
+  panel.setAttribute('aria-hidden','false');
+  document.body.classList.add('payment-history-open');
+  updatePaymentHistoryPanel(window.paymentHistoryRows||[]);
+  setTimeout(()=>document.getElementById('paymentHistorySearch')?.focus(),40);
+}
+function closePaymentHistoryPanel(){
+  const panel=document.getElementById('paymentHistoryPanel');
+  if(!panel)return;
+  panel.classList.add('hidden');
+  panel.setAttribute('aria-hidden','true');
+  document.body.classList.remove('payment-history-open');
+}
 async function pay(id){
   const state=paymentStateFor(id);
   const firstPayment=isNewUnpaidStudent(state);
