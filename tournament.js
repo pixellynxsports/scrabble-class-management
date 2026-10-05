@@ -17,8 +17,8 @@
   };
 
   const escT = window.SCMSRuntime.escapeHtml;
-  function notifyT(message,type,title,options){if(typeof appNotify==='function')appNotify(message,type||'info',title||'',options||{});else console.warn(message);}
-  function confirmT(message,title){if(typeof appConfirm==='function')return appConfirm(message,title||'Confirm Action','TOURNAMENT');return Promise.resolve(window.confirm(message));}
+  function notifyT(message,type,title,options){return SCMSUI.notify(message,type,title,options)}
+  function confirmT(message,title){return SCMSUI.confirm(message,title||'Confirm Action','TOURNAMENT')}
   function root(){return document.getElementById('tournamentContent');}
   function formatLabel(value){return FORMAT_LABELS[value]||String(value||'').replace(/_/g,' ');}
   function dateLabel(value){if(!value)return 'Date not set';const d=new Date(String(value).length===10?value+'T12:00:00':value);return Number.isNaN(d.getTime())?String(value):d.toLocaleDateString(undefined,{day:'2-digit',month:'short',year:'numeric'});}
