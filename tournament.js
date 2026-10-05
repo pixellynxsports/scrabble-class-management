@@ -228,22 +228,50 @@
 
   function renderPairings(){
     const currentRound=Number(state.selected?.current_round||1);
-    const matches=state.matches.filter(function(m){return Number(m.round_number)===currentRound;});
+    const totalRounds=Math.max(1,Number(state.selected?.rounds_total)||state.rounds.length||1);
     const roundRecord=state.rounds.find(function(r){return Number(r.round_number)===currentRound;});
-    const roundEnded=roundRecord&&roundRecord.status==='completed';
-    if((!matches.length&&roundEnded)||(!matches.length&&!roundRecord)){
-      const totalRounds=Math.max(1,Number(state.selected.rounds_total)||state.rounds.length||1);
-      const completedRounds=state.rounds.filter(function(r){return r.status==='completed';}).length;
-      if(!roundRecord&&state.selected.status==='active')return '<div class="tournament-ended-round-panel"><div class="tournament-ended-round-icon">…</div><div class="eyebrow">PREPARING ROUND</div><h3>Round '+escT(currentRound)+' of '+escT(totalRounds)+'</h3><p>The tournament is active. Round data is being prepared.</p></div>';
-      return '<div class="tournament-ended-round-panel"><div class="tournament-ended-round-icon">✓</div><div class="eyebrow">ALL ROUNDS ENDED</div><h3>Round '+escT(currentRound)+' is complete</h3><p>All '+escT(completedRounds)+' round'+(completedRounds===1?'':'s')+' currently scheduled for this tournament have been completed. There is no live round right now.</p><div class="tournament-ended-round-stats"><div><b>'+escT(completedRounds)+'</b><span>Rounds completed</span></div><div><b>'+escT(totalRounds)+'</b><span>Rounds scheduled</span></div><div><b>'+escT(state.players.length)+'</b><span>Players</span></div></div><button class="primary tournament-add-round-button" type="button" onclick="SCMSTournament.addRound()">+ Add One More Round</button><small class="tournament-ended-round-note">Adding a round will generate fresh pairings from the current standings and make the new round live immediately.</small></div>';
+    const matches=state.matches.filter(function(m){return Number(m.round_number)===currentRound;});
+    const roundEnded=!!(roundRecord&&roundRecord.status==='completed');
+    const completedRounds=state.rounds.filter(function(r){return r.status==='completed';}).length;
+    const allRoundsEnded=roundEnded&&completedRounds>=totalRounds;
+
+    if(allRoundsEnded){
+      const completedList=state.rounds
+        .filter(function(r){return r.status==='completed';})
+        .sort(function(a,b){return Number(a.round_number)-Number(b.round_number);})
+        .map(function(r){
+          const roundMatches=state.matches.filter(function(m){return Number(m.round_number)===Number(r.round_number);});
+          const done=roundMatches.filter(function(m){return m.status==='completed';}).length;
+          return '<div class="tournament-ended-round-item"><span>Round '+escT(r.round_number)+'</span><strong>'+escT(done)+'/'+escT(roundMatches.length)+'</strong><small>Completed</small></div>';
+        }).join('');
+
+      return '<div class="tournament-ended-round-panel">'+
+        '<div class="tournament-ended-round-icon">✓</div>'+
+        '<div class="eyebrow">ALL ROUNDS ENDED</div>'+
+        '<h3>All '+escT(completedRounds)+' scheduled rounds are complete</h3>'+
+        '<p>Every scheduled round has been completed. The tournament remains active so you can add another round whenever you need one.</p>'+
+        '<div class="tournament-ended-round-stats">'+
+          '<div><b>'+escT(completedRounds)+'</b><span>Rounds completed</span></div>'+
+          '<div><b>'+escT(totalRounds)+'</b><span>Rounds scheduled</span></div>'+
+          '<div><b>'+escT(state.players.length)+'</b><span>Players</span></div>'+
+        '</div>'+
+        '<div class="tournament-ended-round-list">'+completedList+'</div>'+
+        '<button class="primary tournament-add-round-button" type="button" onclick="SCMSTournament.addRound()">+ Add One More Round</button>'+
+        '<small class="tournament-ended-round-note">A new round will be generated from the current standings and become the live round. After that round is finished, this screen will return with the Add One More Round button.</small>'+
+      '</div>';
     }
+
+    if(!roundRecord){
+      if(state.selected.status==='active')return '<div class="tournament-ended-round-panel"><div class="tournament-ended-round-icon">…</div><div class="eyebrow">PREPARING ROUND</div><h3>Round '+escT(currentRound)+' of '+escT(totalRounds)+'</h3><p>The tournament is active. Round data is being prepared.</p></div>';
+      return '<div class="tournament-ended-round-panel"><div class="tournament-ended-round-icon">✓</div><div class="eyebrow">NO LIVE ROUND</div><h3>No round is currently active</h3><p>The scheduled rounds have not produced a live pairing set.</p></div>';
+    }
+
     const completed=matches.filter(function(m){return m.status==='completed';}).length;
     const allComplete=completed===matches.length;
-    return '<div class="tournament-live-head"><div><div class="eyebrow">LIVE ROUND</div><h3>Round '+escT(currentRound)+'</h3><p>Only the current round is shown here. Completed rounds are available in the Rounds panel.</p></div><div class="tournament-live-actions"><span class="badge '+(allComplete?'present':'almost')+'">'+completed+'/'+matches.length+' complete</span><button class="primary" type="button" '+(!allComplete?'disabled':'')+' onclick="SCMSTournament.finishRound()">'+(currentRound>=Number(state.selected.rounds_total||1)?'Finish Round':'Finish Round')+' →</button></div></div>'+
+    return '<div class="tournament-live-head"><div><div class="eyebrow">LIVE ROUND</div><h3>Round '+escT(currentRound)+'</h3><p>Only the current round is shown here. Completed rounds are available in the Rounds panel.</p></div><div class="tournament-live-actions"><span class="badge '+(allComplete?'present':'almost')+'">'+completed+'/'+matches.length+' complete</span><button class="primary" type="button" '+(!allComplete?'disabled':'')+' onclick="SCMSTournament.finishRound()">Finish Round →</button></div></div>'+
       '<div class="panel tournament-round-panel live-round-panel"><div class="tournament-match-list">'+matches.map(function(m){return matchCard(m,false);}).join('')+'</div></div>'+
       (allComplete?'<div class="tournament-finish-hint"><strong>Round ready to finish.</strong><span>Review all results above, then click Finish Round. The round will be locked and the next round will not start until you confirm.</span></div>':'');
   }
-
   function matchCard(m,viewOnly){
     const p1=playerName(m.player1_id),p2=playerName(m.player2_id),completed=m.status==='completed',winner=m.winner_player_id?String(m.winner_player_id):'';
     const action=viewOnly&&completed?'<span class="badge present">Recorded</span>':completed?'<button class="secondary small" type="button" onclick="SCMSTournament.score(\''+escT(m.match_id)+'\')">Edit Result</button>':m.player1_id&&m.player2_id?'<button class="secondary" type="button" onclick="SCMSTournament.score(\''+escT(m.match_id)+'\')">Report Score</button>':'<span class="badge blue">BYE</span>';
