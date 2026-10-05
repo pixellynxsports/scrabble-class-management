@@ -1257,6 +1257,16 @@ function renderReports(){
     return m.length>=2&&sa.filter(a=>a.Status==='Present').length/m.length<.75;
   });
   const pendingOrders=orders.filter(o=>['Pending Order','Pending Payment','Processing'].includes(o['Order Status'])).length;
+  const completedOrders=orders.filter(o=>o['Order Status']==='Order Done').length;
+  const collectedOrders=orders.filter(o=>o['Collection Status']==='Collected').length;
+  const classSessions=new Set(attendance.map(a=>String(a.Date||'').slice(0,10)+'|'+String(a['Actual Class Time']||a['Normal Class Time']||''))).size;
+  const tournamentResults=DATA.achievements.filter(a=>{
+    const source=String(a.source_type||'').toLowerCase();
+    const category=String(a.category||'').toLowerCase();
+    return source==='tournament'||category.includes('tournament')||category.includes('award');
+  }).filter(a=>inRange(a.achievement_date||a.date)).length;
+  const collectionBase=paidAmount+(due.length*50);
+  const collectionRate=collectionBase?Math.round(paidAmount/collectionBase*100):0;
   document.getElementById('rStudents').textContent=active.length;
   document.getElementById('rAttendanceRate').textContent=attendanceRate+'%';
   document.getElementById('rAttendanceDetail').textContent=present.length+' present of '+marked+' marked';
@@ -1264,6 +1274,10 @@ function renderReports(){
   document.getElementById('rPayments').textContent=paidPayments.length+' paid payments';
   document.getElementById('rOrderRevenue').textContent='RM'+orderRevenue.toFixed(2);
   document.getElementById('rOrderCount').textContent=orders.length+' active orders';
+  document.getElementById('rClassesConducted').textContent=classSessions;
+  document.getElementById('rClassesDetail').textContent=classSessions+' class session'+(classSessions===1?'':'s')+' recorded';
+  document.getElementById('rTournamentResults').textContent=tournamentResults;
+  document.getElementById('rTournamentDetail').textContent=tournamentResults+' tournament result'+(tournamentResults===1?'':'s')+' recorded';
   document.getElementById('rMonthBadge').textContent=period.label;
   document.getElementById('rPaymentBadge').textContent=due.length+' due';
   document.getElementById('rOrderBadge').textContent=orders.length;
@@ -1278,15 +1292,15 @@ function renderReports(){
   document.getElementById('rNeedsAttention').innerHTML=attention.length?attention.map(x=>`<button class="attention-card ${x.cls}" onclick="${x.action}"><strong>${x.count}</strong><span>${esc(x.label)}</span><b>View →</b></button>`).join(''):'<div class="attention-clear"><strong>✓</strong><span>Nothing needs attention right now.</span></div>';
   document.getElementById('attendanceSummary').innerHTML=`<div class="report-stat-row"><span>Present</span><strong>${present.length}</strong></div><div class="report-stat-row"><span>Absent</span><strong>${absent.length}</strong></div><div class="report-stat-row"><span>Marked</span><strong>${marked}</strong></div><div class="report-progress"><div style="width:${attendanceRate}%"></div></div><div class="subtle">${attendanceRate}% attendance rate for marked records.</div>`;
   const paymentDueValue=due.length*50;
-  document.getElementById('paymentSummary').innerHTML=`<div class="report-stat-row"><span>Paid packages</span><strong>${paidPayments.length}</strong></div><div class="report-stat-row"><span>Collected</span><strong>RM${paidAmount.toFixed(2)}</strong></div><div class="report-stat-row"><span>Payment due</span><strong>${due.length}</strong></div><div class="report-stat-row"><span>Potential due value</span><strong>RM${paymentDueValue.toFixed(2)}</strong></div><div class="report-stat-row"><span>Almost due</span><strong>${almost.length}</strong></div>`;
+  document.getElementById('paymentSummary').innerHTML=`<div class="report-stat-row"><span>Paid packages</span><strong>${paidPayments.length}</strong></div><div class="report-stat-row"><span>Collected</span><strong>RM${paidAmount.toFixed(2)}</strong></div><div class="report-stat-row"><span>Current payment due</span><strong>${due.length}</strong></div><div class="report-stat-row"><span>Outstanding value</span><strong>RM${paymentDueValue.toFixed(2)}</strong></div><div class="report-stat-row"><span>Collection rate</span><strong>${collectionRate}%</strong></div><div class="report-stat-row"><span>Almost due</span><strong>${almost.length}</strong></div>`;
   const buckets=[0,0,0,0,0];
   states.forEach(x=>buckets[Math.min(4,Math.max(0,Number(x.state.progress)||0))]++);
   document.getElementById('packageSummary').innerHTML=buckets.map((n,i)=>`<div class="package-bar"><div class="package-label"><span>${i} / 4 classes</span><strong>${n}</strong></div><div class="package-track"><div style="width:${active.length?Math.round(n/active.length*100):0}%"></div></div></div>`).join('');
   const statusCount=status=>orders.filter(o=>o['Order Status']===status).length;
   const orderSets=orders.filter(o=>o.Product==='Scrabble Set').reduce((n,o)=>n+(Number(o.Quantity)||1),0);
   const orderShirts=orders.filter(o=>o.Product==='T Shirt').reduce((n,o)=>n+(Number(o.Quantity)||1),0);
-  document.getElementById('orderSummary').innerHTML=`<div class="report-stat-row"><span>Scrabble Sets</span><strong>${orderSets}</strong></div><div class="report-stat-row"><span>T Shirts</span><strong>${orderShirts}</strong></div><div class="report-stat-row"><span>Pending / Processing</span><strong>${pendingOrders}</strong></div><div class="report-stat-row"><span>Order Done</span><strong>${statusCount('Order Done')}</strong></div><div class="report-stat-row"><span>Collected</span><strong>${orders.filter(o=>o['Collection Status']==='Collected').length}</strong></div><div class="report-stat-row"><span>Sales value</span><strong>RM${orderRevenue.toFixed(2)}</strong></div>`;
-  document.getElementById('reportSnapshot').innerHTML=`<div class="report-stat-row"><span>Attendance records</span><strong>${attendance.length}</strong></div><div class="report-stat-row"><span>New payment records</span><strong>${payments.length}</strong></div><div class="report-stat-row"><span>Orders placed</span><strong>${orders.length}</strong></div><div class="report-stat-row"><span>Students needing payment</span><strong>${due.length}</strong></div>`;
+  document.getElementById('orderSummary').innerHTML=`<div class="report-stat-row"><span>Scrabble Sets</span><strong>${orderSets}</strong></div><div class="report-stat-row"><span>T Shirts</span><strong>${orderShirts}</strong></div><div class="report-stat-row"><span>Pending / Processing</span><strong>${pendingOrders}</strong></div><div class="report-stat-row"><span>Completed</span><strong>${completedOrders}</strong></div><div class="report-stat-row"><span>Collected</span><strong>${collectedOrders}</strong></div><div class="report-stat-row"><span>Sales value</span><strong>RM${orderRevenue.toFixed(2)}</strong></div>`;
+  document.getElementById('reportSnapshot').innerHTML=`<div class="report-stat-row"><span>Attendance records</span><strong>${attendance.length}</strong></div><div class="report-stat-row"><span>Class sessions</span><strong>${classSessions}</strong></div><div class="report-stat-row"><span>Payment records</span><strong>${payments.length}</strong></div><div class="report-stat-row"><span>Orders placed</span><strong>${orders.length}</strong></div><div class="report-stat-row"><span>Tournament results</span><strong>${tournamentResults}</strong></div><div class="report-stat-row"><span>Students needing payment</span><strong>${due.length}</strong></div>`;
   const studentRows=active.map(s=>{
     const sid=String(s['Student ID']);
     const sa=attendance.filter(a=>String(a['Student ID'])===sid);
@@ -1334,10 +1348,11 @@ function renderReports(){
     const sid=String(s['Student ID']);
     const sa=attendance.filter(a=>String(a['Student ID'])===sid);
     const p=sa.filter(a=>a.Status==='Present').length;
-    const md=sa.filter(a=>['Present','Absent'].includes(a.Status)).length;
-    return {name:s['Student Name'],sid,p,abs:sa.filter(a=>a.Status==='Absent').length,rate:md?Math.round(p/md*100):0};
+    const ab=sa.filter(a=>a.Status==='Absent').length;
+    const md=p+ab;
+    return {name:s['Student Name'],sid,p,abs:ab,marked:md,rate:md?Math.round(p/md*100):0};
   }).sort((a,b)=>b.rate-a.rate||b.p-a.p||String(a.name).localeCompare(String(b.name)));
-  document.getElementById('reportStudentGrowth').innerHTML=growthRows.length?growthRows.map(x=>`<button class="student-growth-card" onclick="openStudentFromReport('${esc(x.sid)}')"><div class="student-growth-head"><span>${esc(x.name)}</span><strong>${x.rate}%</strong></div><div class="report-bar-track"><div style="width:${x.rate}%"></div></div><small>${x.p} present · ${x.abs} absent</small></button>`).join(''):'<div class="empty">No active students.</div>';
+  document.getElementById('reportStudentGrowth').innerHTML=growthRows.length?growthRows.map(x=>`<button class="student-growth-card" onclick="openStudentFromReport('${esc(x.sid)}')"><div class="student-growth-head"><span>${esc(x.name)}</span><strong>${x.rate}%</strong></div><div class="report-bar-track"><div style="width:${x.rate}%"></div></div><small>${x.p} present · ${x.abs} absent · ${x.marked} marked</small></button>`).join(''):'<div class="empty">No active students.</div>';
 }
 function filterReportStudents(){
   const query=String(document.getElementById('reportStudentSearch')?.value||'').trim().toLowerCase();
