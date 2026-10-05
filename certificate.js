@@ -36,12 +36,13 @@
     if(value.includes('most improved'))return 'MIP';
     if(value.includes('strategic player'))return 'SP';
     if(value.includes('fighting spirit'))return 'FS';
+    if(value.includes('participation'))return 'PART';
     return 'AWD';
   }
 
   function awardCaption(type,tournamentName){
     const value=String(type||'').toLowerCase();
-    const label=value==='1st place'?'1st':value==='2nd place'?'2nd':value==='3rd place'?'3rd':value.includes('most improved')?'MIP':value.includes('strategic player')?'SP':value.includes('fighting spirit')?'FS':'Award';
+    const label=value==='1st place'?'1st':value==='2nd place'?'2nd':value==='3rd place'?'3rd':value.includes('most improved')?'MIP':value.includes('strategic player')?'SP':value.includes('fighting spirit')?'FS':value.includes('participation')?'PART':'Award';
     return label+' in '+String(tournamentName||'Tournament');
   }
 
@@ -193,6 +194,15 @@
     return result.data;
   }
 
+  async function preview(tournament,award){
+    if(!award||!award.student_id)throw new Error('No student is linked to this award.');
+    await ensureAssets();
+    const certificateNo=award.certificate_number||certificateNumber(tournament,award);
+    const workingAward=Object.assign({},award,{title:award.title||award.award_type,certificate_number:certificateNo,certificate_caption:award.certificate_caption||awardCaption(award.award_type,tournament.name)});
+    const canvas=drawCertificate(tournament,workingAward);
+    return {imageData:canvas.toDataURL('image/jpeg',0.94),certificateNumber:certificateNo};
+  }
+
   async function generateOne(tournament,award){
     if(!award||!award.student_id)return {skipped:true,reason:'No student linked'};
     await ensureAssets();
@@ -276,6 +286,7 @@
   }
 
   window.SCMSCertificates={
+    preview:preview,
     generateForAwards:generateForAwards,
     generateTournament:generateTournament,
     retryFailed:retryFailed,
