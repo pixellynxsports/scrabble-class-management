@@ -326,9 +326,42 @@ async function submitOrderReceipt(orderId){
 /* ===== PARENT PORTAL UI ===== */
 function renderParentAchievementRows(achievements){
   return achievements.map(a=>{
-    const fileButton=a.file_path?'<button class="secondary" type="button" onclick=\'downloadAchievement('+JSON.stringify(a.file_path)+','+JSON.stringify(a.file_name||'Achievement')+')\'>Download</button>':'';
+    const isCertificate=String(a.source_type||'')==='tournament'&&String(a.certificate_path||a.file_path||'').length>0;
+    const path=a.certificate_path||a.file_path||'';
+    if(isCertificate){
+      return '<button class="parent-certificate-card" type="button" data-certificate-path="'+esc(path)+'" data-certificate-title="'+esc(a.title||'Certificate')+'" onclick="openParentCertificate(this.getAttribute(\\'data-certificate-path\\'),this.getAttribute(\\'data-certificate-title\\'))"><span class="parent-certificate-thumb-wrap"><img class="parent-certificate-thumb" data-certificate-thumb="'+esc(a.certificate_thumbnail_path||'')+'" alt="Certificate preview"></span><span class="parent-certificate-info"><strong>'+esc(a.certificate_caption||a.title||'Certificate')+'</strong><small>'+esc(formatDateClient(a.achievement_date))+' · '+esc(a.certificate_number||'Certificate')+'</small><span>View Certificate</span></span><span class="parent-certificate-arrow">›</span></button>';
+    }
+    const fileButton=a.file_path?'<button class="secondary" type="button" onclick=\\'downloadAchievement('+JSON.stringify(a.file_path)+','+JSON.stringify(a.file_name||'Achievement')+')\\'>Download</button>':'';
     return '<div class="parent-achievement-row"><div class="parent-achievement-icon">'+(a.file_path?'↗':'★')+'</div><div class="parent-achievement-copy"><strong>'+esc(a.title)+'</strong><small>'+esc(a.category||'Achievement')+' · '+esc(formatDateClient(a.achievement_date))+'</small>'+(a.description?'<p>'+esc(a.description)+'</p>':'')+'</div>'+fileButton+'</div>';
   }).join('')||'<div class="achievement-parent-empty">No achievement records have been added yet.</div>';
+}
+
+async function hydrateParentCertificateCards(){
+  const nodes=[...document.querySelectorAll('[data-certificate-thumb]')];
+  for(const img of nodes){
+    const path=img.getAttribute('data-certificate-thumb');
+    if(!path){img.closest('.parent-certificate-thumb-wrap')?.classList.add('empty');continue;}
+    try{
+      const result=await supabaseClient.storage.from('student-achievements').createSignedUrl(path,600);
+      if(result.error||!result.data?.signedUrl)throw result.error||new Error('Preview unavailable');
+      img.src=result.data.signedUrl;
+    }catch(error){
+      img.removeAttribute('src');
+      img.closest('.parent-certificate-thumb-wrap')?.classList.add('empty');
+    }
+  }
+}
+
+async function openParentCertificate(path,title){
+  if(!path)return;
+  try{
+    const result=await supabaseClient.storage.from('student-achievements').createSignedUrl(path,600);
+    if(result.error)throw result.error;
+    if(!result.data?.signedUrl)throw new Error('Certificate is unavailable.');
+    window.open(result.data.signedUrl,'_blank','noopener');
+  }catch(error){
+    appNotify(error.message||'Certificate is unavailable.','error','Certificate Unavailable');
+  }
 }
 
 function renderTeacherAchievementPanel(achievements,studentId){
@@ -352,6 +385,7 @@ function renderParentPortal(){
   const packageClasses=state.classes.slice(0,4).map((a,i)=>`<div class="parent-package-row"><span class="package-number">${i+1}</span><div><b>${esc(formatDateClient(a.Date))}</b><small>${esc(a['Actual Class Time']||'')}</small></div><span class="badge present">Present</span></div>`).join('')||'<div class="empty">No Present classes in the current package yet.</div>';
   dashboard.innerHTML=`<div id="parentActionRequired"></div><div class="parent-hero"><div><div class="eyebrow">MY CHILD</div><h2>${esc(s.student_name)}</h2><p>${esc(sid)} · ${esc(s.normal_class_time||'Class time not recorded')}</p></div><span class="badge blue">${esc(s.school||'School not recorded')}</span></div><div class="parent-achievement-panel parent-card"><div class="section-head"><div><div class="eyebrow">ACHIEVEMENTS</div><h3>Achievements &amp; Records</h3></div><span class="badge blue">${achievements.length} record${achievements.length===1?'':'s'}</span></div><p class="achievement-parent-intro">Certificates, tournament records, awards and other achievement records are stored here.</p><div class="parent-achievement-list">${renderParentAchievementRows(achievements)}</div></div><div class="parent-metrics"><div class="parent-metric"><span>CLASSES USED</span><strong>${state.progress} / 4</strong><small>${esc(state.status)}</small></div><div class="parent-metric"><span>ATTENDANCE</span><strong>${attendanceRate}%</strong><small>${present} Present · ${absent} Absent</small></div><div class="parent-metric"><span>CURRENT CYCLE</span><strong>${esc(state.currentCycle)}</strong><small>4-class package</small></div><div class="parent-metric"><span>LAST PAYMENT</span><strong>${state.lastPayment?esc(formatDateClient(state.lastPayment['Payment Date'])):'-'}</strong><small>${state.lastPayment?'Payment recorded':'No payment recorded'}</small></div></div><button class="parent-card parent-click-card" onclick="openParentPanel('package')"><div class="section-head"><div><div class="eyebrow">CURRENT PACKAGE</div><h3>4-class package</h3></div>${parentStatusBadge(state)}</div><div class="parent-progress"><div style="width:${progressWidth}%"></div></div><div class="progress-labels"><span>${state.progress} of 4 classes used</span><span>${Math.max(0,4-state.progress)} remaining</span></div><div class="parent-package-list">${packageClasses}</div></button><div class="parent-two-col"><button class="parent-card parent-click-card" onclick="openParentPanel('attendance')"><div class="section-head"><div><div class="eyebrow">ATTENDANCE</div><h3>Attendance History</h3></div><span class="badge blue">${attendance.length} record${attendance.length===1?'':'s'}</span></div><div class="parent-list">${attendance.slice(0,8).map(a=>`<div class="parent-list-row"><div><b>${esc(formatDateClient(a.Date))}</b><small>${esc(a['Actual Class Time']||'')}</small></div>${a.Status==='Present'?'<span class="badge present">Present</span>':a.Status==='Absent'?'<span class="badge absent">Absent</span>':'<span class="badge neutral">Not marked</span>'}</div>`).join('')||'<div class="empty">No attendance records yet.</div>'}</div><div class="card-arrow">›</div></button><button class="parent-card parent-click-card" onclick="openParentPanel('payments')"><div class="section-head"><div><div class="eyebrow">PAYMENTS</div><h3>Payment History</h3></div><span class="badge blue">${payments.length} record${payments.length===1?'':'s'}</span></div><div class="parent-list">${payments.slice(0,6).map(p=>`<div class="parent-list-row"><div><b>Cycle ${esc(p['Cycle Number'])}</b><small>${esc(formatDateClient(p['Payment Date']))} · ${esc(p['Classes Covered']||'')}</small></div><div><strong>RM${esc(p.Amount||0)}</strong><span class="badge paid">${esc(p.Status||'')}</span></div></div>`).join('')||'<div class="empty">No payment records yet.</div>'}</div><div class="card-arrow">›</div></button></div><button class="parent-card parent-click-card" onclick="openParentPanel('orders')"><div class="section-head"><div><div class="eyebrow">ORDERS</div><h3>My Orders</h3></div><span class="badge blue">${orders.length} order${orders.length===1?'':'s'}</span></div><div class="parent-list">${orders.slice(0,8).map(o=>`<div class="parent-list-row"><div><b>${esc(o.Product||'Order')}</b><small>${o.Product==='T Shirt'?`Size ${esc(o.Size||'-')} · `:''}Qty ${esc(o.Quantity||1)} · ${esc(formatDateClient(o['Order Date']))}</small></div><div class="parent-order-status"><span>${esc(o['Order Status']||'')}</span><small>${esc(orderPaymentDisplay(o).label)} · ${esc(o['Collection Status']||'')}</small></div></div>`).join('')||'<div class="empty">No orders recorded.</div>'}<div class="card-arrow">›</div></div></button>`;
   renderActionRequired(state);
+  hydrateParentCertificateCards();
 }
 
 async function openTeacherParentPreview(studentId){
