@@ -1447,7 +1447,7 @@ function renderReports(){
     const [y,m]=ym.split('-').map(Number);
     return new Date(y,m-1,1).toLocaleDateString('en-MY',{month:'short',year:'2-digit'});
   };
-  const trendMonths=Array.from({length:6},(_,i)=>shiftMonth(month,i));
+  const trendMonths=Array.from({length:6},(_,i)=>shiftMonth('2026-09',i));
   const trend=trendMonths.map(m=>{
     const a=DATA.attendance.filter(x=>String(x.Date||'').slice(0,7)===m);
     const p=a.filter(x=>x.Status==='Present').length;
