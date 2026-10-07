@@ -1264,6 +1264,12 @@ function reviewRequestStudent(request){
 function renderTeacherReviewRequestPanel(){
   const panel=document.getElementById('studentReviewRequestPanel');
   if(!panel)return;
+  const archivedView=studentView==='archived';
+  panel.classList.toggle('hidden',!archivedView);
+  if(!archivedView){
+    panel.innerHTML='';
+    return;
+  }
   const pending=teacherReviewRequests.filter(r=>r.status==='Pending');
   panel.innerHTML=`
     <button type="button" class="review-request-panel" onclick="page('reviewRequests')">
@@ -1276,7 +1282,6 @@ function renderTeacherReviewRequestPanel(){
       <div class="review-request-panel-side"><span class="badge ${pending.length?'almost':'neutral'}">${pending.length}</span><strong>Open →</strong></div>
     </button>`;
 }
-
 function renderReviewRequests(){
   const target=document.getElementById('reviewRequestsContent');
   if(!target)return;
