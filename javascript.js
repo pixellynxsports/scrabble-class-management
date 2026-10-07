@@ -64,7 +64,7 @@ async function loadParentPortal(){
   let students=[],attendance=[],payments=[],orders=[],tournaments=[],reviewRequests=[];
 
   if(ids.length){
-    const [s,a,p,o,t,rq]=await Promise.all([
+    const [s,a,p,o,t]=await Promise.all([
       supabaseClient.from('students')
         .select('student_id,student_name,school,age,scrabble_experience,parent_guardian,whatsapp,normal_class_time,email,registration_date,active')
         .in('student_id',ids).order('student_name'),
@@ -75,17 +75,24 @@ async function loadParentPortal(){
       supabaseClient.from('orders')
         .select('*').in('student_id',ids).order('order_date',{ascending:false}),
       supabaseClient.from('tournaments')
-        .select('*').order('event_date',{ascending:false}).order('created_at',{ascending:false}),
-      supabaseClient.from('student_review_requests')
-        .select('*').in('student_id',ids).order('requested_at',{ascending:false})
+        .select('*').order('event_date',{ascending:false}).order('created_at',{ascending:false})
     ]);
 
-    for(const result of [s,a,p,o,t,rq]){if(result.error)throw dbError(result.error);}
+    for(const result of [s,a,p,o,t]){if(result.error)throw dbError(result.error);}
     students=s.data||[];
     attendance=(a.data||[]).map(attendanceFromDb);
     payments=(p.data||[]).map(paymentFromDb);
     orders=(o.data||[]).map(orderFromDb);
-    reviewRequests=rq.data||[];
+
+    const {data:reviewData,error:reviewError}=await supabaseClient
+      .from('student_review_requests')
+      .select('*').in('student_id',ids).order('requested_at',{ascending:false});
+    if(reviewError){
+      if(reviewError.code==='42P01') reviewRequests=[];
+      else throw dbError(reviewError);
+    }else{
+      reviewRequests=reviewData||[];
+    }
 
     // Tournament data is retained for active children only. Archived children
     // never receive tournament data in their Parent Portal view.
