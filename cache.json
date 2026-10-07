@@ -1,6 +1,6 @@
 {
   "version": "20261007.5",
-  "updated": "2026-10-07T18:03:00Z",
+  "updated": "2026-10-07T18:08:00Z",
   "purpose": "Cache version for production asset refresh",
   "assets": {
     "style.css": "20261007.4",
