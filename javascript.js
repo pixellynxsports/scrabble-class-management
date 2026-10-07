@@ -1156,9 +1156,9 @@ async function initSupabaseAuth(){
 }
 
 /* ===== NAVIGATION & PAGE RENDERING ===== */
-function page(name){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));const target=document.getElementById(name);if(!target)return;target.classList.add('active');document.querySelectorAll('.nav').forEach(x=>x.classList.remove('active'));const navName=name==='studentProfile'?'students':name;[...document.querySelectorAll('.nav')].find(x=>x.querySelector('.nav-icon + span')?.textContent.trim().toLowerCase()===navName)?.classList.add('active');document.getElementById('title').textContent=name==='studentProfile'?'Student Profile':name==='orderDashboard'?'Order Dashboard':name[0].toUpperCase()+name.slice(1);if(name==='attendance')renderAttendance();if(name==='students')renderStudents();if(name==='payments')renderPayments();if(name==='orders')renderOrders();if(name==='reports')renderReports()}
+function page(name){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));const target=document.getElementById(name);if(!target)return;target.classList.add('active');document.querySelectorAll('.nav').forEach(x=>x.classList.remove('active'));const navName=name==='studentProfile'?'students':name;[...document.querySelectorAll('.nav')].find(x=>x.querySelector('.nav-icon + span')?.textContent.trim().toLowerCase()===navName)?.classList.add('active');document.getElementById('title').textContent=name==='studentProfile'?'Student Profile':name==='orderDashboard'?'Order Dashboard':name==='reviewRequests'?'Review Requests':name[0].toUpperCase()+name.slice(1);if(name==='attendance')renderAttendance();if(name==='students')renderStudents();if(name==='payments')renderPayments();if(name==='orders')renderOrders();if(name==='reports')renderReports();if(name==='reviewRequests')renderReviewRequests()}
 function navigateToSection(pageName,targetId){page(pageName);setTimeout(()=>{const target=document.getElementById(targetId);if(target)target.scrollIntoView({behavior:'smooth',block:'start'});},0)}
-function renderAll(){document.querySelector('.app')?.classList.remove('hidden');document.getElementById('today').textContent=formatDateClient(isoDate(latestSunday()));document.getElementById('rStudents').textContent=DATA.students.length;renderHome();const active=document.querySelector('.page.active')?.id||'overview';if(active==='attendance')renderAttendance();else if(active==='students')renderStudents();else if(active==='payments')renderPayments();else if(active==='orders')renderOrders();else if(active==='reports')renderReports();else if(active==='studentProfile'&&currentProfileId)renderProfile(currentProfileId)}
+function renderAll(){document.querySelector('.app')?.classList.remove('hidden');document.getElementById('today').textContent=formatDateClient(isoDate(latestSunday()));document.getElementById('rStudents').textContent=DATA.students.length;renderHome();const active=document.querySelector('.page.active')?.id||'overview';if(active==='attendance')renderAttendance();else if(active==='students')renderStudents();else if(active==='payments')renderPayments();else if(active==='orders')renderOrders();else if(active==='reports')renderReports();else if(active==='reviewRequests')renderReviewRequests();else if(active==='studentProfile'&&currentProfileId)renderProfile(currentProfileId);if(currentUserRole==='teacher')loadTeacherReviewRequests()}
 function paymentStateFor(sid){return calculatePaymentState(DATA.payments,DATA.attendance,sid);}
 
 function cycleFor(sid){return paymentStateFor(sid).progress}
@@ -1232,6 +1232,194 @@ function studentSortIndicator(key){
   if(studentSortKey!==key)return '';
   return studentSortDirection==='asc'?' ↑':' ↓';
 }
+let teacherReviewRequests=[];
+
+async function loadTeacherReviewRequests(){
+  if(currentUserRole!=='teacher')return;
+  try{
+    const {data,error}=await supabaseClient
+      .from('student_review_requests')
+      .select('*')
+      .order('requested_at',{ascending:false});
+    if(error)throw dbError(error);
+    teacherReviewRequests=data||[];
+    renderTeacherReviewRequestPanel();
+    if(document.getElementById('reviewRequests')?.classList.contains('active'))renderReviewRequests();
+  }catch(e){
+    console.error('Review requests load failed',e);
+  }
+}
+
+function reviewRequestStudent(request){
+  return DATA.students.find(s=>String(s['Student ID'])===String(request.student_id))||null;
+}
+
+function renderTeacherReviewRequestPanel(){
+  const panel=document.getElementById('studentReviewRequestPanel');
+  if(!panel)return;
+  const pending=teacherReviewRequests.filter(r=>r.status==='Pending');
+  panel.innerHTML=`
+    <button type="button" class="review-request-panel" onclick="page('reviewRequests')">
+      <div class="review-request-panel-icon">↗</div>
+      <div class="review-request-panel-copy">
+        <div class="eyebrow">REVIEW REQUESTS</div>
+        <h3>Archived Student Review Requests</h3>
+        <p>${pending.length?pending.length+' request'+(pending.length===1?'':'s')+' waiting for review.':'No pending review requests.'}</p>
+      </div>
+      <div class="review-request-panel-side"><span class="badge ${pending.length?'almost':'neutral'}">${pending.length}</span><strong>Open →</strong></div>
+    </button>`;
+}
+
+function renderReviewRequests(){
+  const target=document.getElementById('reviewRequestsContent');
+  if(!target)return;
+  const pending=teacherReviewRequests.filter(r=>r.status==='Pending');
+  const history=teacherReviewRequests.filter(r=>r.status!=='Pending');
+  const requestRows=teacherReviewRequests.map(r=>{
+    const s=reviewRequestStudent(r);
+    const statusClass=r.status==='Pending'?'almost':r.status==='Approved'?'paid':'absent';
+    return `
+      <button type="button" class="review-request-row" onclick="openStudentReviewRequest('${esc(r.request_id)}')">
+        <div class="review-request-row-main">
+          <strong>${esc(s?.['Student Name']||r.student_id)}</strong>
+          <span>${esc(r.student_id)} · ${esc(s?.['Parent / Guardian']||'Parent')} · ${esc(formatDateClient(r.requested_at))}</span>
+        </div>
+        <span class="badge ${statusClass}">${esc(r.status)}</span>
+        <span class="detail-chevron">›</span>
+      </button>`;
+  }).join('');
+
+  target.innerHTML=`
+    <div class="page-intro review-page-intro">
+      <div><div class="eyebrow">STUDENT MANAGEMENT</div><h2>Review Requests</h2><p>Review requests from parents of archived students before deciding whether to reactivate the student.</p></div>
+      <span class="badge ${pending.length?'almost':'neutral'}">${pending.length} Pending</span>
+    </div>
+    <div class="panel review-request-list-panel">
+      <div class="row"><div><h3>Requests</h3><div class="subtle">Pending requests appear first. Previous decisions remain available for reference.</div></div><span class="badge blue">${teacherReviewRequests.length}</span></div>
+      <div class="review-request-list">${requestRows||'<div class="empty">No review requests have been submitted.</div>'}</div>
+    </div>`;
+}
+
+async function openStudentReviewRequest(requestId){
+  const request=teacherReviewRequests.find(r=>String(r.request_id)===String(requestId));
+  if(!request)return;
+  const s=reviewRequestStudent(request);
+  const target=document.getElementById('reviewRequestsContent');
+  if(!target||!s)return;
+
+  const sid=String(s['Student ID']);
+  const payments=DATA.payments.filter(p=>String(p['Student ID'])===sid).sort((a,b)=>new Date(b['Payment Date'])-new Date(a['Payment Date']));
+  const attendance=DATA.attendance.filter(a=>String(a['Student ID'])===sid).sort((a,b)=>attendanceDateKey(b.Date).localeCompare(attendanceDateKey(a.Date)));
+  const statusClass=request.status==='Pending'?'almost':request.status==='Approved'?'paid':'absent';
+
+  target.innerHTML=`
+    <div class="review-detail-top">
+      <button type="button" class="secondary" onclick="renderReviewRequests()">← Back to Requests</button>
+      <span class="badge ${statusClass}">${esc(request.status)}</span>
+    </div>
+
+    <div class="review-detail-grid">
+      <div class="panel">
+        <div class="eyebrow">STUDENT DETAILS</div>
+        <h2>${esc(s['Student Name'])}</h2>
+        <div class="review-detail-fields">
+          <div><small>Student ID</small><strong>${esc(s['Student ID'])}</strong></div>
+          <div><small>School</small><strong>${esc(s.School||'-')}</strong></div>
+          <div><small>Normal Class</small><strong>${esc(s['Normal Class Time']||'-')}</strong></div>
+          <div><small>Registration Date</small><strong>${esc(formatDateClient(s['Registration Date']))}</strong></div>
+          <div><small>Parent / Guardian</small><strong>${esc(s['Parent / Guardian']||'-')}</strong></div>
+          <div><small>WhatsApp</small><strong>${esc(s.WhatsApp||'-')}</strong></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="eyebrow">REQUEST</div>
+        <h2>Parent Review Request</h2>
+        <div class="review-request-meta">
+          <div><small>Submitted</small><strong>${esc(formatDateClient(request.requested_at))}</strong></div>
+          <div><small>Status</small><strong>${esc(request.status)}</strong></div>
+        </div>
+        <div class="review-request-message">The parent has requested an administrator review of this archived student.</div>
+      </div>
+    </div>
+
+    <div class="panel review-history-panel">
+      <div class="row"><div><div class="eyebrow">PAYMENT HISTORY</div><h3>Previous Payments</h3></div><span class="badge blue">${payments.length}</span></div>
+      <div class="review-payment-list">${payments.map(p=>`
+        <div class="review-payment-row">
+          <div><strong>Cycle ${esc(p['Cycle Number']||'-')}</strong><small>${esc(formatDateClient(p['Payment Date']))} · ${esc(p['Classes Covered']||'No class dates recorded')}</small></div>
+          <div><strong>RM${esc(p.Amount||0)}</strong><span class="badge ${String(p.Status||'').toLowerCase()==='paid'?'paid':'absent'}">${esc(p.Status||'')}</span></div>
+        </div>`).join('')||'<div class="empty">No payment history recorded.</div>'}</div>
+    </div>
+
+    <div class="panel review-history-panel">
+      <div class="row"><div><div class="eyebrow">ATTENDANCE HISTORY</div><h3>Previous Attendance</h3></div><span class="badge blue">${attendance.length}</span></div>
+      <div class="review-attendance-list">${attendance.slice(0,20).map(a=>`
+        <div class="review-attendance-row"><span>${esc(formatDateClient(a.Date))}</span><span>${esc(a['Actual Class Time']||'-')}</span><span class="badge ${a.Status==='Present'?'present':a.Status==='Absent'?'absent':'neutral'}">${esc(a.Status||'Not marked')}</span></div>`).join('')||'<div class="empty">No attendance history recorded.</div>'}</div>
+      ${attendance.length>20?'<div class="subtle review-history-more">Showing the latest 20 attendance records.</div>':''}
+    </div>
+
+    ${request.status==='Pending'?`
+      <div class="review-decision-panel">
+        <div><div class="eyebrow">ADMINISTRATOR DECISION</div><h3>Choose what should happen to this student</h3><p>The student is currently archived. Activate only after reviewing the student details and history.</p></div>
+        <div class="review-decision-actions">
+          <button class="primary" onclick="reviewStudentRequest('${esc(request.request_id)}','activate')">Activate Student</button>
+          <button class="secondary" onclick="reviewStudentRequest('${esc(request.request_id)}','keep')">Keep Archived</button>
+        </div>
+      </div>`:`
+      <div class="review-decision-result ${request.status==='Approved'?'approved':'kept'}">
+        <strong>${request.status==='Approved'?'Student Activated':'Student Remains Archived'}</strong>
+        <span>Reviewed ${request.reviewed_at?esc(formatDateClient(request.reviewed_at)):'previously'}.</span>
+      </div>`}
+  `;
+}
+
+async function reviewStudentRequest(requestId,decision){
+  const request=teacherReviewRequests.find(r=>String(r.request_id)===String(requestId));
+  if(!request||request.status!=='Pending')return;
+  const s=reviewRequestStudent(request);
+  if(!s)return;
+
+  const decisionLabel=decision==='activate'?'activate this student':'keep this student archived';
+  if(!(await appConfirm('Please confirm that you want to '+decisionLabel+'.','Review Request')))return;
+
+  try{
+    const user=(await supabaseClient.auth.getUser()).data.user;
+    if(!user?.id)throw new Error('Your session has expired. Please sign in again.');
+
+    const activate=decision==='activate';
+    const {error:studentError}=await supabaseClient
+      .from('students')
+      .update({active:activate})
+      .eq('student_id',String(s['Student ID']));
+    if(studentError)throw dbError(studentError);
+
+    const {data:updated,error:requestError}=await supabaseClient
+      .from('student_review_requests')
+      .update({
+        status:activate?'Approved':'Kept Archived',
+        reviewed_at:new Date().toISOString(),
+        reviewed_by:user.id
+      })
+      .eq('request_id',request.request_id)
+      .eq('status','Pending')
+      .select()
+      .single();
+    if(requestError)throw dbError(requestError);
+
+    const index=teacherReviewRequests.findIndex(r=>String(r.request_id)===String(requestId));
+    if(index>=0)teacherReviewRequests[index]=updated;
+
+    DATA=await loadRemoteData();
+    renderStudents();
+    renderTeacherReviewRequestPanel();
+    renderReviewRequests();
+    appNotify(activate?'Student activated successfully.':'Student remains archived.');
+  }catch(e){
+    appNotify(e.message||'Unable to complete the review.');
+  }
+}
+
 function renderStudents(){
   const q=(document.getElementById('studentSearch')?.value||'').toLowerCase();
   const students=DATA.students
@@ -1253,6 +1441,7 @@ function renderStudents(){
     return `<tr class="clickable" onclick="openStudent('${esc(s['Student ID'])}')"><td>${esc(s['Student ID'])}</td><td><b>${esc(s['Student Name'])}</b></td><td>${esc(s['Normal Class Time']||'')}</td><td>${currentCycle}</td><td>${progress} / 4</td><td>${badge(progress,state)}</td><td>${esc(formatDateClient(s['Registration Date']))}</td><td>${action}</td></tr>`;
   }).join('');
   document.getElementById('studentsBody').innerHTML=rows||'<tr><td colspan="8" class="empty">No students found.</td></tr>';
+  renderTeacherReviewRequestPanel();
   const headers={id:'ID',studentName:'Student',normalTime:'Normal Time',currentCycle:'Current Cycle',classes:'Classes',status:'Status',enrollment:'Enrollment'};
   Object.entries(headers).forEach(([key,label])=>{
     const button=document.querySelector(`#students thead [data-student-sort="${key}"]`);
