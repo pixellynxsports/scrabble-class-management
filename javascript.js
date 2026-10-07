@@ -53,52 +53,102 @@ async function loadParentPortal(){
   const account=await getCurrentParentAccount();
   if(!account)throw new Error('This account is not registered as a parent account.');
   if(account.active===false)throw new Error('This parent account is inactive. Please contact the teacher.');
-  const {data:links,error:linkError}=await supabaseClient.from('parent_students').select('student_id').eq('parent_user_id',account.user_id);
+
+  const {data:links,error:linkError}=await supabaseClient
+    .from('parent_students')
+    .select('student_id')
+    .eq('parent_user_id',account.user_id);
   if(linkError)throw dbError(linkError);
+
   const ids=(links||[]).map(x=>x.student_id).filter(Boolean);
-  let students=[],attendance=[],payments=[],orders=[],tournaments=[];
+  let students=[],attendance=[],payments=[],orders=[],tournaments=[],reviewRequests=[];
+
   if(ids.length){
-    const [s,a,p,o,t]=await Promise.all([
-      supabaseClient.from('students').select('student_id,student_name,school,age,scrabble_experience,parent_guardian,whatsapp,normal_class_time,email,registration_date,active').in('student_id',ids).order('student_name'),
-      supabaseClient.from('attendance').select('*').in('student_id',ids).order('attendance_date',{ascending:false}),
-      supabaseClient.from('payments').select('*').in('student_id',ids).order('payment_date',{ascending:false}),
-      supabaseClient.from('orders').select('*').in('student_id',ids).eq('archived',false).order('order_date',{ascending:false}),
-      supabaseClient.from('tournaments').select('*').order('event_date',{ascending:false}).order('created_at',{ascending:false})
+    const [s,a,p,o,t,rq]=await Promise.all([
+      supabaseClient.from('students')
+        .select('student_id,student_name,school,age,scrabble_experience,parent_guardian,whatsapp,normal_class_time,email,registration_date,active')
+        .in('student_id',ids).order('student_name'),
+      supabaseClient.from('attendance')
+        .select('*').in('student_id',ids).order('attendance_date',{ascending:false}),
+      supabaseClient.from('payments')
+        .select('*').in('student_id',ids).order('payment_date',{ascending:false}),
+      supabaseClient.from('orders')
+        .select('*').in('student_id',ids).order('order_date',{ascending:false}),
+      supabaseClient.from('tournaments')
+        .select('*').order('event_date',{ascending:false}).order('created_at',{ascending:false}),
+      supabaseClient.from('student_review_requests')
+        .select('*').in('student_id',ids).order('requested_at',{ascending:false})
     ]);
-    for(const result of [s,a,p,o,t]){if(result.error)throw dbError(result.error);}
+
+    for(const result of [s,a,p,o,t,rq]){if(result.error)throw dbError(result.error);}
     students=s.data||[];
     attendance=(a.data||[]).map(attendanceFromDb);
     payments=(p.data||[]).map(paymentFromDb);
     orders=(o.data||[]).map(orderFromDb);
+    reviewRequests=rq.data||[];
+
+    // Tournament data is retained for active children only. Archived children
+    // never receive tournament data in their Parent Portal view.
+    const activeIds=students
+      .filter(x=>x.active!==false)
+      .map(x=>String(x.student_id));
+
     const visibleTournamentIds=(t.data||[]).map(x=>x.tournament_id).filter(Boolean);
-    if(visibleTournamentIds.length){
-      const {data:players,error:playerError}=await supabaseClient.from('tournament_players').select('*').in('tournament_id',visibleTournamentIds).in('student_id',ids);
+    if(activeIds.length&&visibleTournamentIds.length){
+      const {data:players,error:playerError}=await supabaseClient
+        .from('tournament_players')
+        .select('*')
+        .in('tournament_id',visibleTournamentIds)
+        .in('student_id',activeIds);
       if(playerError)throw dbError(playerError);
+
       const playerTournamentIds=[...(players||[])].map(x=>x.tournament_id).filter(Boolean);
       if(playerTournamentIds.length){
-        const [r,m,w]=await Promise.all([
+        const [rr,mm,ww]=await Promise.all([
           supabaseClient.from('tournament_rounds').select('*').in('tournament_id',playerTournamentIds).order('round_number'),
           supabaseClient.from('tournament_matches').select('*').in('tournament_id',playerTournamentIds).order('round_number').order('match_number'),
           supabaseClient.from('tournament_awards').select('*').in('tournament_id',playerTournamentIds).order('rank')
         ]);
-        for(const result of [r,m,w]){if(result.error)throw dbError(result.error);}
+        for(const result of [rr,mm,ww]){if(result.error)throw dbError(result.error);}
         const byId={};
-        (t.data||[]).filter(x=>playerTournamentIds.includes(x.tournament_id)).forEach(x=>byId[x.tournament_id]={...x,players:[],rounds:[],matches:[],awards:[]});
+        (t.data||[]).filter(x=>playerTournamentIds.includes(x.tournament_id))
+          .forEach(x=>byId[x.tournament_id]={...x,players:[],rounds:[],matches:[],awards:[]});
         (players||[]).forEach(x=>byId[x.tournament_id]?.players.push(x));
-        (r.data||[]).forEach(x=>byId[x.tournament_id]?.rounds.push(x));
-        (m.data||[]).forEach(x=>byId[x.tournament_id]?.matches.push(x));
-        (w.data||[]).forEach(x=>byId[x.tournament_id]?.awards.push(x));
+        (rr.data||[]).forEach(x=>byId[x.tournament_id]?.rounds.push(x));
+        (mm.data||[]).forEach(x=>byId[x.tournament_id]?.matches.push(x));
+        (ww.data||[]).forEach(x=>byId[x.tournament_id]?.awards.push(x));
         tournaments=Object.values(byId);
       }
     }
   }
-  PARENT_CONTEXT={account,students,attendance,payments,orders,achievements:[],tournaments,selectedStudentId:ids[0]||''};
+
+  PARENT_CONTEXT={
+    account,
+    students,
+    attendance,
+    payments,
+    orders,
+    reviewRequests,
+    achievements:[],
+    tournaments,
+    selectedStudentId:ids[0]||''
+  };
+
   renderParentPortal();
   setConnection('● Online',false);
-  if(ids.length){
-    loadAchievementsSafely(ids).then(records=>{PARENT_CONTEXT.achievements=records;renderParentPortal();}).catch(()=>{});
+
+  const activeIds=students.filter(x=>x.active!==false).map(x=>String(x.student_id));
+  if(activeIds.length){
+    loadAchievementsSafely(activeIds).then(records=>{
+      PARENT_CONTEXT.achievements=records;
+      renderParentPortal();
+    }).catch(()=>{});
   }
-  if(parentPaymentReturn&&!parentPaymentReturnHandled&&!parentPaymentProcessing){parentPaymentReturnHandled=true;checkReturnedPayment();}
+
+  if(parentPaymentReturn&&!parentPaymentReturnHandled&&!parentPaymentProcessing){
+    parentPaymentReturnHandled=true;
+    checkReturnedPayment();
+  }
 }
 /* ===== PAYMENT DOMAIN ===== */
 let paymentStateCache=new Map();
@@ -206,7 +256,8 @@ function openParentPanel(type){
   const sid=String(s.student_id);
   const attendance=PARENT_CONTEXT.attendance.filter(a=>String(a['Student ID'])===sid).sort((a,b)=>attendanceDateKey(b.Date).localeCompare(attendanceDateKey(a.Date)));
   const payments=PARENT_CONTEXT.payments.filter(p=>String(p['Student ID'])===sid).sort((a,b)=>new Date(b['Payment Date'])-new Date(a['Payment Date']));
-  const orders=PARENT_CONTEXT.orders.filter(o=>String(o['Student ID'])===sid&&!['yes','true'].includes(String(o.Archived||'').toLowerCase())).sort((a,b)=>new Date(b['Order Date'])-new Date(a['Order Date']));
+  const archivedStudent=s.active===false;
+  const orders=PARENT_CONTEXT.orders.filter(o=>String(o['Student ID'])===sid&&(archivedStudent||!['yes','true'].includes(String(o.Archived||'').toLowerCase()))).sort((a,b)=>new Date(b['Order Date'])-new Date(a['Order Date']));
   const state=parentPaymentState(sid);
   let title='',eyebrow='',content='';
   if(type==='package'){
@@ -606,6 +657,154 @@ function scheduleParentTournamentExpiry(){
     parentTournamentRefreshTimer=setTimeout(()=>{if(currentUserRole==='parent')loadParentPortal().catch(()=>{});},20000);
   }
 }
+function parentReviewRequestFor(sid){
+  return (PARENT_CONTEXT.reviewRequests||[])
+    .filter(r=>String(r.student_id)===String(sid))
+    .sort((a,b)=>new Date(b.requested_at)-new Date(a.requested_at))[0]||null;
+}
+
+function renderArchivedParentPortal(s){
+  const dashboard=document.getElementById('parentDashboard');
+  if(!dashboard)return;
+
+  const sid=String(s.student_id);
+  const attendance=PARENT_CONTEXT.attendance
+    .filter(a=>String(a['Student ID'])===sid)
+    .sort((a,b)=>attendanceDateKey(b.Date).localeCompare(attendanceDateKey(a.Date)));
+  const payments=PARENT_CONTEXT.payments
+    .filter(p=>String(p['Student ID'])===sid)
+    .sort((a,b)=>new Date(b['Payment Date'])-new Date(a['Payment Date']));
+  const orders=PARENT_CONTEXT.orders
+    .filter(o=>String(o['Student ID'])===sid)
+    .sort((a,b)=>new Date(b['Order Date'])-new Date(a['Order Date']));
+
+  const request=parentReviewRequestFor(sid);
+  const pending=request?.status==='Pending';
+  const requestState=pending
+    ? '<span class="badge almost">Pending Review</span>'
+    : request?.status==='Kept Archived'
+      ? '<span class="badge absent">Kept Archived</span>'
+      : request?.status==='Approved'
+        ? '<span class="badge paid">Approved</span>'
+        : '<span class="badge neutral">Not Submitted</span>';
+
+  const requestAction=pending
+    ? '<button class="parent-review-button submitted" type="button" disabled>Review Request Submitted</button>'
+    : '<button class="parent-review-button" type="button" onclick="submitParentReviewRequest()">Request Review</button>';
+
+  const attendancePreview=attendance.slice(0,5).map(a=>`
+    <div class="parent-list-row">
+      <div><b>${esc(formatDateClient(a.Date))}</b><small>${esc(a['Actual Class Time']||'')}</small></div>
+      ${a.Status==='Present'?'<span class="badge present">Present</span>':a.Status==='Absent'?'<span class="badge absent">Absent</span>':'<span class="badge neutral">Not marked</span>'}
+    </div>`).join('')||'<div class="empty">No attendance history recorded.</div>';
+
+  const paymentPreview=payments.slice(0,5).map(p=>`
+    <div class="parent-list-row">
+      <div><b>Cycle ${esc(p['Cycle Number']||'-')}</b><small>${esc(formatDateClient(p['Payment Date']))} · ${esc(p['Classes Covered']||'')}</small></div>
+      <div><strong>RM${esc(p.Amount||0)}</strong><span class="badge paid">${esc(p.Status||'')}</span></div>
+    </div>`).join('')||'<div class="empty">No payment history recorded.</div>';
+
+  const orderPreview=orders.slice(0,5).map(o=>`
+    <div class="parent-list-row">
+      <div><b>${esc(o.Product||'Order')}</b><small>Qty ${esc(o.Quantity||1)} · ${esc(formatDateClient(o['Order Date']))}</small></div>
+      <div class="parent-order-status"><span>${esc(o['Order Status']||'')}</span><small>RM${esc(o.Total||0)}</small></div>
+    </div>`).join('')||'<div class="empty">No order history recorded.</div>';
+
+  dashboard.innerHTML=`
+    <div class="archived-parent-hero">
+      <div>
+        <div class="eyebrow">ARCHIVED STUDENT</div>
+        <h2>${esc(s.student_name)}</h2>
+        <p>${esc(sid)} · ${esc(s.school||'School not recorded')}</p>
+      </div>
+      <span class="archived-parent-badge">ARCHIVED</span>
+    </div>
+
+    <div class="archived-parent-notice">
+      <div class="archived-parent-notice-icon">!</div>
+      <div class="archived-parent-notice-copy">
+        <div class="eyebrow">STUDENT STATUS</div>
+        <h3>This student has been archived from the system.</h3>
+        <p>Current classes, package progress, live updates and new tournament activity are no longer available. Historical attendance, payment and order records remain available for viewing.</p>
+      </div>
+    </div>
+
+    <div class="archived-review-card">
+      <div>
+        <div class="eyebrow">REVIEW REQUEST</div>
+        <h3>Request administrator review</h3>
+        <p>${pending?'Your request has been submitted. Please wait for the administrator to review it.':'If you believe this student should be reactivated, submit a review request to the administrator.'}</p>
+      </div>
+      <div class="archived-review-action">
+        ${requestState}
+        ${requestAction}
+      </div>
+    </div>
+
+    <div class="parent-metrics archived-history-metrics">
+      <div class="parent-metric"><span>PAST ATTENDANCE</span><strong>${attendance.length}</strong><small>Historical records</small></div>
+      <div class="parent-metric"><span>PAST PAYMENTS</span><strong>${payments.length}</strong><small>Historical payments</small></div>
+      <div class="parent-metric"><span>PAST ORDERS</span><strong>${orders.length}</strong><small>Historical orders</small></div>
+    </div>
+
+    <div class="parent-two-col archived-history-grid">
+      <button class="parent-card parent-click-card" onclick="openParentPanel('attendance')">
+        <div class="section-head"><div><div class="eyebrow">HISTORY</div><h3>Attendance History</h3></div><span class="badge blue">${attendance.length}</span></div>
+        <div class="parent-list">${attendancePreview}</div><div class="card-arrow">›</div>
+      </button>
+      <button class="parent-card parent-click-card" onclick="openParentPanel('payments')">
+        <div class="section-head"><div><div class="eyebrow">HISTORY</div><h3>Payment History</h3></div><span class="badge blue">${payments.length}</span></div>
+        <div class="parent-list">${paymentPreview}</div><div class="card-arrow">›</div>
+      </button>
+    </div>
+
+    <button class="parent-card parent-click-card archived-orders-card" onclick="openParentPanel('orders')">
+      <div class="section-head"><div><div class="eyebrow">HISTORY</div><h3>Order History</h3></div><span class="badge blue">${orders.length}</span></div>
+      <div class="parent-list">${orderPreview}</div><div class="card-arrow">›</div>
+    </button>
+
+    <div class="archived-readonly-note"><span>READ ONLY</span> Historical records are preserved and cannot be changed from the Parent Portal.</div>
+  `;
+}
+
+async function submitParentReviewRequest(){
+  const s=PARENT_CONTEXT.students.find(x=>String(x.student_id)===String(PARENT_CONTEXT.selectedStudentId));
+  if(!s||s.active!==false)return;
+
+  const existing=parentReviewRequestFor(s.student_id);
+  if(existing?.status==='Pending'){
+    renderParentPortal();
+    return;
+  }
+
+  try{
+    const {data:user,error:userError}=await supabaseClient.auth.getUser();
+    if(userError)throw dbError(userError);
+    if(!user?.user?.id)throw new Error('Your session has expired. Please sign in again.');
+
+    const {data,error}=await supabaseClient
+      .from('student_review_requests')
+      .insert({
+        student_id:String(s.student_id),
+        parent_user_id:user.user.id,
+        status:'Pending'
+      })
+      .select()
+      .single();
+
+    if(error)throw dbError(error);
+    PARENT_CONTEXT.reviewRequests=[data,...(PARENT_CONTEXT.reviewRequests||[])];
+    renderParentPortal();
+    appNotify('Review request submitted. Please wait for the administrator to review it.');
+  }catch(e){
+    if(String(e?.message||'').toLowerCase().includes('duplicate')||String(e?.message||'').includes('23505')){
+      await loadParentPortal();
+      return;
+    }
+    appNotify(e.message||'Unable to submit the review request.');
+  }
+}
+
 function renderParentPortal(){
   document.querySelector('.app')?.classList.add('hidden');document.getElementById('parentPortal')?.classList.remove('hidden');
   const account=PARENT_CONTEXT.account||{};const welcome=document.getElementById('parentWelcome');if(welcome)welcome.textContent=`Welcome, ${account.parent_name||'Parent'}.`;
@@ -614,7 +813,12 @@ function renderParentPortal(){
   if(!PARENT_CONTEXT.students.some(s=>String(s.student_id)===String(PARENT_CONTEXT.selectedStudentId)))PARENT_CONTEXT.selectedStudentId=PARENT_CONTEXT.students[0].student_id;
   selector.innerHTML=`<div class="parent-card"><div class="eyebrow">MY CHILDREN</div><h2>Select a child</h2><div class="parent-child-tabs">${PARENT_CONTEXT.students.map(s=>{const active=String(s.student_id)===String(PARENT_CONTEXT.selectedStudentId);return `<button class="parent-child-tab ${active?'active':''}" onclick="selectParentChild('${esc(s.student_id)}')"><span>${esc(s.student_name)}</span><small>${esc(s.student_id)} · ${esc(s.normal_class_time||'Class time not recorded')}</small></button>`}).join('')}</div></div>`;
   const s=PARENT_CONTEXT.students.find(x=>String(x.student_id)===String(PARENT_CONTEXT.selectedStudentId));if(!s){dashboard.innerHTML='';return;}
-  const sid=String(s.student_id);const achievements=(PARENT_CONTEXT.achievements||[]).filter(a=>String(a.student_id)===sid).sort((a,b)=>new Date(b.achievement_date)-new Date(a.achievement_date));const attendance=PARENT_CONTEXT.attendance.filter(a=>String(a['Student ID'])===sid).sort((a,b)=>attendanceDateKey(b.Date).localeCompare(attendanceDateKey(a.Date)));const payments=PARENT_CONTEXT.payments.filter(p=>String(p['Student ID'])===sid).sort((a,b)=>new Date(b['Payment Date'])-new Date(a['Payment Date']));const orders=PARENT_CONTEXT.orders.filter(o=>String(o['Student ID'])===sid&&!['yes','true'].includes(String(o.Archived||'').toLowerCase())).sort((a,b)=>new Date(b['Order Date'])-new Date(a['Order Date']));const state=parentPaymentState(sid);const present=attendance.filter(a=>a.Status==='Present').length;const absent=attendance.filter(a=>a.Status==='Absent').length;const attendanceRate=attendance.length?Math.round(present/attendance.length*100):0;const progressWidth=Math.min(100,Math.round(state.progress/4*100));
+  const sid=String(s.student_id);
+  if(s.active===false){
+    renderArchivedParentPortal(s);
+    return;
+  }
+  const achievements=(PARENT_CONTEXT.achievements||[]).filter(a=>String(a.student_id)===sid).sort((a,b)=>new Date(b.achievement_date)-new Date(a.achievement_date));const attendance=PARENT_CONTEXT.attendance.filter(a=>String(a['Student ID'])===sid).sort((a,b)=>attendanceDateKey(b.Date).localeCompare(attendanceDateKey(a.Date)));const payments=PARENT_CONTEXT.payments.filter(p=>String(p['Student ID'])===sid).sort((a,b)=>new Date(b['Payment Date'])-new Date(a['Payment Date']));const orders=PARENT_CONTEXT.orders.filter(o=>String(o['Student ID'])===sid&&!['yes','true'].includes(String(o.Archived||'').toLowerCase())).sort((a,b)=>new Date(b['Order Date'])-new Date(a['Order Date']));const state=parentPaymentState(sid);const present=attendance.filter(a=>a.Status==='Present').length;const absent=attendance.filter(a=>a.Status==='Absent').length;const attendanceRate=attendance.length?Math.round(present/attendance.length*100):0;const progressWidth=Math.min(100,Math.round(state.progress/4*100));
   const packageClasses=state.classes.slice(0,4).map((a,i)=>`<div class="parent-package-row"><span class="package-number">${i+1}</span><div><b>${esc(formatDateClient(a.Date))}</b><small>${esc(a['Actual Class Time']||'')}</small></div><span class="badge present">Present</span></div>`).join('')||'<div class="empty">No Present classes in the current package yet.</div>';
   const tournamentPanel=renderParentTournamentPanel(sid);
   const certificates=parentCertificateRecords(sid);
