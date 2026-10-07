@@ -1359,13 +1359,6 @@ async function openStudentReviewRequest(requestId){
         </div>`).join('')||'<div class="empty">No payment history recorded.</div>'}</div>
     </div>
 
-    <div class="panel review-history-panel">
-      <div class="row"><div><div class="eyebrow">ATTENDANCE HISTORY</div><h3>Previous Attendance</h3></div><span class="badge blue">${attendance.length}</span></div>
-      <div class="review-attendance-list">${attendance.slice(0,20).map(a=>`
-        <div class="review-attendance-row"><span>${esc(formatDateClient(a.Date))}</span><span>${esc(a['Actual Class Time']||'-')}</span><span class="badge ${a.Status==='Present'?'present':a.Status==='Absent'?'absent':'neutral'}">${esc(a.Status||'Not marked')}</span></div>`).join('')||'<div class="empty">No attendance history recorded.</div>'}</div>
-      ${attendance.length>20?'<div class="subtle review-history-more">Showing the latest 20 attendance records.</div>':''}
-    </div>
-
     ${request.status==='Pending'?`
       <div class="review-decision-panel">
         <div><div class="eyebrow">ADMINISTRATOR DECISION</div><h3>Choose what should happen to this student</h3><p>The student is currently archived. Activate only after reviewing the student details and history.</p></div>
