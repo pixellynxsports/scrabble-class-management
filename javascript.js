@@ -1188,7 +1188,7 @@ function tableSortValue(value){
   if(/^-?\d+(?:\.\d+)?(?:\s*\/\s*\d+(?:\.\d+)?)?$/.test(numeric)){
     if(numeric.includes('/')){
       const [a,b]=numeric.split('/').map(Number);
-      return {type:'number',value=b?a/b:a};
+      return {type:'number',value:b?a/b:a};
     }
     return {type:'number',value:Number(numeric)};
   }
