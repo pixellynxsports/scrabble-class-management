@@ -1180,7 +1180,120 @@ function attendanceForDate(date){return DATA.attendance.filter(a=>attendanceDate
 function studentButton(studentId,name,extraClass=''){const student=DATA.students.find(s=>String(s['Student ID'])===String(studentId));const attendance=attendanceForDate(selectedAttendanceDate()).find(a=>String(a['Student ID'])===String(studentId)&&a.Status==='Present');const visualClass=extraClass==='normal-attendance'&&student&&attendance&&student['Normal Class Time']!==attendance['Actual Class Time']?'other-attendance':extraClass;return `<div class="att-row ${visualClass}"><button class="linkbtn" onclick="openStudent('${esc(studentId)}')">${esc(name)}</button></div>`}
 function formatDateClient(v){if(!v)return '';const d=new Date(v);return isNaN(d)?String(v):d.toLocaleDateString(undefined,{day:'2-digit',month:'short',year:'numeric'})}
 /* ===== ATTENDANCE ===== */
-function renderHome(){const date=selectedAttendanceDate();document.getElementById('today').textContent=formatDateClient(date);const students=activeStudents().filter(s=>registrationDateKey(s['Registration Date'])<=date);const attendance=attendanceForDate(date);const byId=new Map(students.map(s=>[String(s['Student ID']),s]));const absentById=new Map();['10:30 AM','2:00 PM'].forEach(time=>{const id=time==='10:30 AM'?'1030':'1400';const panelStudents=students.filter(s=>String(s['Normal Class Time'])===time);const records=new Map(attendance.filter(a=>byId.has(String(a['Student ID']))).map(a=>[String(a['Student ID']),a]));let present=0,other=0,absent=0;panelStudents.forEach(s=>{const a=records.get(String(s['Student ID']));if(!a)return;if(a.Status==='Absent'){absent++;absentById.set(String(s['Student ID']),s);return}if(a.Status==='Present'){if(String(a['Actual Class Time'])===time)present++;else other++}});document.getElementById('c'+id).textContent=panelStudents.length+' students';document.getElementById('p'+id).textContent=present;document.getElementById('a'+id).textContent=absent;document.getElementById('o'+id).textContent=other});attendance.forEach(a=>{if(a.Status==='Absent'){const s=byId.get(String(a['Student ID']));if(s)absentById.set(String(a['Student ID']),s)}});const absentStudents=[...absentById.values()].sort((a,b)=>String(a['Student Name']).localeCompare(String(b['Student Name'])));document.getElementById('homeAbsentCount').textContent=absentStudents.length;document.getElementById('homeAbsentStudents').innerHTML=absentStudents.map(s=>studentButton(s['Student ID'],s['Student Name'],'absent-attendance')).join('')||'<div class="empty">No absent students.</div>';const cycles=students.map(s=>cycleFor(s['Student ID']));const activeOrders=DATA.orders.filter(o=>String(o.Archived||'').toLowerCase()!=='yes');const pendingOrders=activeOrders.filter(o=>['Pending Order','Pending Payment'].includes(String(o['Order Status']||''))).length;const unpaidOrders=activeOrders.filter(o=>String(o['Payment Status']||'').toLowerCase()==='unpaid').length;const actionBox=document.getElementById('homeActionRequired');if(actionBox){const due=cycles.filter(x=>x>=4).length;const items=[];if(due)items.push(`<button class="action-item" onclick="navigateToSection('payments','paymentDueSection')"><span><b>${due}</b> package payment${due===1?'':'s'} due</span><span>›</span></button>`);if(pendingOrders)items.push(`<button class="action-item" onclick="navigateToSection('orders','orderSummaryCards')"><span><b>${pendingOrders}</b> order${pendingOrders===1?'':'s'} need attention</span><span>›</span></button>`);if(unpaidOrders&&unpaidOrders!==pendingOrders)items.push(`<button class="action-item" onclick="page('orders')"><span><b>${unpaidOrders}</b> unpaid order${unpaidOrders===1?'':'s'}</span><span>›</span></button>`);actionBox.innerHTML=items.length?items.join(''):'<div class="action-ok-row"><span>Everything is up to date</span></div>';}}
+function renderHome(){
+  const date=selectedAttendanceDate();
+  const students=activeStudents().filter(s=>registrationDateKey(s['Registration Date'])<=date);
+  const attendance=attendanceForDate(date);
+  const byId=new Map(students.map(s=>[String(s['Student ID']),s]));
+  const absentById=new Map();
+  const sectionStats={};
+
+  ['10:30 AM','2:00 PM'].forEach(time=>{
+    const id=time==='10:30 AM'?'1030':'1400';
+    const panelStudents=students.filter(s=>String(s['Normal Class Time'])===time);
+    const records=new Map(attendance.filter(a=>byId.has(String(a['Student ID']))).map(a=>[String(a['Student ID']),a]));
+    let present=0,other=0,absent=0;
+    panelStudents.forEach(s=>{
+      const a=records.get(String(s['Student ID']));
+      if(!a)return;
+      if(a.Status==='Absent'){absent++;absentById.set(String(s['Student ID']),s);return;}
+      if(a.Status==='Present'){
+        if(String(a['Actual Class Time'])===time)present++;
+        else other++;
+      }
+    });
+    const marked=present+absent+other;
+    sectionStats[time]={total:panelStudents.length,present,absent,other,marked};
+    const count=document.getElementById('c'+id),presentEl=document.getElementById('p'+id),absentEl=document.getElementById('a'+id);
+    const progress=document.getElementById('homeProgress'+id),status=document.getElementById('homeStatus'+id);
+    if(count)count.textContent=panelStudents.length+' students';
+    if(presentEl)presentEl.textContent=present;
+    if(absentEl)absentEl.textContent=absent;
+    if(progress)progress.style.width=(panelStudents.length?Math.min(100,(marked/panelStudents.length)*100):0)+'%';
+    if(status)status.textContent=marked+' of '+panelStudents.length+' marked'+(other?' · '+other+' other section':'');
+  });
+
+  attendance.forEach(a=>{if(a.Status==='Absent'){const s=byId.get(String(a['Student ID']));if(s)absentById.set(String(a['Student ID']),s);}});
+  const absentStudents=[...absentById.values()].sort((a,b)=>String(a['Student Name']).localeCompare(String(b['Student Name'])));
+  const absentCount=document.getElementById('homeAbsentCount');
+  if(absentCount)absentCount.textContent=absentStudents.length;
+  const absentBox=document.getElementById('homeAbsentStudents');
+  if(absentBox){
+    absentBox.innerHTML=absentStudents.length
+      ? absentStudents.slice(0,5).map(s=>studentButton(s['Student ID'],s['Student Name'],'absent-attendance')).join('')+(absentStudents.length>5?'<button class="home-inline-link" type="button" onclick="page(\'attendance\')">View all '+absentStudents.length+' absent students →</button>':'')
+      : '<div class="home-empty-state"><strong>No absences recorded</strong><span>Attendance is clear for the selected Sunday.</span></div>';
+  }
+
+  const due=students.filter(s=>cycleFor(s['Student ID'])>=4).length;
+  const almostDue=students.filter(s=>cycleFor(s['Student ID'])===3).length;
+  const activeOrders=DATA.orders.filter(o=>String(o.Archived||'').toLowerCase()!=='yes');
+  const pendingOrders=activeOrders.filter(o=>['Pending Order','Pending Payment'].includes(String(o['Order Status']||''))).length;
+  const unpaidOrders=activeOrders.filter(o=>String(o['Payment Status']||'').toLowerCase()==='unpaid').length;
+  const pendingRegistrations=teacherRegistrationRequests.length;
+  const pendingReviews=teacherReviewRequests.filter(r=>r.status==='Pending').length;
+  const attentionCount=pendingRegistrations+pendingReviews+due+pendingOrders+(unpaidOrders>pendingOrders?unpaidOrders-pendingOrders:0);
+
+  const activeEl=document.getElementById('homeActiveStudents');
+  const markedEl=document.getElementById('homeAttendanceMarked');
+  const dueEl=document.getElementById('homePaymentDue');
+  const attentionEl=document.getElementById('homeAttentionCount');
+  if(activeEl)activeEl.textContent=activeStudents().length;
+  if(markedEl)markedEl.textContent=attendance.filter(a=>byId.has(String(a['Student ID']))).length+' / '+students.length;
+  if(dueEl)dueEl.textContent=due;
+  if(attentionEl)attentionEl.textContent=attentionCount;
+
+  const badge=document.getElementById('homeAttentionBadge');
+  if(badge){
+    badge.className='badge '+(attentionCount?'almost':'present');
+    badge.textContent=attentionCount?attentionCount+' item'+(attentionCount===1?'':'s'):'Up to date';
+  }
+
+  const actionBox=document.getElementById('homeActionRequired');
+  if(actionBox){
+    const items=[];
+    if(pendingRegistrations)items.push('<button class="home-attention-item critical" type="button" onclick="openTeacherRegistrations()"><span class="home-attention-icon">+</span><span class="home-attention-copy"><strong>'+pendingRegistrations+' New Registration'+(pendingRegistrations===1?'':'s')+'</strong><small>New student applications are waiting for teacher review.</small></span><b>Review →</b></button>');
+    if(pendingReviews)items.push('<button class="home-attention-item critical" type="button" onclick="page(\'reviewRequests\')"><span class="home-attention-icon">↗</span><span class="home-attention-copy"><strong>'+pendingReviews+' Student Review Request'+(pendingReviews===1?'':'s')+'</strong><small>Archived student requests are waiting for a decision.</small></span><b>Review →</b></button>');
+    if(due)items.push('<button class="home-attention-item warning" type="button" onclick="navigateToSection(\'payments\',\'paymentDueSection\')"><span class="home-attention-icon">RM</span><span class="home-attention-copy"><strong>'+due+' Package Payment'+(due===1?'':'s')+' Due</strong><small>Completed four class packages are ready for payment.</small></span><b>View →</b></button>');
+    if(almostDue)items.push('<button class="home-attention-item info" type="button" onclick="navigateToSection(\'payments\',\'paymentAlmostSection\')"><span class="home-attention-icon">3/4</span><span class="home-attention-copy"><strong>'+almostDue+' Student'+(almostDue===1?'':'s')+' Almost Due</strong><small>One attended class remains in the current package.</small></span><b>View →</b></button>');
+    if(pendingOrders)items.push('<button class="home-attention-item warning" type="button" onclick="navigateToSection(\'orders\',\'orderSummaryCards\')"><span class="home-attention-icon">OR</span><span class="home-attention-copy"><strong>'+pendingOrders+' Order'+(pendingOrders===1?'':'s')+' Need Attention</strong><small>Orders are waiting for the next processing step.</small></span><b>View →</b></button>');
+    if(unpaidOrders>pendingOrders)items.push('<button class="home-attention-item info" type="button" onclick="page(\'orders\')"><span class="home-attention-icon">RM</span><span class="home-attention-copy"><strong>'+(unpaidOrders-pendingOrders)+' Additional Unpaid Order'+((unpaidOrders-pendingOrders)===1?'':'s')+'</strong><small>Unpaid orders outside the pending order count.</small></span><b>View →</b></button>');
+    actionBox.innerHTML=items.length?items.join(''):'<div class="home-clear-state"><span>✓</span><div><strong>Everything is up to date</strong><small>No priority items are waiting for your attention.</small></div></div>';
+  }
+
+  renderHomeRecentActivity();
+}
+function renderHomeRecentActivity(){
+  const target=document.getElementById('homeRecentActivity');
+  if(!target)return;
+  const activities=[];
+  teacherRegistrationRequests.slice(0,3).forEach(r=>activities.push({time:r.submitted_at,title:'New registration',detail:r.student_name+' · '+r.parent_name,type:'critical'}));
+  teacherReviewRequests.filter(r=>r.status==='Pending').slice(0,3).forEach(r=>{
+    const s=reviewRequestStudent(r);
+    activities.push({time:r.requested_at,title:'Review request',detail:(s?.['Student Name']||r.student_id),type:'critical'});
+  });
+  DATA.payments.slice(0,5).forEach(p=>activities.push({time:p['Payment Date'],title:'Payment recorded',detail:(DATA.students.find(s=>String(s['Student ID'])===String(p['Student ID']))?.['Student Name']||p['Student ID'])+' · RM'+(p.Amount||0),type:'normal'}));
+  DATA.orders.filter(o=>String(o.Archived||'').toLowerCase()!=='yes').slice(0,5).forEach(o=>activities.push({time:o['Order Date'],title:'Order activity',detail:(o['Customer Name']||o['Customer']||o['Student Name']||o['Order ID']||'Order'),type:'normal'}));
+  activities.sort((a,b)=>new Date(b.time||0)-new Date(a.time||0));
+  const recent=activities.slice(0,5);
+  target.innerHTML=recent.length?recent.map(a=>'<div class="home-activity-row"><span class="home-activity-dot '+a.type+'"></span><div><strong>'+esc(a.title)+'</strong><small>'+esc(a.detail)+'</small></div><time>'+esc(homeRelativeTime(a.time))+'</time></div>').join(''):'<div class="home-empty-state"><strong>No recent activity</strong><span>New operational activity will appear here.</span></div>';
+}
+function homeRelativeTime(value){
+  if(!value)return 'Recently';
+  const time=new Date(value).getTime(),now=Date.now(),diff=Math.max(0,now-time);
+  if(!Number.isFinite(time))return formatDateClient(value);
+  const mins=Math.floor(diff/60000);
+  if(mins<1)return 'Just now';
+  if(mins<60)return mins+' min'+(mins===1?'':'s')+' ago';
+  const hours=Math.floor(mins/60);
+  if(hours<24)return hours+' hr'+(hours===1?'':'s')+' ago';
+  const days=Math.floor(hours/24);
+  if(days<7)return days+' day'+(days===1?'':'s')+' ago';
+  return formatDateClient(value);
+}
+function focusHomeAttention(){
+  const target=document.getElementById('homeActionRequired');
+  if(target)target.scrollIntoView({behavior:'smooth',block:'start'});
+}
 	function setHomeDate(delta){let d=new Date(selectedAttendanceDate()+'T12:00:00');if(delta===0)d=latestSunday();else d.setDate(d.getDate()+delta);if(d.getDay()!==0)d=latestSunday(d);document.getElementById('attDate').value=isoDate(d);renderHome()}
 function setAttDate(delta){let d=new Date(selectedAttendanceDate()+'T12:00:00');if(delta===0)d=latestSunday();else d.setDate(d.getDate()+delta);if(d.getDay()!==0)d=latestSunday(d);document.getElementById('attDate').value=isoDate(d);renderAttendance();renderHome()}
 function openAttendance(time){page('attendance');document.getElementById('attDate').value=isoDate(latestSunday());renderAttendance()}
@@ -1239,18 +1352,25 @@ function studentSortIndicator(key){
   if(studentSortKey!==key)return '';
   return studentSortDirection==='asc'?' ↑':' ↓';
 }
-let teacherReviewRequests=[];
+let teacherReviewRequests=[];let teacherRegistrationRequests=[];
 
 async function loadTeacherReviewRequests(){
   if(currentUserRole!=='teacher')return;
   try{
-    const {data,error}=await supabaseClient
-      .from('student_review_requests')
-      .select('*')
-      .order('requested_at',{ascending:false});
-    if(error)throw dbError(error);
-    teacherReviewRequests=data||[];
+    const [reviewResult,registrationResult]=await Promise.all([
+      supabaseClient.from('student_review_requests').select('*').order('requested_at',{ascending:false}),
+      supabaseClient.from('student_registrations').select('registration_id,student_name,parent_name,parent_email,status,submitted_at,preferred_class_time').eq('status','Pending Review').order('submitted_at',{ascending:false})
+    ]);
+    if(reviewResult.error)throw dbError(reviewResult.error);
+    teacherReviewRequests=reviewResult.data||[];
+    if(registrationResult.error){
+      console.error('Registration attention load failed',registrationResult.error);
+      teacherRegistrationRequests=[];
+    }else{
+      teacherRegistrationRequests=registrationResult.data||[];
+    }
     renderTeacherReviewRequestPanel();
+    renderHome();
     if(document.getElementById('reviewRequests')?.classList.contains('active'))renderReviewRequests();
   }catch(e){
     console.error('Review requests load failed',e);
