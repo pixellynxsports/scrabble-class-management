@@ -1163,6 +1163,113 @@ async function initSupabaseAuth(){
 }
 
 /* ===== NAVIGATION & PAGE RENDERING ===== */
+const tableSortState=new Map();
+
+function tableSortContext(table){
+  const page=table.closest('.page')?.id||'global';
+  const headings=[...table.querySelectorAll(':scope > thead > tr:first-child > th')].map(th=>th.textContent.trim()).join('|');
+  return page+'::'+(table.className||'table')+'::'+headings;
+}
+function tableSortValue(value){
+  const text=String(value||'').replace(/\s+/g,' ').trim();
+  if(!text)return {type:'empty',value:''};
+  const upper=text.toUpperCase();
+  const time=upper.match(/^(?:AT\s+)?(\d{1,2}):(\d{2})\s*(AM|PM)$/);
+  if(time){
+    let hour=Number(time[1]);if(time[3]==='PM'&&hour!==12)hour+=12;if(time[3]==='AM'&&hour===12)hour=0;
+    return {type:'number',value:hour*60+Number(time[2])};
+  }
+  const date=text.match(/^(\d{1,2})\s+([A-Za-z]{3,9})\s+(\d{4})$/);
+  if(date){
+    const parsed=Date.parse(text);
+    if(Number.isFinite(parsed))return {type:'number',value:parsed};
+  }
+  const numeric=text.replace(/RM\s*/gi,'').replace(/,/g,'').replace(/%/g,'');
+  if(/^-?\d+(?:\.\d+)?(?:\s*\/\s*\d+(?:\.\d+)?)?$/.test(numeric)){
+    if(numeric.includes('/')){
+      const [a,b]=numeric.split('/').map(Number);
+      return {type:'number',value=b?a/b:a};
+    }
+    return {type:'number',value:Number(numeric)};
+  }
+  return {type:'text',value:text.toLocaleLowerCase()};
+}
+function compareTableCells(a,b){
+  const av=tableSortValue(a),bv=tableSortValue(b);
+  if(av.type==='empty'&&bv.type!=='empty')return 1;
+  if(av.type!=='empty'&&bv.type==='empty')return -1;
+  if(av.type==='number'&&bv.type==='number')return av.value-bv.value;
+  if(av.type!==bv.type)return String(av.value).localeCompare(String(bv.value),undefined,{numeric:true,sensitivity:'base'});
+  return String(av.value).localeCompare(String(bv.value),undefined,{numeric:true,sensitivity:'base'});
+}
+function sortGenericTable(table,index,direction){
+  const body=table.tBodies[0];if(!body)return;
+  const rows=[...body.rows].map((row,order)=>({row,order}));
+  rows.sort((a,b)=>{
+    const result=compareTableCells(a.row.cells[index]?.textContent||'',b.row.cells[index]?.textContent||'');
+    return result||a.order-b.order;
+  });
+  if(direction==='desc')rows.reverse();
+  const fragment=document.createDocumentFragment();
+  rows.forEach(item=>fragment.appendChild(item.row));
+  body.appendChild(fragment);
+}
+function decorateSortableTables(){
+  document.querySelectorAll('.app table').forEach(table=>{
+    if(table.closest('#tournament')||table.classList.contains('parent-tournament-table')||!table.tHead||!table.tBodies.length)return;
+    const headers=[...table.tHead.rows[0].cells];
+    headers.forEach((th,index)=>{
+      if(th.dataset.sortableReady==='1'||th.querySelector('button,input,select,textarea'))return;
+      const label=th.textContent.trim();
+      if(!label||/^(action|actions|select)$/i.test(label))return;
+      th.dataset.sortableReady='1';
+      th.classList.add('table-sortable-header');
+      const button=document.createElement('button');
+      button.type='button';
+      button.className='table-sort-button';
+      button.innerHTML='<span>'+esc(label)+'</span><span class="table-sort-indicator" aria-hidden="true"></span>';
+      button.addEventListener('click',event=>{
+        event.preventDefault();
+        const context=tableSortContext(table);
+        const previous=tableSortState.get(context);
+        const direction=previous?.index===index&&previous.direction==='asc'?'desc':'asc';
+        tableSortState.set(context,{index,direction});
+        sortGenericTable(table,index,direction);
+        headers.forEach((header,headerIndex)=>{
+          const indicator=header.querySelector('.table-sort-indicator');
+          if(indicator)indicator.textContent=headerIndex===index?(direction==='asc'?'↑':'↓'):'';
+          header.classList.toggle('table-sort-active',headerIndex===index);
+        });
+      });
+      th.textContent='';
+      th.appendChild(button);
+    });
+    const state=tableSortState.get(tableSortContext(table));
+    if(state){
+      sortGenericTable(table,state.index,state.direction);
+      headers.forEach((header,headerIndex)=>{
+        const indicator=header.querySelector('.table-sort-indicator');
+        if(indicator)indicator.textContent=headerIndex===state.index?(state.direction==='asc'?'↑':'↓'):'';
+        header.classList.toggle('table-sort-active',headerIndex===state.index);
+      });
+    }
+  });
+}
+let tableSortObserverStarted=false;
+function startTableSortObserver(){
+  if(tableSortObserverStarted)return;
+  const root=document.querySelector('.app');
+  if(!root||typeof MutationObserver==='undefined')return;
+  tableSortObserverStarted=true;
+  let timer=null;
+  const observer=new MutationObserver(()=>{
+    clearTimeout(timer);
+    timer=setTimeout(decorateSortableTables,60);
+  });
+  observer.observe(root,{childList:true,subtree:true});
+  decorateSortableTables();
+}
+
 function page(name){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));const target=document.getElementById(name);if(!target)return;target.classList.add('active');document.querySelectorAll('.nav').forEach(x=>x.classList.remove('active'));const navName=name==='studentProfile'?'students':name;[...document.querySelectorAll('.nav')].find(x=>x.querySelector('.nav-icon + span')?.textContent.trim().toLowerCase()===navName)?.classList.add('active');document.getElementById('title').textContent=name==='studentProfile'?'Student Profile':name==='orderDashboard'?'Order Dashboard':name==='reviewRequests'?'Review Requests':name[0].toUpperCase()+name.slice(1);if(name==='attendance')renderAttendance();if(name==='students')renderStudents();if(name==='payments')renderPayments();if(name==='orders')renderOrders();if(name==='reports')renderReports();if(name==='reviewRequests')renderReviewRequests()}
 function navigateToSection(pageName,targetId){page(pageName);setTimeout(()=>{const target=document.getElementById(targetId);if(target)target.scrollIntoView({behavior:'smooth',block:'start'});},0)}
 function renderAll(){document.querySelector('.app')?.classList.remove('hidden');document.getElementById('today').textContent=formatDateClient(isoDate(latestSunday()));document.getElementById('rStudents').textContent=DATA.students.length;renderHome();const active=document.querySelector('.page.active')?.id||'overview';if(active==='attendance')renderAttendance();else if(active==='students')renderStudents();else if(active==='payments')renderPayments();else if(active==='orders')renderOrders();else if(active==='reports')renderReports();else if(active==='reviewRequests')renderReviewRequests();else if(active==='studentProfile'&&currentProfileId)renderProfile(currentProfileId);if(currentUserRole==='teacher')loadTeacherReviewRequests()}
