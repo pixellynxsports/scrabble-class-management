@@ -1237,8 +1237,14 @@ function renderHome(){
   const markedEl=document.getElementById('homeAttendanceMarked');
   const dueEl=document.getElementById('homePaymentDue');
   const attentionEl=document.getElementById('homeAttentionCount');
+  const overallAttendance=attendance.filter(a=>byId.has(String(a['Student ID'])));
+  const overallPresent=overallAttendance.filter(a=>a.Status==='Present').length;
+  const overallAbsent=overallAttendance.filter(a=>a.Status==='Absent').length;
+  const overallOther=overallAttendance.filter(a=>a.Status==='Present'&&String(a['Actual Class Time']||'')!==String(byId.get(String(a['Student ID']))?.['Normal Class Time']||'')).length;
   if(activeEl)activeEl.textContent=activeStudents().length;
-  if(markedEl)markedEl.textContent=attendance.filter(a=>byId.has(String(a['Student ID']))).length+' / '+students.length;
+  if(markedEl)markedEl.textContent=overallPresent+' / '+students.length;
+  const attendanceMeta=document.querySelector('.home-kpi:nth-child(2) .home-kpi-meta');
+  if(attendanceMeta)attendanceMeta.innerHTML=(overallAbsent?overallAbsent+' absent':'No absences')+(overallOther?' · '+overallOther+' other section':'')+' <b>→</b>';
   if(dueEl)dueEl.textContent=due;
   if(attentionEl)attentionEl.textContent=attentionCount;
 
