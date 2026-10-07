@@ -3089,3 +3089,11 @@ body.payment-history-open{overflow:hidden}
   .home-class-footer{align-items:flex-start;flex-direction:column}
   .home-class-footer .secondary{width:100%}
 }
+
+/* ===== GLOBAL SORTABLE TABLE HEADERS ===== */
+.table-sortable-header{padding:0!important}
+.table-sort-button{width:100%;min-height:42px;padding:0 4px;border:0;background:transparent;color:inherit;font:inherit;font-size:inherit;letter-spacing:inherit;text-transform:inherit;text-align:left;cursor:pointer;display:flex;align-items:center;justify-content:flex-start;gap:5px;transition:color .15s ease}
+.table-sort-button:hover{color:#315efb}
+.table-sort-button:focus-visible{outline:2px solid rgba(49,94,251,.3);outline-offset:-2px;border-radius:5px}
+.table-sort-indicator{font-size:10px;line-height:1;min-width:8px;color:#315efb;font-weight:900}
+.table-sort-active .table-sort-button{color:#315efb}
