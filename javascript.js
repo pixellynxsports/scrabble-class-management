@@ -1206,10 +1206,12 @@ function sortGenericTable(table,index,direction){
   const body=table.tBodies[0];if(!body)return;
   const rows=[...body.rows].map((row,order)=>({row,order}));
   rows.sort((a,b)=>{
-    const result=compareTableCells(a.row.cells[index]?.textContent||'',b.row.cells[index]?.textContent||'');
-    return result||a.order-b.order;
+    const av=a.row.cells[index]?.textContent||'',bv=b.row.cells[index]?.textContent||'';
+    const aEmpty=!String(av).trim(),bEmpty=!String(bv).trim();
+    if(aEmpty!==bEmpty)return aEmpty?1:-1;
+    const result=compareTableCells(av,bv);
+    return (result||a.order-b.order)*(direction==='desc'?-1:1);
   });
-  if(direction==='desc')rows.reverse();
   const fragment=document.createDocumentFragment();
   rows.forEach(item=>fragment.appendChild(item.row));
   body.appendChild(fragment);
@@ -1270,6 +1272,7 @@ function startTableSortObserver(){
   decorateSortableTables();
 }
 
+startTableSortObserver();
 function page(name){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));const target=document.getElementById(name);if(!target)return;target.classList.add('active');document.querySelectorAll('.nav').forEach(x=>x.classList.remove('active'));const navName=name==='studentProfile'?'students':name;[...document.querySelectorAll('.nav')].find(x=>x.querySelector('.nav-icon + span')?.textContent.trim().toLowerCase()===navName)?.classList.add('active');document.getElementById('title').textContent=name==='studentProfile'?'Student Profile':name==='orderDashboard'?'Order Dashboard':name==='reviewRequests'?'Review Requests':name[0].toUpperCase()+name.slice(1);if(name==='attendance')renderAttendance();if(name==='students')renderStudents();if(name==='payments')renderPayments();if(name==='orders')renderOrders();if(name==='reports')renderReports();if(name==='reviewRequests')renderReviewRequests()}
 function navigateToSection(pageName,targetId){page(pageName);setTimeout(()=>{const target=document.getElementById(targetId);if(target)target.scrollIntoView({behavior:'smooth',block:'start'});},0)}
 function renderAll(){document.querySelector('.app')?.classList.remove('hidden');document.getElementById('today').textContent=formatDateClient(isoDate(latestSunday()));document.getElementById('rStudents').textContent=DATA.students.length;renderHome();const active=document.querySelector('.page.active')?.id||'overview';if(active==='attendance')renderAttendance();else if(active==='students')renderStudents();else if(active==='payments')renderPayments();else if(active==='orders')renderOrders();else if(active==='reports')renderReports();else if(active==='reviewRequests')renderReviewRequests();else if(active==='studentProfile'&&currentProfileId)renderProfile(currentProfileId);if(currentUserRole==='teacher')loadTeacherReviewRequests()}
