@@ -1,0 +1,14 @@
+{
+  "version": "20261007.4",
+  "updated": "2026-10-07T18:03:00Z",
+  "purpose": "Cache version for production asset refresh",
+  "assets": {
+    "style.css": "20261007.4",
+    "javascript.js": "20261007.4",
+    "favicon.svg": "20261006.2",
+    "tournament.css": "20261005.10",
+    "registration.js": "20261003.5",
+    "tournament.js": "20261005.8",
+    "certificate.js": "20261005.8"
+  }
+}
