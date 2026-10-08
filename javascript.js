@@ -1913,6 +1913,7 @@ function renderProfileData(d){
 
     <div class="profile-section-title"><div><div class="eyebrow">ORDERS</div><h3>Linked Orders</h3></div><span class="profile-section-note">${orders.length} order${orders.length===1?'':'s'}</span></div>
     <div class="panel profile-table-panel scroll"><table><thead><tr><th>Order ID</th><th>Product</th><th>Size</th><th>Qty</th><th>Total</th><th>Order Status</th><th>Payment</th><th>Collection</th><th>Date</th></tr></thead><tbody>${orders.map(o=>`<tr><td><button class="linkbtn" onclick="openOrder('${esc(o['Order ID'])}')">${esc(o['Order ID'])}</button></td><td>${esc(o.Product||'')}</td><td>${o.Product==='T Shirt'?esc(o.Size||''):'-'}</td><td>${esc(o.Quantity||1)}</td><td>RM${esc(o.Total||0)}</td><td>${esc(o['Order Status']||'')}</td><td>${esc(String(o['Payment Proof Status']||'')==='Submitted'?'Awaiting Confirmation':o['Payment Status']||'')}</td><td>${esc(o['Collection Status']||'')}</td><td>${esc(formatDateClient(o['Order Date']))}</td></tr>`).join('')||'<tr><td colspan="9" class="empty">No linked orders.</td></tr>'}</tbody></table></div>`;
+  decorateSortableTables();
 }
 /* ===== REPORTS ===== */
 function getReportPeriod(){
