@@ -1220,7 +1220,7 @@ function sortGenericTable(table,index,direction){
 }
 function updateGenericTableIndicators(table,index,direction){
   [...table.tHead.rows[0].cells].forEach((th,headerIndex)=>{
-    const indicator=th.querySelector('.table-sort-indicator');
+    const indicator=th.querySelector('.student-sort-indicator');
     if(indicator)indicator.textContent=headerIndex===index?(direction==='asc'?' ↑':' ↓'):'';
     th.classList.toggle('table-sort-active',headerIndex===index);
   });
@@ -1237,8 +1237,8 @@ function decorateSortableTables(){
       th.classList.add('table-sortable-header');
       const button=document.createElement('button');
       button.type='button';
-      button.className='table-sort-button';
-      button.innerHTML='<span>'+esc(label)+'</span><span class="table-sort-indicator" aria-hidden="true"></span>';
+      button.className='student-sort-button';
+      button.innerHTML='<span>'+esc(label)+'</span><span class="student-sort-indicator" aria-hidden="true"></span>';
       button.addEventListener('click',event=>{
         event.preventDefault();
         event.stopPropagation();
