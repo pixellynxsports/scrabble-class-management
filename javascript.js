@@ -1290,25 +1290,28 @@ function renderHome(){
     const id=time==='10:30 AM'?'1030':'1400';
     const panelStudents=students.filter(s=>String(s['Normal Class Time'])===time);
     const records=new Map(attendance.filter(a=>byId.has(String(a['Student ID']))).map(a=>[String(a['Student ID']),a]));
-    let present=0,other=0,absent=0;
+    let present=0,absent=0;
     panelStudents.forEach(s=>{
       const a=records.get(String(s['Student ID']));
       if(!a)return;
       if(a.Status==='Absent'){absent++;absentById.set(String(s['Student ID']),s);return;}
-      if(a.Status==='Present'){
-        if(String(a['Actual Class Time'])===time)present++;
-        else other++;
-      }
+      if(a.Status==='Present'&&String(a['Actual Class Time'])===time)present++;
     });
-    const marked=present+absent+other;
-    sectionStats[time]={total:panelStudents.length,present,absent,other,marked};
-    const count=document.getElementById('c'+id),presentEl=document.getElementById('p'+id),absentEl=document.getElementById('a'+id);
+    const otherSection=students.filter(s=>{
+      if(String(s['Normal Class Time'])===time)return false;
+      const a=records.get(String(s['Student ID']));
+      return a?.Status==='Present'&&String(a['Actual Class Time'])===time;
+    }).length;
+    const marked=present+absent+otherSection;
+    sectionStats[time]={total:panelStudents.length,present,absent,other:otherSection,marked};
+    const count=document.getElementById('c'+id),presentEl=document.getElementById('p'+id),absentEl=document.getElementById('a'+id),otherEl=document.getElementById('o'+id);
     const progress=document.getElementById('homeProgress'+id),status=document.getElementById('homeStatus'+id);
     if(count)count.textContent=panelStudents.length+' students';
     if(presentEl)presentEl.textContent=present;
     if(absentEl)absentEl.textContent=absent;
+    if(otherEl)otherEl.textContent=otherSection;
     if(progress)progress.style.width=(panelStudents.length?Math.min(100,(marked/panelStudents.length)*100):0)+'%';
-    if(status)status.textContent=marked+' of '+panelStudents.length+' marked'+(other?' · '+other+' other section':'');
+    if(status)status.textContent=marked+' of '+panelStudents.length+' marked';
   });
 
   attendance.forEach(a=>{if(a.Status==='Absent'){const s=byId.get(String(a['Student ID']));if(s)absentById.set(String(a['Student ID']),s);}});
