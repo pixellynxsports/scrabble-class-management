@@ -3097,3 +3097,15 @@ body.payment-history-open{overflow:hidden}
 .table-sort-button:focus-visible{outline:2px solid rgba(49,94,251,.3);outline-offset:-2px;border-radius:5px}
 .table-sort-indicator{font-size:10px;line-height:1;min-width:8px;color:#315efb;font-weight:900}
 .table-sort-active .table-sort-button{color:#315efb}
+
+.home-class-summary .other-section-count{
+  color:#d97706;
+  font-size:22px;
+}
+.home-class-summary .other-section-label{
+  color:#8a6a2f;
+  font-size:10px;
+}
+.home-class-summary .other-section-count + .other-section-label{
+  margin-right:0;
+}
