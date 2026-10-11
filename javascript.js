@@ -1011,6 +1011,38 @@ async function run(fn,...args){
       const date=String(r.date||'').slice(0,10);
       const classTime=String(r.classTime||'').trim();
       if(!date||!['10:30 AM','2:00 PM'].includes(classTime))throw new Error('Valid class date and class time are required.');
+
+      // Never cancel a session after attendance has been recorded for it.
+      // A Present or Absent record both mean the session has already been processed.
+      const {data:attendanceRows,error:attendanceError}=await supabaseClient
+        .from('attendance')
+        .select('attendance_id,student_id,actual_class_time,status')
+        .eq('attendance_date',date);
+      if(attendanceError)throw dbError(attendanceError);
+
+      const attendanceIds=[...(attendanceRows||[])].map(x=>x.student_id).filter(Boolean);
+      let studentsById={};
+      if(attendanceIds.length){
+        const {data:studentRows,error:studentError}=await supabaseClient
+          .from('students')
+          .select('student_id,student_name,normal_class_time')
+          .in('student_id',attendanceIds);
+        if(studentError)throw dbError(studentError);
+        studentsById=Object.fromEntries((studentRows||[]).map(x=>[String(x.student_id),x]));
+      }
+
+      const blockingRecord=(attendanceRows||[]).find(row=>{
+        const student=studentsById[String(row.student_id)];
+        const recordedTime=String(row.actual_class_time||'').trim();
+        const normalTime=String(student?.normal_class_time||'').trim();
+        return recordedTime===classTime || (!recordedTime&&normalTime===classTime);
+      });
+
+      if(blockingRecord){
+        const student=studentsById[String(blockingRecord.student_id)];
+        throw new Error('This class cannot be cancelled because attendance has already been recorded for '+String(student?.student_name||'a student')+'. Reset the attendance record first, then try again.');
+      }
+
       const payload={cancellation_date:date,class_time:classTime,cancelled_by:(await supabaseClient.auth.getUser()).data.user?.id||null};
       const {error}=await supabaseClient.from('class_cancellations').upsert(payload,{onConflict:'cancellation_date,class_time'});
       if(error)throw dbError(error);
@@ -1487,7 +1519,9 @@ async function saveClassCancellation(date,classTime){
     DATA=await run('cancelClass',{date,classTime});
     renderAll();
     appNotify(classTime+' class cancelled for '+formatDateClient(date)+'.','success','Class Cancelled');
-  }catch(e){appNotify(e.message||e,'error','Cancellation Not Saved')}
+  }catch(e){
+    appNotify(e.message||e,'error','Class Not Cancelled');
+  }
 }
 async function restoreClassCancellation(date,classTime){
   try{
@@ -1496,19 +1530,40 @@ async function restoreClassCancellation(date,classTime){
     appNotify(classTime+' class restored for '+formatDateClient(date)+'.','success','Class Restored');
   }catch(e){appNotify(e.message||e,'error','Restore Failed')}
 }
+function cancellationHasAttendance(classTime,date=selectedAttendanceDate()){
+  return DATA.attendance.some(a=>{
+    if(attendanceDateKey(a.Date)!==date)return false;
+    const actual=String(a['Actual Class Time']||'').trim();
+    const student=DATA.students.find(s=>String(s['Student ID'])===String(a['Student ID']));
+    const normal=String(student?.['Normal Class Time']||'').trim();
+    return actual===classTime||(!actual&&normal===classTime);
+  });
+}
+function cancellationAttendanceMessage(classTime,date=selectedAttendanceDate()){
+  const record=DATA.attendance.find(a=>{
+    if(attendanceDateKey(a.Date)!==date)return false;
+    const actual=String(a['Actual Class Time']||'').trim();
+    const student=DATA.students.find(s=>String(s['Student ID'])===String(a['Student ID']));
+    const normal=String(student?.['Normal Class Time']||'').trim();
+    return actual===classTime||(!actual&&normal===classTime);
+  });
+  if(!record)return '';
+  const student=DATA.students.find(s=>String(s['Student ID'])===String(record['Student ID']));
+  return String(student?.['Student Name']||'A student');
+}
 function openClassCancellation(){
   const date=selectedAttendanceDate();
   const cancellations=(DATA.cancellations||[]).filter(c=>attendanceDateKey(c.cancellation_date||c.Date)===date);
   const cancelled=new Set(cancellations.map(c=>String(c.class_time||'').trim()));
-  const content=`<div class="modal-head"><div><div class="eyebrow">CLASS MANAGEMENT</div><h3>Cancel Class</h3></div><button class="modal-close" type="button" onclick="closeModal()">×</button></div>
-  <div class="modal-body">
-    <div class="subtle" style="margin-bottom:15px">Select which session to cancel for <strong>${esc(formatDateClient(date))}</strong>.</div>
-    <div class="class-cancel-options">
-      <button class="class-cancel-option ${cancelled.has('10:30 AM')?'selected':''}" type="button" onclick="selectCancellationOption('10:30 AM')"><span><strong>10:30 AM</strong><small>Morning session</small></span><span class="cancel-option-state">${cancelled.has('10:30 AM')?'Cancelled':'Select'}</span></button>
-      <button class="class-cancel-option ${cancelled.has('2:00 PM')?'selected':''}" type="button" onclick="selectCancellationOption('2:00 PM')"><span><strong>2:00 PM</strong><small>Afternoon session</small></span><span class="cancel-option-state">${cancelled.has('2:00 PM')?'Cancelled':'Select'}</span></button>
-      <button class="class-cancel-option ${cancelled.has('10:30 AM')&&cancelled.has('2:00 PM')?'selected':''}" type="button" onclick="selectCancellationOption('BOTH')"><span><strong>Both Classes</strong><small>Cancel both sessions</small></span><span class="cancel-option-state">${cancelled.has('10:30 AM')&&cancelled.has('2:00 PM')?'Cancelled':'Select'}</span></button>
+  const allCancelled=cancelled.has('10:30 AM')&&cancelled.has('2:00 PM');
+  const option=(time,label,desc)=>`<button class="class-cancel-option ${cancelled.has(time)?'selected':''}" type="button" onclick="selectCancellationOption('${time}')"><span class="class-cancel-option-main"><span class="class-cancel-icon ${cancelled.has(time)?'is-cancelled':''}">${cancelled.has(time)?'✓':'×'}</span><span><strong>${label}</strong><small>${desc}</small></span></span><span class="cancel-option-state ${cancelled.has(time)?'is-cancelled':''}">${cancelled.has(time)?'Class Cancelled':'Cancel Class'}</span></button>`;
+  const content=`<div class="modal-head class-cancel-head"><div><div class="eyebrow">CLASS MANAGEMENT</div><h3>Class Cancellation</h3><p>Manage cancelled sessions for <strong>${esc(formatDateClient(date))}</strong>.</p></div><button class="modal-close" type="button" onclick="closeModal()" aria-label="Close">×</button></div>
+  <div class="modal-body class-cancel-body">
+    <div class="class-cancel-intro"><div class="class-cancel-intro-icon">!</div><div><strong>Cancel a session only before attendance is recorded.</strong><span>A cancelled session does not create attendance and does not consume a student's package class.</span></div></div>
+    <div class="class-cancel-options">${option('10:30 AM','10:30 AM','Morning session')}${option('2:00 PM','2:00 PM','Afternoon session')}
+      <button class="class-cancel-option both-option ${allCancelled?'selected':''}" type="button" onclick="selectCancellationOption('BOTH')"><span class="class-cancel-option-main"><span class="class-cancel-icon ${allCancelled?'is-cancelled':''}">${allCancelled?'✓':'×'}</span><span><strong>Both sessions</strong><small>10:30 AM and 2:00 PM</small></span></span><span class="cancel-option-state ${allCancelled?'is-cancelled':''}">${allCancelled?'Classes Cancelled':'Cancel Both'}</span></button>
     </div>
-    <div class="modal-actions"><button class="secondary" type="button" onclick="closeModal()">Close</button></div>
+    <div class="class-cancel-footer"><span><strong>${cancelled.size}</strong> of 2 sessions cancelled</span><button class="secondary" type="button" onclick="closeModal()">Close</button></div>
   </div>`;
   document.getElementById('modalContent').innerHTML=content;
   document.getElementById('modal').classList.add('show');
@@ -1519,17 +1574,33 @@ function selectCancellationOption(choice){
   const cancelled=new Set(cancellations.map(c=>String(c.class_time||'').trim()));
   const selected=choice==='BOTH'?['10:30 AM','2:00 PM']:[choice];
   const allSelected=selected.every(t=>cancelled.has(t));
-  const title=allSelected?'Restore Class':'Cancel Class';
-  const message=allSelected
-    ? 'Restore '+(choice==='BOTH'?'both class sessions':choice+' class')+' for '+formatDateClient(date)+'?'
-    : 'Cancel '+(choice==='BOTH'?'both class sessions':choice+' class')+' for '+formatDateClient(date)+'?';
-  document.getElementById('modalContent').innerHTML=`<div class="modal-head"><div><div class="eyebrow">CONFIRM ACTION</div><h3>${title}</h3></div><button class="modal-close" type="button" onclick="openClassCancellation()">×</button></div>
-  <div class="modal-body"><div class="class-cancel-confirm"><strong>${message}</strong><span>No attendance record will be created for a cancelled session. The class will not consume a package class.</span></div>
-  <div class="modal-actions"><button class="secondary" type="button" onclick="openClassCancellation()">Go Back</button><button class="${allSelected?'secondary danger-secondary':'danger'}" type="button" onclick="applyCancellationSelection('${choice}',${allSelected})">${allSelected?'Restore':'Yes, Cancel Class'}</button></div></div>`;
+  const restoring=allSelected;
+  if(!restoring){
+    const blocked=selected.find(time=>cancellationHasAttendance(time,date));
+    if(blocked){
+      const studentName=cancellationAttendanceMessage(blocked,date);
+      document.getElementById('modalContent').innerHTML=`<div class="modal-head class-cancel-head"><div><div class="eyebrow error-eyebrow">CANCELLATION BLOCKED</div><h3>Class cannot be cancelled</h3><p>Attendance has already been recorded for this session.</p></div><button class="modal-close" type="button" onclick="openClassCancellation()" aria-label="Close">×</button></div>
+      <div class="modal-body class-cancel-body"><div class="class-cancel-error"><div class="class-cancel-error-icon">!</div><div><strong>${esc(blocked)} session has attendance recorded.</strong><span>Student: <b>${esc(studentName)}</b>. Reset the attendance record first, then try again.</span></div></div><div class="class-cancel-footer"><button class="secondary" type="button" onclick="openClassCancellation()">Back to Sessions</button></div></div>`;
+      return;
+    }
+  }
+  const label=choice==='BOTH'?'both class sessions':choice+' class';
+  const title=restoring?'Restore Class':'Cancel Class';
+  const message=restoring?'Restore '+label+' for '+formatDateClient(date)+'?':'Cancel '+label+' for '+formatDateClient(date)+'?';
+  document.getElementById('modalContent').innerHTML=`<div class="modal-head class-cancel-head"><div><div class="eyebrow">${restoring?'RESTORE SESSION':'CONFIRM CANCELLATION'}</div><h3>${title}</h3><p>${esc(formatDateClient(date))}</p></div><button class="modal-close" type="button" onclick="openClassCancellation()" aria-label="Close">×</button></div>
+  <div class="modal-body class-cancel-body"><div class="class-cancel-confirm ${restoring?'restore':'danger-confirm'}"><div class="class-cancel-confirm-icon">${restoring?'✓':'!'}</div><div><strong>${esc(message)}</strong><span>${restoring?'The session will return to the normal attendance list.':'No attendance record will be created, and the session will not consume a package class.'}</span></div></div>
+  <div class="class-cancel-footer"><button class="secondary" type="button" onclick="openClassCancellation()">Go Back</button><button class="${restoring?'secondary':'danger'} class-cancel-submit" type="button" onclick="applyCancellationSelection('${choice}',${restoring})">${restoring?'Restore Class':'Cancel Class'}</button></div></div>`;
 }
 async function applyCancellationSelection(choice,restoring){
   const date=selectedAttendanceDate();
   const times=choice==='BOTH'?['10:30 AM','2:00 PM']:[choice];
+  if(!restoring){
+    const blocked=times.find(time=>cancellationHasAttendance(time,date));
+    if(blocked){
+      selectCancellationOption(blocked);
+      return;
+    }
+  }
   closeModal();
   for(const time of times){
     if(restoring)await restoreClassCancellation(date,time);
