@@ -1520,13 +1520,25 @@ function attendanceRow(s,date,cancelledTimes=new Set()){
 }
 async function setAttendance(studentId,date,classTime,status){const existing=DATA.attendance.find(a=>String(a['Student ID'])===String(studentId)&&attendanceDateKey(a.Date)===date);try{await run('saveAttendance',{attendanceId:existing?.['Attendance ID']||'',studentId,date,classTime,status,notes:''});DATA=await run('getData');renderAll()}catch(e){appNotify(e.message||e)}}
 async function resetAttendanceAction(studentId,date){try{DATA=await run('resetAttendance',studentId,date);renderAll()}catch(e){appNotify(e.message||e)}}
+function showClassCancellationError(message){
+  document.getElementById('modalContent').innerHTML=`<div class="modal-head class-cancel-head"><div><div class="eyebrow error-eyebrow">CANCELLATION BLOCKED</div><h3>Class cannot be cancelled</h3><p>Attendance must be cleared before this session is cancelled.</p></div><button class="modal-close" type="button" onclick="openClassCancellation()" aria-label="Close">×</button></div>
+  <div class="modal-body class-cancel-body"><div class="class-cancel-error"><div class="class-cancel-error-icon">!</div><div><strong>Attendance has already been recorded.</strong><span>${esc(message)}</span></div></div><div class="class-cancel-footer"><button class="secondary" type="button" onclick="openClassCancellation()">Back to Sessions</button></div></div>`;
+  document.getElementById('modal').classList.add('show');
+}
 async function saveClassCancellation(date,classTime){
   try{
     DATA=await run('cancelClass',{date,classTime});
     renderAll();
     appNotify(classTime+' class cancelled for '+formatDateClient(date)+'.','success','Class Cancelled');
+    return true;
   }catch(e){
-    appNotify(e.message||e,'error','Class Not Cancelled');
+    const message=String(e?.message||e);
+    if(message.toLowerCase().includes('attendance has already been recorded')||message.toLowerCase().includes('attendance has been recorded')){
+      showClassCancellationError(message);
+    }else{
+      appNotify(message,'error','Class Not Cancelled');
+    }
+    return false;
   }
 }
 async function restoreClassCancellation(date,classTime){
@@ -1610,7 +1622,7 @@ async function applyCancellationSelection(choice,restoring){
   closeModal();
   for(const time of times){
     if(restoring)await restoreClassCancellation(date,time);
-    else await saveClassCancellation(date,time);
+    else if(!await saveClassCancellation(date,time))break;
   }
 }
 
