@@ -3119,7 +3119,71 @@ body.payment-history-open{overflow:hidden}
 .attendance-cancellation-notice span{display:block;font-size:12px;margin-top:3px;color:#a45a62}
 .attendance-cancelled-row{background:#fff9f9}
 .cancelled-message{color:#c82333;font-size:12px;font-weight:700;margin-bottom:7px}
-.class-cancel-head{display:flex!important;align-items:flex-start;justify-content:space-between;gap:18px;padding-bottom:18px!important}.class-cancel-head>div:first-child{min-width:0;flex:1}.class-cancel-head .modal-close{flex:0 0 34px;margin:0}
+/* Class cancellation follows the same compact panel language used across the Teacher Portal. */
+.modalbox:has(.class-cancel-head){
+  width:min(680px,100%);
+  max-height:86vh;
+  border-radius:16px;
+  box-shadow:0 22px 60px rgba(16,24,40,.20);
+  overflow:hidden;
+}
+.modalbox:has(.class-cancel-head) .class-cancel-head{
+  display:flex!important;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:18px;
+  padding:24px 26px 17px!important;
+  border-bottom:1px solid #edf0f4;
+  margin:0;
+}
+.class-cancel-head>div:first-child{min-width:0;flex:1}
+.class-cancel-head .modal-close{flex:0 0 34px;margin:0}
+.modalbox:has(.class-cancel-head) .class-cancel-body{
+  padding:20px 26px 22px!important;
+  max-height:calc(86vh - 100px);
+  overflow:auto;
+}
+.modalbox:has(.class-cancel-head) .class-cancel-intro{
+  margin-bottom:15px;
+  border-radius:11px;
+  padding:13px 14px;
+}
+.modalbox:has(.class-cancel-head) .class-cancel-option{
+  min-height:72px;
+  padding:13px 15px;
+  border-radius:11px;
+}
+.modalbox:has(.class-cancel-head) .class-cancel-footer{
+  margin-top:15px;
+  padding-top:14px;
+}
+.modalbox:has(.class-cancel-head) .class-cancel-confirm{
+  padding:14px;
+  border-radius:11px;
+}
+.modalbox:has(.class-cancel-head) .class-cancel-submit{
+  min-width:142px;
+}
+.modalbox:has(.class-cancel-head) .class-cancel-footer button{
+  min-height:40px;
+}
+.modalbox:has(.class-cancel-head) .class-cancel-footer .secondary{
+  background:#fff;
+  border:1px solid #d8dde6;
+}
+@media(max-width:650px){
+  .modalbox:has(.class-cancel-head){
+    width:100%;
+    max-height:92vh;
+    border-radius:14px;
+  }
+  .modalbox:has(.class-cancel-head) .class-cancel-head{
+    padding:20px 18px 15px!important;
+  }
+  .modalbox:has(.class-cancel-head) .class-cancel-body{
+    padding:16px 18px 18px!important;
+  }
+}
 .class-cancel-head p{margin:6px 0 0;color:#778191;font-size:13px;line-height:1.45}
 .class-cancel-body{padding-top:0!important}
 .class-cancel-intro{display:flex;gap:12px;align-items:flex-start;padding:14px 15px;margin-bottom:16px;border:1px solid #e8edf3;border-radius:12px;background:#f8fafc}
