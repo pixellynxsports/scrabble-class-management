@@ -47,7 +47,7 @@ async function loadRemoteData(){
   // the migration is run. Do not block authentication while the cache catches up.
   const cancellationErrorCode=cancellationResult.error?.code||'';
   const cancellationErrorMessage=String(cancellationResult.error?.message||'').toLowerCase();
-  const cancellationTableUnavailable=cancellationErrorCode==='42P01'||cancellationErrorCode==='PGRST205'||cancellationErrorMessage.includes('class_cancellations')&&cancellationErrorMessage.includes('schema cache');
+  const cancellationTableUnavailable=cancellationErrorCode==='42P01'||cancellationErrorCode==='PGRST205'||(cancellationErrorCode==='42501'&&cancellationErrorMessage.includes('class_cancellations')&&cancellationErrorMessage.includes('permission denied'))||(cancellationErrorMessage.includes('class_cancellations')&&cancellationErrorMessage.includes('schema cache'));
   if(cancellationResult.error&&!cancellationTableUnavailable)throw dbError(cancellationResult.error);
   const cancellations=cancellationResult.error?[]:(cancellationResult.data||[]);
   const cfg={fee:50,classesPerCycle:4,classTimes:['10:30 AM','2:00 PM']};
