@@ -44,3 +44,8 @@ using (true);
 
 create index if not exists idx_class_cancellations_date
 on public.class_cancellations(cancellation_date);
+
+-- Explicit Data API grants are required for tables created by SQL migrations
+-- on Supabase projects with automatic exposure disabled.
+grant select, insert, update, delete on table public.class_cancellations to authenticated, service_role;
+grant usage, select on sequence public.class_cancellations_id_seq to authenticated, service_role;
