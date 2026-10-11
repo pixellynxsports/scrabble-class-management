@@ -1280,6 +1280,13 @@ function formatDateClient(v){if(!v)return '';const d=new Date(v);return isNaN(d)
 /* ===== ATTENDANCE ===== */
 function renderHome(){
   const date=selectedAttendanceDate();
+  const todayDate=isoDate(new Date());
+  const isToday=date===todayDate;
+  const displayDate=formatDateClient(date);
+  const classHeading=document.getElementById('homeClassHeading');
+  const attendanceEyebrow=document.getElementById('homeAttendanceEyebrow');
+  if(classHeading)classHeading.textContent=isToday?"Today's Classes":'Classes on '+displayDate;
+  if(attendanceEyebrow)attendanceEyebrow.textContent=isToday?'TODAY':displayDate.toUpperCase();
   const students=activeStudents().filter(s=>registrationDateKey(s['Registration Date'])<=date);
   const attendance=attendanceForDate(date);
   const byId=new Map(students.map(s=>[String(s['Student ID']),s]));
@@ -1302,7 +1309,7 @@ function renderHome(){
       const a=records.get(String(s['Student ID']));
       return a?.Status==='Present'&&String(a['Actual Class Time'])===time;
     }).length;
-    const marked=present+absent+otherSection;
+    const marked=present+absent;
     sectionStats[time]={total:panelStudents.length,present,absent,other:otherSection,marked};
     const count=document.getElementById('c'+id),presentEl=document.getElementById('p'+id),absentEl=document.getElementById('a'+id),otherEl=document.getElementById('o'+id);
     const progress=document.getElementById('homeProgress'+id),status=document.getElementById('homeStatus'+id);
