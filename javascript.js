@@ -1353,8 +1353,17 @@ function renderHome(){
   const absentById=new Map();
   const sectionStats={};
 
+  const cancellationsForDate=(DATA.cancellations||[]).filter(c=>attendanceDateKey(c.cancellation_date||c.Date)===date);
+  const cancelledTimes=new Set(cancellationsForDate.map(c=>String(c.class_time||c['Class Time']||'').trim()));
   ['10:30 AM','2:00 PM'].forEach(time=>{
     const id=time==='10:30 AM'?'1030':'1400';
+    const cancellationEl=document.getElementById('homeCancel'+id);
+    if(cancellationEl){
+      const cancelled=cancelledTimes.has(time);
+      cancellationEl.innerHTML=cancelled?'<span class="home-class-cancelled-badge">Class Cancelled</span>':'';
+      const card=cancellationEl.closest('.home-class-card');
+      if(card)card.classList.toggle('is-cancelled',cancelled);
+    }
     const panelStudents=students.filter(s=>String(s['Normal Class Time'])===time);
     const records=new Map(attendance.filter(a=>byId.has(String(a['Student ID']))).map(a=>[String(a['Student ID']),a]));
     let present=0,absent=0;
