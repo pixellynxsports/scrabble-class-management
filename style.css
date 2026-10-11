@@ -3119,7 +3119,7 @@ body.payment-history-open{overflow:hidden}
 .attendance-cancellation-notice span{display:block;font-size:12px;margin-top:3px;color:#a45a62}
 .attendance-cancelled-row{background:#fff9f9}
 .cancelled-message{color:#c82333;font-size:12px;font-weight:700;margin-bottom:7px}
-.class-cancel-head{padding-bottom:18px!important}
+.class-cancel-head{display:flex!important;align-items:flex-start;justify-content:space-between;gap:18px;padding-bottom:18px!important}.class-cancel-head>div:first-child{min-width:0;flex:1}.class-cancel-head .modal-close{flex:0 0 34px;margin:0}
 .class-cancel-head p{margin:6px 0 0;color:#778191;font-size:13px;line-height:1.45}
 .class-cancel-body{padding-top:0!important}
 .class-cancel-intro{display:flex;gap:12px;align-items:flex-start;padding:14px 15px;margin-bottom:16px;border:1px solid #e8edf3;border-radius:12px;background:#f8fafc}
