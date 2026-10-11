@@ -42,7 +42,13 @@ async function loadRemoteData(){
   ]);
   for(const result of [s,a,p,o,settings]){if(result.error)throw dbError(result.error)}
   const cancellationResult=await supabaseClient.from('class_cancellations').select('*').order('cancellation_date',{ascending:false});
-  if(cancellationResult.error&&cancellationResult.error.code!=='42P01')throw dbError(cancellationResult.error);
+  // Class cancellations are an optional extension to the core Teacher Portal.
+  // A fresh table can briefly remain absent from PostgREST's schema cache after
+  // the migration is run. Do not block authentication while the cache catches up.
+  const cancellationErrorCode=cancellationResult.error?.code||'';
+  const cancellationErrorMessage=String(cancellationResult.error?.message||'').toLowerCase();
+  const cancellationTableUnavailable=cancellationErrorCode==='42P01'||cancellationErrorCode==='PGRST205'||cancellationErrorMessage.includes('class_cancellations')&&cancellationErrorMessage.includes('schema cache');
+  if(cancellationResult.error&&!cancellationTableUnavailable)throw dbError(cancellationResult.error);
   const cancellations=cancellationResult.error?[]:(cancellationResult.data||[]);
   const cfg={fee:50,classesPerCycle:4,classTimes:['10:30 AM','2:00 PM']};
   settings.data?.forEach(x=>{if(x.setting==='fee')cfg.fee=Number(x.value)||50;if(x.setting==='classesPerCycle')cfg.classesPerCycle=Number(x.value)||4;if(x.setting==='classTimes'){try{const v=JSON.parse(x.value);if(Array.isArray(v)&&v.length)cfg.classTimes=v}catch(e){}}});
