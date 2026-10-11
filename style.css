@@ -3111,9 +3111,36 @@ body.payment-history-open{overflow:hidden}
 }
 
 /* ===== CLASS CANCELLATION ===== */
-.danger-secondary{height:42px;padding:0 18px;border:1px solid #d83a45;border-radius:10px;background:#fff;color:#c52834;font-weight:750;letter-spacing:-.1px;box-shadow:0 1px 2px rgba(20,28,40,.04);transition:all .18s ease;margin-left:auto}
-.danger-secondary:hover{background:#fff6f7;border-color:#c52834;transform:translateY(-1px);box-shadow:0 4px 12px rgba(197,40,52,.12)}
-.danger-secondary.cancelled{background:#fff4f4;color:#a91f2a;border-color:#e3a0a5}
+.danger-secondary{
+  height:40px;
+  min-width:132px;
+  padding:0 16px;
+  border:1px solid #c52834;
+  border-radius:9px;
+  background:#c52834;
+  color:#fff;
+  font-weight:750;
+  letter-spacing:-.1px;
+  box-shadow:0 2px 5px rgba(197,40,52,.16);
+  transition:all .18s ease;
+  margin-left:auto;
+}
+.danger-secondary:hover{
+  background:#a91f2a;
+  border-color:#a91f2a;
+  transform:translateY(-1px);
+  box-shadow:0 5px 12px rgba(197,40,52,.18);
+}
+.danger-secondary.cancelled{
+  background:#fff;
+  color:#a91f2a;
+  border-color:#d99ba0;
+  box-shadow:0 1px 2px rgba(20,28,40,.04);
+}
+.danger-secondary.cancelled:hover{
+  background:#fff6f7;
+  border-color:#c52834;
+}
 .attendance-cancellation-notice{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:13px 16px;background:#fff7f7;border-bottom:1px solid #f1d5d8;color:#8f2430}
 .attendance-cancellation-notice strong{display:block;font-size:13px}
 .attendance-cancellation-notice span{display:block;font-size:12px;margin-top:3px;color:#a45a62}
