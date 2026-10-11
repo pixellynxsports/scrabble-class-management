@@ -1481,6 +1481,12 @@ function renderAttendance(){
   });
   const cancellations=(DATA.cancellations||[]).filter(c=>attendanceDateKey(c.cancellation_date||c.Date)===date);
   const cancelledTimes=new Set(cancellations.map(c=>String(c.class_time||c['Class Time']||'').trim()));
+  const cancellationBtn=document.getElementById('classCancellationBtn');
+  if(cancellationBtn){
+    const hasCancellation=cancelledTimes.size>0;
+    cancellationBtn.textContent=hasCancellation?'Class Cancelled':'Cancel Class';
+    cancellationBtn.classList.toggle('cancelled',hasCancellation);
+  }
   const marked=students.filter(s=>DATA.attendance.some(a=>String(a['Student ID'])===String(s['Student ID'])&&String(a.Date).slice(0,10)===date)).length;
   document.getElementById('attSummary').textContent=marked+' / '+students.length+' marked';
   const notice=cancellations.length
