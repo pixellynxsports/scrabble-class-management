@@ -3110,6 +3110,30 @@ body.payment-history-open{overflow:hidden}
   margin-right:0;
 }
 
+.home-class-cancellation{
+  min-height:0;
+  margin:9px 0 2px;
+}
+.home-class-cancelled-badge{
+  display:inline-flex;
+  align-items:center;
+  min-height:25px;
+  padding:4px 9px;
+  border:1px solid #e5a8ad;
+  border-radius:999px;
+  background:#fff1f2;
+  color:#b4232f;
+  font-size:11px;
+  font-weight:750;
+}
+.home-class-card.is-cancelled{
+  border-color:#e6b1b5;
+}
+.home-class-card.is-cancelled .home-class-summary,
+.home-class-card.is-cancelled .home-progress,
+.home-class-card.is-cancelled .home-class-footer{
+  opacity:.72;
+}
 /* ===== CLASS CANCELLATION ===== */
 .attendance-summary-actions{
   display:flex;
