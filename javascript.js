@@ -1,5 +1,5 @@
 /* Scrabble Class Management, Supabase online version */
-let DATA={students:[],attendance:[],payments:[],orders:[],achievements:[],config:{fee:50,classesPerCycle:4,classTimes:['10:30 AM','2:00 PM']}};
+let DATA={students:[],attendance:[],payments:[],orders:[],achievements:[],cancellations:[],config:{fee:50,classesPerCycle:4,classTimes:['10:30 AM','2:00 PM']}};
 let orderTab='Scrabble Set';let currentProfileId='';let studentView='active';let selectedOrderIds=new Set();let studentSortKey='studentName';let studentSortDirection='asc';
 const supabaseClient=window.supabase.createClient(window.SUPABASE_URL,window.SUPABASE_PUBLISHABLE_KEY);
 let authReady=false;
@@ -41,11 +41,14 @@ async function loadRemoteData(){
     supabaseClient.from('settings').select('*')
   ]);
   for(const result of [s,a,p,o,settings]){if(result.error)throw dbError(result.error)}
+  const cancellationResult=await supabaseClient.from('class_cancellations').select('*').order('cancellation_date',{ascending:false});
+  if(cancellationResult.error&&cancellationResult.error.code!=='42P01')throw dbError(cancellationResult.error);
+  const cancellations=cancellationResult.error?[]:(cancellationResult.data||[]);
   const cfg={fee:50,classesPerCycle:4,classTimes:['10:30 AM','2:00 PM']};
   settings.data?.forEach(x=>{if(x.setting==='fee')cfg.fee=Number(x.value)||50;if(x.setting==='classesPerCycle')cfg.classesPerCycle=Number(x.value)||4;if(x.setting==='classTimes'){try{const v=JSON.parse(x.value);if(Array.isArray(v)&&v.length)cfg.classTimes=v}catch(e){}}});
   // Achievements are loaded separately so an optional achievements table or storage issue
   // can never block the main Teacher Portal startup.
-  return {students:(s.data||[]).map(studentFromDb),attendance:(a.data||[]).map(attendanceFromDb),payments:(p.data||[]).map(paymentFromDb),orders:(o.data||[]).map(orderFromDb),achievements:[],config:cfg};
+  return {students:(s.data||[]).map(studentFromDb),attendance:(a.data||[]).map(attendanceFromDb),payments:(p.data||[]).map(paymentFromDb),orders:(o.data||[]).map(orderFromDb),achievements:[],cancellations,config:cfg};
 }
 async function refreshOnline(silent=false){if(currentUserRole==='parent'){await loadParentPortal();return;}try{DATA=await loadRemoteData();document.getElementById('connection').textContent='● Online';document.getElementById('connection').classList.remove('off');renderAll();if(!silent)appNotify('Online data refreshed.')}catch(e){document.getElementById('connection').textContent='● Connection error';document.getElementById('connection').classList.add('off');if(!silent)appNotify(e.message||e);throw e}}
 async function getCurrentParentAccount(){const {data,error}=await supabaseClient.auth.getUser();if(error)throw dbError(error);const uid=data.user?.id;if(!uid)throw new Error('Your session has expired. Please sign in again.');const {data:account,error:accountError}=await supabaseClient.from('parent_accounts').select('user_id,parent_name,email,whatsapp,active,must_change_password').eq('user_id',uid).maybeSingle();if(accountError)throw dbError(accountError);return account;}
@@ -997,6 +1000,25 @@ async function run(fn,...args){
     case 'getData': return loadRemoteData();
     case 'saveAttendance': {const r=args[0];const sid=String(r.studentId||'').trim();const date=String(r.date||'').slice(0,10);const status=String(r.status||'').trim();if(!sid||!date)throw new Error('Student and attendance date are required.');if(!['Present','Absent'].includes(status))throw new Error('Status must be Present or Absent.');const student=DATA.students.find(s=>String(s['Student ID'])===sid);if(!student)throw new Error('Student not found.');if(String(student.Active||'Yes').toLowerCase()==='no')throw new Error('Archived students cannot receive new attendance records.');const actual=status==='Present'?String(r.classTime||'').trim():'';if(status==='Present'&&!DATA.config.classTimes.includes(actual))throw new Error('Invalid class time.');const payload={student_id:sid,attendance_date:date,actual_class_time:actual,status,notes:String(r.notes||'')};if(r.attendanceId){const {error}=await supabaseClient.from('attendance').update(payload).eq('attendance_id',String(r.attendanceId));if(error)throw dbError(error)}else{payload.attendance_id=nextLocalId('ATT',DATA.attendance,'Attendance ID');const {error}=await supabaseClient.from('attendance').upsert(payload,{onConflict:'student_id,attendance_date'});if(error)throw dbError(error)}return {ok:true,action:'saved'};}
     case 'resetAttendance': {const {error}=await supabaseClient.from('attendance').delete().eq('student_id',String(args[0])).eq('attendance_date',String(args[1]).slice(0,10));if(error)throw dbError(error);return loadRemoteData();}
+    case 'cancelClass': {
+      const r=args[0]||{};
+      const date=String(r.date||'').slice(0,10);
+      const classTime=String(r.classTime||'').trim();
+      if(!date||!['10:30 AM','2:00 PM'].includes(classTime))throw new Error('Valid class date and class time are required.');
+      const payload={cancellation_date:date,class_time:classTime,cancelled_by:(await supabaseClient.auth.getUser()).data.user?.id||null};
+      const {error}=await supabaseClient.from('class_cancellations').upsert(payload,{onConflict:'cancellation_date,class_time'});
+      if(error)throw dbError(error);
+      return loadRemoteData();
+    }
+    case 'restoreClassCancellation': {
+      const date=String(args[0]?.date||'').slice(0,10);
+      const classTime=String(args[0]?.classTime||'').trim();
+      if(!date||!['10:30 AM','2:00 PM'].includes(classTime))throw new Error('Valid class date and class time are required.');
+      const {error}=await supabaseClient.from('class_cancellations').delete().eq('cancellation_date',date).eq('class_time',classTime);
+      if(error)throw dbError(error);
+      return loadRemoteData();
+    }
+    
     case 'markPaymentReceived': {
       const sid=String(args[0]);
       const amount=Number(args[1]||50);
@@ -1411,11 +1433,104 @@ function focusHomeAttention(){
 function setHomeDate(delta){let d=new Date(selectedAttendanceDate()+'T12:00:00');if(delta===0)d=latestSunday();else d.setDate(d.getDate()+delta);if(d.getDay()!==0)d=latestSunday(d);const date=isoDate(d);document.getElementById('attDate').value=date;document.getElementById('today').textContent=formatDateClient(date);renderHome()}
 function setAttDate(delta){let d=new Date(selectedAttendanceDate()+'T12:00:00');if(delta===0)d=latestSunday();else d.setDate(d.getDate()+delta);if(d.getDay()!==0)d=latestSunday(d);document.getElementById('attDate').value=isoDate(d);renderAttendance();renderHome()}
 function openAttendance(time){page('attendance');document.getElementById('attDate').value=isoDate(latestSunday());renderAttendance()}
-function renderAttendance(){const date=selectedAttendanceDate();document.getElementById('attDate').value=date;const students=activeStudents().filter(s=>registrationDateKey(s['Registration Date'])<=date).sort((a,b)=>{const ta=a['Normal Class Time']||'99';const tb=b['Normal Class Time']||'99';return ta.localeCompare(tb)||String(a['Student Name']).localeCompare(String(b['Student Name']))});const marked=students.filter(s=>DATA.attendance.some(a=>String(a['Student ID'])===String(s['Student ID'])&&String(a.Date).slice(0,10)===date)).length;document.getElementById('attSummary').textContent=marked+' / '+students.length+' marked';document.getElementById('attContent').innerHTML=`<div class="panel"><div class="scroll"><table><thead><tr><th>Student</th><th>Normal Class</th><th>Actual Class</th><th>Status</th><th>Attendance</th></tr></thead><tbody>${students.map(s=>attendanceRow(s,date)).join('')||'<tr><td colspan="5" class="empty">No active students registered.</td></tr>'}</tbody></table></div></div>`}
+function renderAttendance(){
+  const date=selectedAttendanceDate();
+  document.getElementById('attDate').value=date;
+  const students=activeStudents().filter(s=>registrationDateKey(s['Registration Date'])<=date).sort((a,b)=>{
+    const ta=a['Normal Class Time']||'99';
+    const tb=b['Normal Class Time']||'99';
+    return ta.localeCompare(tb)||String(a['Student Name']).localeCompare(String(b['Student Name']));
+  });
+  const cancellations=(DATA.cancellations||[]).filter(c=>attendanceDateKey(c.cancellation_date||c.Date)===date);
+  const cancelledTimes=new Set(cancellations.map(c=>String(c.class_time||c['Class Time']||'').trim()));
+  const marked=students.filter(s=>DATA.attendance.some(a=>String(a['Student ID'])===String(s['Student ID'])&&String(a.Date).slice(0,10)===date)).length;
+  document.getElementById('attSummary').textContent=marked+' / '+students.length+' marked';
+  const notice=cancellations.length
+    ? `<div class="attendance-cancellation-notice"><div><strong>Class cancelled for this Sunday</strong><span>${esc(cancellations.map(c=>c.class_time).join(' and '))}</span></div><button class="secondary" type="button" onclick="openClassCancellation()">Manage</button></div>`
+    : '';
+  document.getElementById('attContent').innerHTML=`<div class="panel">${notice}<div class="scroll"><table><thead><tr><th>Student</th><th>Normal Class</th><th>Actual Class</th><th>Status</th><th>Attendance</th></tr></thead><tbody>${students.map(s=>attendanceRow(s,date,cancelledTimes)).join('')||'<tr><td colspan="5" class="empty">No active students registered.</td></tr>'}</tbody></table></div></div>`;
+}
+
 function viewAttendanceList(time){page('attendance');document.getElementById('attDate').value=selectedAttendanceDate();renderAttendance()}
-function attendanceRow(s,date){const a=DATA.attendance.find(x=>String(x['Student ID'])===String(s['Student ID'])&&attendanceDateKey(x.Date)===date);const status=a?.Status||'Not marked';const time=a?.['Actual Class Time']||'';return `<tr><td><button class="linkbtn" onclick="openStudent('${esc(s['Student ID'])}')">${esc(s['Student Name'])}</button><div class="subtle">${esc(s['Student ID'])}</div></td><td>${esc(s['Normal Class Time']||'')}</td><td>${esc(time||'-')}</td><td>${status==='Present'?'<span class="badge present">Present</span>':status==='Absent'?'<span class="badge absent">Absent</span>':'<span class="badge neutral">Not marked</span>'}</td><td><div class="att-actions"><button class="att-btn ${status==='Present'&&time==='10:30 AM'?'selected':''}" onclick="setAttendance('${esc(s['Student ID'])}','${date}','10:30 AM','Present')">10:30 AM</button><button class="att-btn ${status==='Present'&&time==='2:00 PM'?'selected':''}" onclick="setAttendance('${esc(s['Student ID'])}','${date}','2:00 PM','Present')">2:00 PM</button><button class="att-btn absent ${status==='Absent'?'selected':''}" onclick="setAttendance('${esc(s['Student ID'])}','${date}','', 'Absent')">Absent</button><button class="att-btn" onclick="resetAttendanceAction('${esc(s['Student ID'])}','${date}')">Reset</button></div></td></tr>`}
+function attendanceRow(s,date,cancelledTimes=new Set()){
+  const a=DATA.attendance.find(x=>String(x['Student ID'])===String(s['Student ID'])&&attendanceDateKey(x.Date)===date);
+  const status=a?.Status||'Not marked';
+  const time=a?.['Actual Class Time']||'';
+  const normalTime=String(s['Normal Class Time']||'');
+  const normalCancelled=cancelledTimes.has(normalTime);
+  const effectiveCancelled=!a&&normalCancelled;
+  const statusHtml=effectiveCancelled
+    ? '<span class="badge cancelled">Class Cancelled</span>'
+    : status==='Present'
+      ? '<span class="badge present">Present</span>'
+      : status==='Absent'
+        ? '<span class="badge absent">Absent</span>'
+        : '<span class="badge neutral">Not marked</span>';
+  const actions=`<div class="att-actions">
+    <button class="att-btn ${status==='Present'&&time==='10:30 AM'?'selected':''}" ${cancelledTimes.has('10:30 AM')?'disabled title="10:30 AM class is cancelled"':''} onclick="setAttendance('${esc(s['Student ID'])}','${date}','10:30 AM','Present')">10:30 AM</button>
+    <button class="att-btn ${status==='Present'&&time==='2:00 PM'?'selected':''}" ${cancelledTimes.has('2:00 PM')?'disabled title="2:00 PM class is cancelled"':''} onclick="setAttendance('${esc(s['Student ID'])}','${date}','2:00 PM','Present')">2:00 PM</button>
+    <button class="att-btn absent ${status==='Absent'?'selected':''}" ${effectiveCancelled?'disabled title="Normal class is cancelled"':''} onclick="setAttendance('${esc(s['Student ID'])}','${date}','', 'Absent')">Absent</button>
+    <button class="att-btn" onclick="resetAttendanceAction('${esc(s['Student ID'])}','${date}')">Reset</button>
+  </div>`;
+  return `<tr class="${effectiveCancelled?'attendance-cancelled-row':''}"><td><button class="linkbtn" onclick="openStudent('${esc(s['Student ID'])}')">${esc(s['Student Name'])}</button><div class="subtle">${esc(s['Student ID'])}</div></td><td>${esc(normalTime)}</td><td>${esc(time||'-')}</td><td>${statusHtml}</td><td>${effectiveCancelled?'<div class="cancelled-message">No attendance required</div>'+actions:actions}</td></tr>`;
+}
 async function setAttendance(studentId,date,classTime,status){const existing=DATA.attendance.find(a=>String(a['Student ID'])===String(studentId)&&attendanceDateKey(a.Date)===date);try{await run('saveAttendance',{attendanceId:existing?.['Attendance ID']||'',studentId,date,classTime,status,notes:''});DATA=await run('getData');renderAll()}catch(e){appNotify(e.message||e)}}
 async function resetAttendanceAction(studentId,date){try{DATA=await run('resetAttendance',studentId,date);renderAll()}catch(e){appNotify(e.message||e)}}
+async function saveClassCancellation(date,classTime){
+  try{
+    DATA=await run('cancelClass',{date,classTime});
+    renderAll();
+    appNotify(classTime+' class cancelled for '+formatDateClient(date)+'.','success','Class Cancelled');
+  }catch(e){appNotify(e.message||e,'error','Cancellation Not Saved')}
+}
+async function restoreClassCancellation(date,classTime){
+  try{
+    DATA=await run('restoreClassCancellation',{date,classTime});
+    renderAll();
+    appNotify(classTime+' class restored for '+formatDateClient(date)+'.','success','Class Restored');
+  }catch(e){appNotify(e.message||e,'error','Restore Failed')}
+}
+function openClassCancellation(){
+  const date=selectedAttendanceDate();
+  const cancellations=(DATA.cancellations||[]).filter(c=>attendanceDateKey(c.cancellation_date||c.Date)===date);
+  const cancelled=new Set(cancellations.map(c=>String(c.class_time||'').trim()));
+  const content=`<div class="modal-head"><div><div class="eyebrow">CLASS MANAGEMENT</div><h3>Cancel Class</h3></div><button class="modal-close" type="button" onclick="closeModal()">×</button></div>
+  <div class="modal-body">
+    <div class="subtle" style="margin-bottom:15px">Select which session to cancel for <strong>${esc(formatDateClient(date))}</strong>.</div>
+    <div class="class-cancel-options">
+      <button class="class-cancel-option ${cancelled.has('10:30 AM')?'selected':''}" type="button" onclick="selectCancellationOption('10:30 AM')"><span><strong>10:30 AM</strong><small>Morning session</small></span><span class="cancel-option-state">${cancelled.has('10:30 AM')?'Cancelled':'Select'}</span></button>
+      <button class="class-cancel-option ${cancelled.has('2:00 PM')?'selected':''}" type="button" onclick="selectCancellationOption('2:00 PM')"><span><strong>2:00 PM</strong><small>Afternoon session</small></span><span class="cancel-option-state">${cancelled.has('2:00 PM')?'Cancelled':'Select'}</span></button>
+      <button class="class-cancel-option ${cancelled.has('10:30 AM')&&cancelled.has('2:00 PM')?'selected':''}" type="button" onclick="selectCancellationOption('BOTH')"><span><strong>Both Classes</strong><small>Cancel both sessions</small></span><span class="cancel-option-state">${cancelled.has('10:30 AM')&&cancelled.has('2:00 PM')?'Cancelled':'Select'}</span></button>
+    </div>
+    <div class="modal-actions"><button class="secondary" type="button" onclick="closeModal()">Close</button></div>
+  </div>`;
+  document.getElementById('modalContent').innerHTML=content;
+  document.getElementById('modal').classList.add('show');
+}
+function selectCancellationOption(choice){
+  const date=selectedAttendanceDate();
+  const cancellations=(DATA.cancellations||[]).filter(c=>attendanceDateKey(c.cancellation_date||c.Date)===date);
+  const cancelled=new Set(cancellations.map(c=>String(c.class_time||'').trim()));
+  const selected=choice==='BOTH'?['10:30 AM','2:00 PM']:[choice];
+  const allSelected=selected.every(t=>cancelled.has(t));
+  const title=allSelected?'Restore Class':'Cancel Class';
+  const message=allSelected
+    ? 'Restore '+(choice==='BOTH'?'both class sessions':choice+' class')+' for '+formatDateClient(date)+'?'
+    : 'Cancel '+(choice==='BOTH'?'both class sessions':choice+' class')+' for '+formatDateClient(date)+'?';
+  document.getElementById('modalContent').innerHTML=`<div class="modal-head"><div><div class="eyebrow">CONFIRM ACTION</div><h3>${title}</h3></div><button class="modal-close" type="button" onclick="openClassCancellation()">×</button></div>
+  <div class="modal-body"><div class="class-cancel-confirm"><strong>${message}</strong><span>No attendance record will be created for a cancelled session. The class will not consume a package class.</span></div>
+  <div class="modal-actions"><button class="secondary" type="button" onclick="openClassCancellation()">Go Back</button><button class="${allSelected?'secondary danger-secondary':'danger'}" type="button" onclick="applyCancellationSelection('${choice}',${allSelected})">${allSelected?'Restore':'Yes, Cancel Class'}</button></div></div>`;
+}
+async function applyCancellationSelection(choice,restoring){
+  const date=selectedAttendanceDate();
+  const times=choice==='BOTH'?['10:30 AM','2:00 PM']:[choice];
+  closeModal();
+  for(const time of times){
+    if(restoring)await restoreClassCancellation(date,time);
+    else await saveClassCancellation(date,time);
+  }
+}
+
 function setStudentView(view){studentView=view;document.getElementById('activeStudentsBtn')?.classList.toggle('active',view==='active');document.getElementById('archivedStudentsBtn')?.classList.toggle('active',view==='archived');renderStudents()}
 function closeStudentActionMenus(){document.querySelectorAll('.student-action-menu.show').forEach(m=>m.classList.remove('show'))}
 function toggleStudentActionMenu(event,id){
