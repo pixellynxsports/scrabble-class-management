@@ -1591,3 +1591,7 @@ button.danger:hover{
     grid-template-columns:1fr;
   }
 }
+
+
+/* Responsive safety net for tournament and certificate views */
+@media(max-width:650px){.tournament-page,.tournament-layout,.tournament-dashboard,.tournament-content{min-width:0;max-width:100%}.tournament-card,.tournament-panel,.tournament-section,.tournament-modal{min-width:0;max-width:100%}.tournament-table-wrap,.tournament-table-container{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}.tournament-table-wrap table,.tournament-table-container table{min-width:620px}.tournament-actions,.tournament-header-actions{flex-wrap:wrap;gap:8px}.tournament-actions button,.tournament-header-actions button{max-width:100%}}
