@@ -3599,3 +3599,22 @@ button{touch-action:manipulation}
     grid-template-columns:minmax(0,1fr)!important;
   }
 }
+
+/* Reports action-centre cards: force equal outer dimensions despite later theme rules. */
+.report-attention .attention-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  align-items:stretch;
+}
+.report-attention .attention-grid>.attention-card{
+  box-sizing:border-box;
+  width:100%;
+  height:80px;
+  min-height:80px;
+  align-self:stretch;
+  margin:0;
+}
+@media(max-width:650px){
+  .report-attention .attention-grid{grid-template-columns:minmax(0,1fr)}
+  .report-attention .attention-grid>.attention-card{height:80px;min-height:80px}
+}
