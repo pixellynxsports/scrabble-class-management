@@ -3422,3 +3422,50 @@ button{touch-action:manipulation}
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
+
+
+
+/* Landscape phones only: compact, single-row navigation.
+   Portrait phones, tablets and desktop keep their existing layouts. */
+@media (orientation:landscape) and (max-height:520px) and (max-width:950px){
+  .app{display:block;min-height:100dvh}
+  .side{
+    position:sticky;inset:0 0 auto;z-index:1000;
+    display:flex;flex-flow:row nowrap;align-items:center;gap:5px;
+    width:100%;height:auto;max-height:58px;min-height:48px;
+    overflow-x:auto;overflow-y:hidden;
+    padding:5px 8px;background:#fff;border:0;border-bottom:1px solid #e4e7ec;
+    box-shadow:0 3px 10px rgba(16,24,40,.06);
+    overscroll-behavior-x:contain;scrollbar-width:thin;
+  }
+  .side-brand{
+    flex:0 0 auto;display:flex;align-items:center;gap:7px;
+    padding:0 10px 0 0;margin:0;border:0;border-right:1px solid #edf0f4;
+  }
+  .side-mark{flex:0 0 auto;width:32px;height:32px}
+  .side-brand-name{font-size:12px;line-height:1.1;white-space:nowrap}
+  .side-brand-sub{font-size:10px;white-space:nowrap}
+  .side-section-label,.side-footer{display:none!important}
+  .side .nav{
+    flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+    gap:5px;width:auto;min-width:max-content;min-height:34px;
+    margin:0;padding:7px 9px;border-radius:8px;
+    font-size:11px;line-height:1;white-space:nowrap;
+  }
+  .side .nav-icon{font-size:9px}
+  .main{width:100%;max-width:none;margin:0;padding:12px 14px 20px}
+  .top{gap:10px;margin-bottom:12px}
+  .top h1{font-size:23px}
+  .hero{padding:15px;margin-bottom:12px}
+  .panel,.class-card,.metric{padding:13px}
+  .toolbar{gap:7px;margin-bottom:12px}
+  .modalbox,.modal-card{max-height:calc(100dvh - 16px)!important}
+  .modal-body{max-height:calc(100dvh - 125px);overflow-y:auto}
+}
+@media (orientation:landscape) and (max-height:390px) and (max-width:950px){
+  .side{min-height:42px;max-height:46px;padding:4px 7px}
+  .side-mark{width:28px;height:28px}
+  .side .nav{min-height:30px;padding:6px 8px}
+  .main{padding:9px 11px 16px}
+  .top{margin-bottom:9px}
+}
