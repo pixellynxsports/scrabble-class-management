@@ -3469,3 +3469,46 @@ button{touch-action:manipulation}
   .main{padding:9px 11px 16px}
   .top{margin-bottom:9px}
 }
+
+
+
+/* Landscape phone refinement v2: prevent the brand from being squeezed,
+   keep nav labels readable, and keep page content inside the viewport. */
+@media (orientation:landscape) and (max-height:520px) and (max-width:950px){
+  .side{
+    display:flex;
+    flex-wrap:nowrap;
+    justify-content:flex-start;
+    gap:5px;
+    min-height:50px;
+    max-height:54px;
+    padding:5px 8px;
+    overflow-x:auto;
+    overflow-y:hidden;
+    -webkit-overflow-scrolling:touch;
+  }
+  .side-brand{
+    flex:0 0 auto;
+    width:auto;
+    min-width:max-content;
+    max-width:none;
+    gap:6px;
+    padding:0 9px 0 0;
+  }
+  .side-mark{width:auto;min-width:29px;gap:2px}
+  .side-mark span{width:25px;height:28px;font-size:12px}
+  .side-brand-name{font-size:11px;letter-spacing:.025em}
+  .side-brand-sub{font-size:9px}
+  .side .nav{
+    flex:0 0 auto;
+    width:auto;
+    min-width:max-content;
+    min-height:34px;
+    padding:7px 9px;
+    gap:5px;
+    font-size:11px;
+  }
+  .main{width:100%;max-width:none;margin:0;padding:12px 14px 20px}
+  .top{flex-wrap:wrap;align-items:center}
+  .top h1{font-size:23px}
+}
