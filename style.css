@@ -3384,7 +3384,8 @@ button{touch-action:manipulation}
   .att-actions button{flex:1 1 auto}
   .attendance-summary-actions{flex-wrap:wrap;gap:8px}
   .table-wrap,.table-responsive,.data-table-wrap,.report-table-wrap{width:100%;overflow-x:auto}
-  table{min-width:620px}
+  table{display:block;width:100%;max-width:100%;min-width:0;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  :where(.table-wrap,.table-responsive,.data-table-wrap,.report-table-wrap) table{min-width:620px}
   .modalbox,.modal-card{width:calc(100vw - 24px)!important;max-width:calc(100vw - 24px)!important;max-height:calc(100dvh - 24px)!important;border-radius:14px}
   .modal-head{gap:10px}
   .modal-body{max-height:calc(100dvh - 150px);overflow-y:auto}
