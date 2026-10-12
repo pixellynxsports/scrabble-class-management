@@ -667,7 +667,7 @@ body{background:#eef2f6}
 
 /* Reports Phase 1 */
 .report-attention{overflow:hidden}
-.attention-grid{display:grid;grid-template-columns:repeat(2,minmax(260px,390px));gap:10px;margin-top:14px}
+.attention-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch;gap:10px;margin-top:14px}
 .attention-card{
   min-height:64px;
   border:1px solid #e3e7ed;
