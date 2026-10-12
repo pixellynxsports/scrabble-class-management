@@ -3296,3 +3296,128 @@ body.payment-history-open{overflow:hidden}
   .class-cancel-footer button{width:100%}
   .class-cancel-submit{width:100%}
 }
+
+
+/* ===== RESPONSIVE QUALITY PASS: PHONE, TABLET, DESKTOP ===== */
+*,*::before,*::after{box-sizing:border-box}
+img,svg,video,canvas{max-width:100%;height:auto}
+.app,.main,.page,.panel,.class-card,.metric,.parent-shell,.parent-dashboard,.home-main-grid,.home-lower-grid{min-width:0}
+.main{width:calc(100% - 235px)}
+button,input,select,textarea{max-width:100%}
+input,select,textarea{min-width:0}
+button{touch-action:manipulation}
+:where(.panel,.class-card,.metric,.home-absent-panel,.home-activity-panel,.home-quick-panel){overflow-wrap:anywhere}
+:where(.grid,.grid.three,.profile-grid,.formgrid,.home-main-grid,.home-lower-grid,.home-class-grid,.parent-dashboard,.parent-metrics,.detail-summary-grid,.order-info-grid,.report-metrics){min-width:0}
+:where(.grid,.grid.three,.profile-grid,.formgrid,.home-main-grid,.home-lower-grid,.home-class-grid,.parent-dashboard,.parent-metrics,.detail-summary-grid,.order-info-grid,.report-metrics)>*{min-width:0}
+:where(.toolbar,.top,.top-actions,.row,.home-section-heading,.home-class-footer,.parent-top){min-width:0}
+:where(.toolbar,.top-actions){flex-wrap:wrap}
+:where(.modalbox,.modal-card,.parent-detail-panel,.login-card,.password-change-card){max-width:calc(100vw - 24px)}
+:where(.modalbox,.modal-card,.parent-detail-panel){max-height:calc(100dvh - 24px);overflow:auto}
+:where(.modal-body,.parent-detail-body){min-width:0}
+:where(.table-wrap,.table-responsive,.data-table-wrap,.report-table-wrap){max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+:where(table){max-width:100%}
+:where(th,td){overflow-wrap:anywhere}
+:where(.formgrid,.form-grid,.tournament-form-grid){min-width:0}
+:where(.formgrid input,.formgrid select,.formgrid textarea,.form-grid input,.form-grid select,.form-grid textarea){width:100%}
+@media(min-width:1500px){
+  .main{margin-right:auto}
+}
+@media(max-width:1100px){
+  .main{padding:22px}
+  .home-main-grid,.home-lower-grid{grid-template-columns:minmax(0,1fr)}
+  .home-class-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .grid.three,.report-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .stats{gap:20px;flex-wrap:wrap}
+}
+@media(max-width:850px) and (min-width:651px){
+  .side{width:190px;padding:16px 10px}
+  .main{width:calc(100% - 190px);margin-left:190px;padding:18px}
+  .side-brand{gap:8px}
+  .side-brand-name{font-size:14px}
+  .nav{padding:11px 9px}
+  .home-class-grid,.grid,.grid.three,.profile-grid,.formgrid,.report-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .home-main-grid,.home-lower-grid{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:650px){
+  html{scroll-padding-top:12px}
+  body{font-size:14px}
+  .app{display:block;min-height:100dvh}
+  .side{
+    position:sticky;inset:0 0 auto;z-index:1000;
+    display:grid;grid-template-columns:repeat(7,max-content);
+    grid-auto-rows:auto;align-items:center;gap:4px;
+    width:100%;height:auto;max-height:none;overflow-x:auto;overflow-y:hidden;
+    padding:8px 10px;background:#fff;border-right:0;border-bottom:1px solid #e4e7ec;
+    box-shadow:0 4px 14px rgba(16,24,40,.06);overscroll-behavior-x:contain;
+    scrollbar-width:thin;
+  }
+  .side-brand{grid-column:1/-1;display:flex;align-items:center;gap:9px;padding:2px 4px 9px;margin:0;border-bottom:1px solid #edf0f4}
+  .side-mark{flex:0 0 auto}
+  .side-brand-name{font-size:14px;line-height:1.2}
+  .side-brand-sub{font-size:11px}
+  .side-section-label,.side-footer{display:none!important}
+  .side .nav{
+    display:flex;align-items:center;justify-content:center;gap:6px;
+    width:auto;min-width:max-content;min-height:40px;margin:0;padding:8px 10px;
+    border-radius:9px;font-size:12px;white-space:nowrap;
+  }
+  .side .nav-icon{font-size:10px}
+  .main{width:100%;max-width:none;margin:0;padding:16px 14px 28px}
+  .top{align-items:flex-start;gap:12px;margin-bottom:18px}
+  .top h1{font-size:clamp(22px,5vw,28px);line-height:1.2}
+  .top-actions{gap:8px;align-items:center}
+  .hero{padding:18px;border-radius:14px}
+  .hero h2{font-size:21px}
+  .panel,.class-card,.metric{padding:15px;border-radius:13px}
+  .grid,.grid.three,.profile-grid,.formgrid,.home-main-grid,.home-lower-grid,.home-class-grid,.parent-metrics,.detail-summary-grid,.order-info-grid,.report-metrics{grid-template-columns:minmax(0,1fr)!important}
+  .home-class-card{min-height:0}
+  .home-class-summary{gap:7px;flex-wrap:wrap}
+  .home-section-heading{gap:10px;align-items:flex-start}
+  .toolbar{align-items:stretch;gap:8px}
+  .toolbar>div{min-width:0;max-width:100%}
+  .toolbar input,.toolbar select,.toolbar .search{width:100%;min-width:0}
+  .toolbar button{min-height:40px}
+  .row{gap:10px;flex-wrap:wrap}
+  .row>*{min-width:0}
+  .att-row,.pay-row{grid-template-columns:minmax(0,1fr)!important}
+  .att-actions{flex-wrap:wrap;gap:7px}
+  .att-actions button{flex:1 1 auto}
+  .attendance-summary-actions{flex-wrap:wrap;gap:8px}
+  .table-wrap,.table-responsive,.data-table-wrap,.report-table-wrap{width:100%;overflow-x:auto}
+  table{min-width:620px}
+  .modalbox,.modal-card{width:calc(100vw - 24px)!important;max-width:calc(100vw - 24px)!important;max-height:calc(100dvh - 24px)!important;border-radius:14px}
+  .modal-head{gap:10px}
+  .modal-body{max-height:calc(100dvh - 150px);overflow-y:auto}
+  .modal-actions{gap:8px;flex-wrap:wrap}
+  .modal-actions button{min-width:0}
+  .login-screen,.password-change-screen{padding:12px}
+  .login-card,.password-change-card{padding:22px 18px;border-radius:16px}
+  .parent-shell{padding:14px}
+  .parent-top{align-items:flex-start;gap:12px;flex-wrap:wrap}
+  .parent-top>div:last-child{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .tournament-tabs{max-width:100%;overflow-x:auto;flex-wrap:nowrap}
+  .tournament-tabs button{flex:0 0 auto}
+  .home-quick-actions{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:430px){
+  .main{padding:12px 10px 22px}
+  .side{grid-template-columns:repeat(7,max-content);padding:7px 8px}
+  .side .nav{padding:8px 9px;font-size:11px}
+  .top{flex-direction:row;align-items:flex-start}
+  .top h1{font-size:22px}
+  .top-actions{justify-content:flex-end}
+  .panel,.class-card,.metric{padding:13px}
+  .home-class-summary strong{font-size:21px}
+  .stats{gap:14px}
+  .stats b{font-size:22px}
+  .modalbox,.modal-card{width:calc(100vw - 16px)!important;max-width:calc(100vw - 16px)!important}
+  .login-card,.password-change-card{padding:18px 15px}
+  .parent-top h1{font-size:23px}
+}
+@media(hover:none){
+  button:hover{transform:none}
+  .nav:hover,.class-card:hover{transform:none}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
