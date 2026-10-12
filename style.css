@@ -3512,3 +3512,90 @@ button{touch-action:manipulation}
   .top{flex-wrap:wrap;align-items:center}
   .top h1{font-size:23px}
 }
+
+
+
+/* Portrait phone repair only. Landscape-phone rules remain unchanged. */
+@media (orientation:portrait) and (max-width:650px){
+  .side{
+    position:relative;
+    display:flex;
+    flex-direction:row;
+    flex-wrap:nowrap;
+    align-items:center;
+    justify-content:flex-start;
+    gap:5px;
+    width:100%;
+    height:auto;
+    max-height:none;
+    min-height:0;
+    padding:8px 10px;
+    overflow-x:auto;
+    overflow-y:hidden;
+    border-right:0;
+    border-bottom:1px solid #e4e7ec;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior-x:contain;
+    scrollbar-width:thin;
+  }
+  .side-brand{
+    display:flex;
+    flex:0 0 auto;
+    flex-direction:row;
+    align-items:center;
+    gap:7px;
+    width:auto;
+    min-width:max-content;
+    max-width:none;
+    padding:0 10px 0 0;
+    margin:0;
+    border:0;
+    border-right:1px solid #e4e7ec;
+  }
+  .side-mark{display:flex;flex:0 0 auto;width:auto;gap:3px}
+  .side-mark span{width:25px;height:28px;font-size:12px}
+  .side-brand-name{font-size:11px;line-height:1.15;letter-spacing:.02em;white-space:nowrap}
+  .side-brand-sub{font-size:9px;white-space:nowrap}
+  .side-section-label,.side-footer{display:none!important}
+  .side .nav{
+    display:flex;
+    flex:0 0 auto;
+    flex-direction:row;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    width:auto;
+    min-width:max-content;
+    min-height:38px;
+    margin:0;
+    padding:8px 10px;
+    border-radius:9px;
+    font-size:12px;
+    line-height:1;
+    white-space:nowrap;
+  }
+  .side .nav-icon{font-size:11px}
+  .main{
+    width:100%;
+    max-width:none;
+    margin:0;
+    padding:14px 14px 24px;
+  }
+  .top{
+    flex-direction:row;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-bottom:16px;
+  }
+  .top h1{font-size:clamp(22px,6vw,28px);line-height:1.2}
+  .top-actions{width:auto;display:flex;justify-content:flex-end;gap:7px;flex-wrap:wrap}
+  .eyebrow{overflow-wrap:anywhere}
+  .hero{padding:16px;margin-bottom:14px}
+  .hero h2{font-size:clamp(21px,5.8vw,28px);line-height:1.2}
+  .hero p{line-height:1.5}
+  .grid,.grid.three,.profile-grid,.formgrid,.home-main-grid,.home-lower-grid,.home-class-grid,.parent-metrics,.detail-summary-grid,.order-info-grid,.report-metrics{
+    grid-template-columns:minmax(0,1fr)!important;
+  }
+}
