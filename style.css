@@ -3690,3 +3690,17 @@ button{touch-action:manipulation}
  #orders .order-bulk-actions{width:100%;justify-content:stretch}
  #orders .order-bulk-actions button{flex:1 1 130px}
 }
+
+/* Refined Manage dropdown chevron */
+#orders .order-action-trigger{align-items:center}
+#orders .order-action-chevron{
+  display:inline-block;flex:0 0 8px;width:8px;height:8px;
+  margin:0 2px 3px 8px;border-right:2px solid #667085;
+  border-bottom:2px solid #667085;border-radius:1px;
+  transform:rotate(45deg);transform-origin:center;
+  transition:transform .18s ease,margin .18s ease;
+  font-size:0;line-height:0
+}
+#orders .order-action-trigger[aria-expanded="true"] .order-action-chevron{
+  transform:rotate(225deg);margin-top:7px;margin-bottom:0
+}
