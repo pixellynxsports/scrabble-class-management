@@ -1108,6 +1108,22 @@ async function run(fn,...args){
     case 'verifyOrderPaymentProof': {const id=String(args[0]);const note=String(args[1]||'').trim();const {data:current,error:readError}=await supabaseClient.from('orders').select('payment_proof_status,payment_status,order_status').eq('order_id',id).maybeSingle();if(readError)throw dbError(readError);if(!current)throw new Error('Order not found.');if(String(current.payment_proof_status||'')!=='Submitted')throw new Error('Only a submitted payment proof can be confirmed.');const {data:userData}=await supabaseClient.auth.getUser();const {error}=await supabaseClient.from('orders').update({payment_proof_status:'Verified',payment_status:'Paid',order_status:'Processing',payment_verified_at:new Date().toISOString(),payment_verified_by:userData.user?.id||null,payment_verification_notes:note}).eq('order_id',id);if(error)throw dbError(error);return loadRemoteData();}
     case 'rejectOrderPaymentProof': {const id=String(args[0]);const note=String(args[1]||'').trim();if(!note)throw new Error('Please enter a reason for rejecting the receipt.');const {data:current,error:readError}=await supabaseClient.from('orders').select('payment_proof_status').eq('order_id',id).maybeSingle();if(readError)throw dbError(readError);if(!current)throw new Error('Order not found.');if(String(current.payment_proof_status||'')!=='Submitted')throw new Error('Only a submitted payment proof can be rejected.');const {error}=await supabaseClient.from('orders').update({payment_proof_status:'Rejected',payment_status:'Unpaid',order_status:'Pending Payment',payment_verified_at:null,payment_verified_by:null,payment_verification_notes:note}).eq('order_id',id);if(error)throw dbError(error);return loadRemoteData();}
     case 'openOrderReceipt': {const id=String(args[0]);const {data,error}=await supabaseClient.functions.invoke('get-order-payment-receipt',{body:{order_id:id}});if(error)throw new Error(error.message||'Unable to open receipt.');if(!data?.url)throw new Error(data?.error||'Receipt is unavailable.');window.open(data.url,'_blank','noopener');return data;}
+    case 'deleteOrder': {
+      const id=String(args[0]||'').trim();
+      if(!id)throw new Error('Order ID is required.');
+      const {data,error}=await supabaseClient.functions.invoke('delete-order',{body:{order_id:id}});
+      if(error){
+        let message=error.message||'Unable to delete the order.';
+        try{
+          const responseBody=await error.context?.json?.();
+          if(responseBody?.error)message=responseBody.error;
+        }catch(_){}
+        throw new Error(message);
+      }
+      if(!data?.success)throw new Error(data?.error||'Unable to delete the order.');
+      const records=await loadRemoteData();
+      return {records,receiptCleanupWarning:String(data.receipt_cleanup_warning||'')};
+    }
     case 'archiveOrder': case 'restoreOrder': {const id=String(args[0]);const {error}=await supabaseClient.from('orders').update({archived:fn==='archiveOrder'}).eq('order_id',id);if(error)throw dbError(error);return loadRemoteData();}
     case 'bulkArchiveOrders': case 'bulkRestoreOrders': {const ids=(Array.isArray(args[0])?args[0]:[]).map(String).filter(Boolean);if(!ids.length)return loadRemoteData();const {error}=await supabaseClient.from('orders').update({archived:fn==='bulkArchiveOrders'}).in('order_id',ids);if(error)throw dbError(error);return loadRemoteData();}
     case 'archiveStudent': case 'restoreStudent': {const id=String(args[0]);const {error}=await supabaseClient.from('students').update({active:fn==='restoreStudent'}).eq('student_id',id);if(error)throw dbError(error);return loadRemoteData();}
@@ -2016,12 +2032,205 @@ async function changeOrder(id,field,value){try{DATA=await run('updateOrderStatus
 function editOrder(id){const o=DATA.orders.find(x=>String(x['Order ID'])===String(id));if(!o)return;showOrderForm(o)}
 function toggleOrderCustomer(){const other=document.getElementById('oType').value==='other';document.getElementById('studentBox').style.display=other?'none':'block';document.getElementById('otherBox').style.display=other?'block':'none'}
 let orderView='active';let currentOrderId='';
+let activeOrderActionMenu=null;
+let orderActionMenuCloseTimer=null;
+let orderActionMenuListenersReady=false;
 function setOrderView(view){orderView=view;selectedOrderIds.clear();renderOrders()}
 function toggleOrderSelection(id,checked){if(checked)selectedOrderIds.add(String(id));else selectedOrderIds.delete(String(id));updateOrderBulkBar()}
 function toggleAllOrders(checked){const q=(document.getElementById('orderSearch')?.value||'').toLowerCase();const visible=DATA.orders.filter(o=>(orderView==='archived'?String(o.Archived||'').toLowerCase()==='yes':String(o.Archived||'no').toLowerCase()!=='yes')).filter(o=>o.Product===orderTab&&Object.values(o).some(v=>String(v).toLowerCase().includes(q)));visible.forEach(o=>checked?selectedOrderIds.add(String(o['Order ID'])):selectedOrderIds.delete(String(o['Order ID'])));renderOrders()}
 function updateOrderBulkBar(){const count=selectedOrderIds.size;const label=document.getElementById('orderSelectedCount');const action=document.getElementById('orderBulkAction');if(label)label.textContent=count?`${count} selected`:'';if(action){action.textContent=orderView==='archived'?'Restore Selected':'Archive Selected';action.disabled=count===0;action.classList.toggle('disabled',count===0)}}
 /* ===== ORDERS ===== */
-function renderOrders(){const q=(document.getElementById('orderSearch')?.value||'').toLowerCase();const visible=DATA.orders.filter(o=>(orderView==='archived'?String(o.Archived||'').toLowerCase()==='yes':String(o.Archived||'no').toLowerCase()!=='yes'));const rows=visible.filter(o=>o.Product===orderTab&&Object.values(o).some(v=>String(v).toLowerCase().includes(q))).sort((a,b)=>new Date(b['Order Date'])-new Date(a['Order Date']));const awaiting=visible.filter(o=>String(o['Payment Proof Status']||'')==='Submitted'&&String(o['Payment Status']||'').toLowerCase()!=='paid').length;const unpaid=visible.filter(o=>String(o['Payment Status']||'').toLowerCase()!=='paid'&&String(o['Payment Proof Status']||'')!=='Submitted').length;const processing=visible.filter(o=>o['Order Status']==='Processing').length;const done=visible.filter(o=>o['Order Status']==='Order Done').length;const summary=document.getElementById('orderSummaryCards');if(summary)summary.innerHTML=`<div class="order-stat"><span>AWAITING CONFIRMATION</span><strong>${awaiting}</strong></div><div class="order-stat"><span>AWAITING PAYMENT</span><strong>${unpaid}</strong></div><div class="order-stat"><span>PROCESSING</span><strong>${processing}</strong></div><div class="order-stat"><span>ORDER DONE</span><strong>${done}</strong></div>`;const rowIds=new Set(rows.map(o=>String(o['Order ID'])));selectedOrderIds=new Set([...selectedOrderIds].filter(id=>rowIds.has(String(id))));document.getElementById('orderCount').textContent=rows.length;const title=document.getElementById('orderTitle');if(title)title.textContent=(orderTab==='T Shirt'?'T Shirts':'Scrabble Sets')+(orderView==='archived'?' · Archived':'');const body=document.getElementById('ordersBody');const allSelected=rows.length>0&&rows.every(o=>selectedOrderIds.has(String(o['Order ID'])));body.innerHTML=rows.map(o=>{const archived=String(o.Archived||'').toLowerCase()==='yes';const size=orderTab==='T Shirt'?esc(o.Size||''):'-';const checked=selectedOrderIds.has(String(o['Order ID']))?'checked':'';return `<tr><td><input class="order-select" type="checkbox" ${checked} aria-label="Select order ${esc(o['Order ID'])}" onchange="toggleOrderSelection('${esc(o['Order ID'])}',this.checked)"></td><td>${esc(o['Order ID'])}</td><td><b>${esc(o['Customer Name']||'')}</b></td><td>${o['Student ID']?`<button class="linkbtn" onclick="openStudent('${esc(o['Student ID'])}')">${esc(studentName(o['Student ID']))}</button>`:'Non student'}</td><td>${size}</td><td>${esc(o.Quantity||1)}</td><td>RM${esc(o.Total||0)}</td><td>${esc(o['Order Status']||'')}</td><td>${esc(String(o['Payment Proof Status']||'')==='Submitted'&&String(o['Payment Status']||'').toLowerCase()!=='paid'?'Awaiting Confirmation':o['Payment Status']||'')}</td><td>${esc(o['Collection Status']||'')}</td><td>${esc(formatDateClient(o['Order Date']))}</td><td><button class="secondary" onclick="openOrder('${esc(o['Order ID'])}')">View / Manage</button></td></tr>`}).join('')||'<tr><td colspan="12" class="empty">No orders in this view.</td></tr>';const toolbar=document.querySelector('#orders .toolbar');if(toolbar){let active=document.getElementById('orderViewActive');if(!active){active=document.createElement('button');active.id='orderViewActive';active.className='secondary';active.textContent='Active Orders';active.onclick=()=>setOrderView('active');toolbar.insertBefore(active,toolbar.lastElementChild)}let archivedBtn=document.getElementById('orderViewArchived');if(!archivedBtn){archivedBtn=document.createElement('button');archivedBtn.id='orderViewArchived';archivedBtn.className='secondary';archivedBtn.textContent='Archived Orders';archivedBtn.onclick=()=>setOrderView('archived');toolbar.insertBefore(archivedBtn,toolbar.lastElementChild)}}const selectAll=document.getElementById('orderSelectAll');if(selectAll){selectAll.checked=allSelected;selectAll.indeterminate=rows.length>0&&!allSelected&&rows.some(o=>selectedOrderIds.has(String(o['Order ID'])))}updateOrderBulkBar()}
+function isOrderProtectedFromDelete(order){
+  const paymentStatus=String(order?.['Payment Status']||'').trim().toLowerCase();
+  const proofStatus=String(order?.['Payment Proof Status']||'').trim().toLowerCase();
+  return paymentStatus==='paid'||proofStatus==='verified';
+}
+function ensureOrderActionMenuListeners(){
+  if(orderActionMenuListenersReady)return;
+  orderActionMenuListenersReady=true;
+  document.addEventListener('pointerdown',event=>{
+    if(!activeOrderActionMenu)return;
+    const {trigger,menu}=activeOrderActionMenu;
+    if(!trigger?.contains(event.target)&&!menu?.contains(event.target))closeOrderActionMenu();
+  });
+  document.addEventListener('keydown',event=>{
+    if(event.key==='Escape'&&activeOrderActionMenu){
+      const trigger=activeOrderActionMenu.trigger;
+      closeOrderActionMenu();
+      trigger?.focus?.();
+    }
+  });
+  window.addEventListener('resize',closeOrderActionMenu);
+  window.addEventListener('scroll',closeOrderActionMenu,true);
+  window.addEventListener('blur',closeOrderActionMenu);
+}
+function closeOrderActionMenu(){
+  if(orderActionMenuCloseTimer){
+    clearTimeout(orderActionMenuCloseTimer);
+    orderActionMenuCloseTimer=null;
+  }
+  if(!activeOrderActionMenu)return;
+  const current=activeOrderActionMenu;
+  activeOrderActionMenu=null;
+  current.menu?.remove();
+  current.trigger?.setAttribute('aria-expanded','false');
+}
+function queueCloseOrderActionMenu(){
+  if(orderActionMenuCloseTimer)clearTimeout(orderActionMenuCloseTimer);
+  orderActionMenuCloseTimer=setTimeout(closeOrderActionMenu,220);
+}
+function positionOrderActionMenu(){
+  if(!activeOrderActionMenu)return;
+  const {trigger,menu}=activeOrderActionMenu;
+  if(!trigger?.isConnected||!menu?.isConnected){
+    closeOrderActionMenu();
+    return;
+  }
+  const rect=trigger.getBoundingClientRect();
+  const menuRect=menu.getBoundingClientRect();
+  const width=menuRect.width||204;
+  const height=menuRect.height||140;
+  const left=Math.max(8,Math.min(rect.right-width,window.innerWidth-width-8));
+  let top=rect.bottom+6;
+  if(top+height>window.innerHeight-8)top=Math.max(8,rect.top-height-6);
+  menu.style.left=left+'px';
+  menu.style.top=top+'px';
+}
+function showOrderActionMenu(trigger,orderId,archived,forceOpen=false){
+  if(!trigger)return;
+  const supportsHover=!!(window.matchMedia&&window.matchMedia('(hover: hover) and (pointer: fine)').matches);
+  if(!forceOpen&&!supportsHover)return;
+  ensureOrderActionMenuListeners();
+  if(orderActionMenuCloseTimer){
+    clearTimeout(orderActionMenuCloseTimer);
+    orderActionMenuCloseTimer=null;
+  }
+  if(activeOrderActionMenu?.trigger===trigger&&activeOrderActionMenu.menu?.isConnected){
+    positionOrderActionMenu();
+    return;
+  }
+  closeOrderActionMenu();
+  const order=orderRecord(orderId);
+  if(!order)return;
+  const protectedOrder=isOrderProtectedFromDelete(order);
+  const menu=document.createElement('div');
+  menu.className='order-action-menu';
+  menu.setAttribute('role','menu');
+  menu.setAttribute('aria-label','Order actions');
+  menu.dataset.orderId=String(orderId);
+  menu.innerHTML=
+    '<button type="button" role="menuitem" data-order-action="view"><span class="order-action-menu-icon">↗</span><span>View / Manage</span></button>'+
+    '<button type="button" role="menuitem" data-order-action="'+(archived?'restore':'archive')+'"><span class="order-action-menu-icon">'+(archived?'↶':'▣')+'</span><span>'+(archived?'Restore Order':'Archive Order')+'</span></button>'+
+    '<button type="button" role="menuitem" data-order-action="delete" class="order-action-delete" '+(protectedOrder?'disabled aria-disabled="true" title="Paid orders are protected from deletion"':'')+'><span class="order-action-menu-icon">⌫</span><span>Delete Order</span></button>'+
+    (protectedOrder?'<div class="order-action-protected-note">Paid orders are protected. Archive this order instead.</div>':'');
+  menu.addEventListener('mouseenter',()=>{
+    if(orderActionMenuCloseTimer){
+      clearTimeout(orderActionMenuCloseTimer);
+      orderActionMenuCloseTimer=null;
+    }
+  });
+  menu.addEventListener('mouseleave',queueCloseOrderActionMenu);
+  menu.addEventListener('focusin',()=>{
+    if(orderActionMenuCloseTimer){
+      clearTimeout(orderActionMenuCloseTimer);
+      orderActionMenuCloseTimer=null;
+    }
+  });
+  menu.addEventListener('focusout',event=>{
+    if(!menu.contains(event.relatedTarget)&&!trigger.contains(event.relatedTarget))queueCloseOrderActionMenu();
+  });
+  menu.addEventListener('click',event=>{
+    const item=event.target.closest('button[data-order-action]');
+    if(!item||item.disabled)return;
+    const action=item.dataset.orderAction;
+    const selectedId=menu.dataset.orderId;
+    closeOrderActionMenu();
+    if(action==='view')openOrder(selectedId);
+    else if(action==='archive')archiveOrderAction(selectedId);
+    else if(action==='restore')restoreOrderAction(selectedId);
+    else if(action==='delete')deleteOrderAction(selectedId);
+  });
+  document.body.appendChild(menu);
+  activeOrderActionMenu={trigger,menu};
+  trigger.setAttribute('aria-expanded','true');
+  positionOrderActionMenu();
+}
+function renderOrders(){
+  const q=(document.getElementById('orderSearch')?.value||'').toLowerCase();
+  const visible=DATA.orders.filter(o=>(
+    orderView==='archived'
+      ? String(o.Archived||'').toLowerCase()==='yes'
+      : String(o.Archived||'no').toLowerCase()!=='yes'
+  ));
+  const rows=visible.filter(o=>o.Product===orderTab&&Object.values(o).some(v=>String(v).toLowerCase().includes(q))).sort((a,b)=>new Date(b['Order Date'])-new Date(a['Order Date']));
+  const awaiting=visible.filter(o=>String(o['Payment Proof Status']||'')==='Submitted'&&String(o['Payment Status']||'').toLowerCase()!=='paid').length;
+  const unpaid=visible.filter(o=>String(o['Payment Status']||'').toLowerCase()!=='paid'&&String(o['Payment Proof Status']||'')!=='Submitted').length;
+  const processing=visible.filter(o=>o['Order Status']==='Processing').length;
+  const done=visible.filter(o=>o['Order Status']==='Order Done').length;
+  const summary=document.getElementById('orderSummaryCards');
+  if(summary)summary.innerHTML='<div class="order-stat"><span>AWAITING CONFIRMATION</span><strong>'+awaiting+'</strong></div><div class="order-stat"><span>AWAITING PAYMENT</span><strong>'+unpaid+'</strong></div><div class="order-stat"><span>PROCESSING</span><strong>'+processing+'</strong></div><div class="order-stat"><span>ORDER DONE</span><strong>'+done+'</strong></div>';
+  const rowIds=new Set(rows.map(o=>String(o['Order ID'])));
+  selectedOrderIds=new Set([...selectedOrderIds].filter(id=>rowIds.has(String(id))));
+  const count=document.getElementById('orderCount');
+  if(count)count.textContent=rows.length;
+  const title=document.getElementById('orderTitle');
+  if(title)title.textContent=(orderTab==='T Shirt'?'T Shirts':'Scrabble Sets')+(orderView==='archived'?' · Archived':'');
+  const body=document.getElementById('ordersBody');
+  if(!body)return;
+  const allSelected=rows.length>0&&rows.every(o=>selectedOrderIds.has(String(o['Order ID'])));
+  body.innerHTML=rows.map(o=>{
+    const archived=String(o.Archived||'').toLowerCase()==='yes';
+    const size=orderTab==='T Shirt'?esc(o.Size||''):'-';
+    const checked=selectedOrderIds.has(String(o['Order ID']))?'checked':'';
+    const orderId=String(o['Order ID']||'');
+    const orderIdSafe=esc(orderId);
+    return '<tr>'+
+      '<td><input class="order-select" type="checkbox" '+checked+' aria-label="Select order '+orderIdSafe+'" onchange="toggleOrderSelection(\''+orderIdSafe+'\',this.checked)"></td>'+
+      '<td>'+orderIdSafe+'</td>'+
+      '<td><b>'+esc(o['Customer Name']||'')+'</b></td>'+
+      '<td>'+(o['Student ID']?'<button class="linkbtn" onclick="openStudent(\''+esc(o['Student ID'])+'\')">'+esc(studentName(o['Student ID']))+'</button>':'Non student')+'</td>'+
+      '<td>'+size+'</td>'+
+      '<td>'+esc(o.Quantity||1)+'</td>'+
+      '<td>RM'+esc(o.Total||0)+'</td>'+
+      '<td>'+esc(o['Order Status']||'')+'</td>'+
+      '<td>'+esc(String(o['Payment Proof Status']||'')==='Submitted'&&String(o['Payment Status']||'').toLowerCase()!=='paid'?'Awaiting Confirmation':o['Payment Status']||'')+'</td>'+
+      '<td>'+esc(o['Collection Status']||'')+'</td>'+
+      '<td>'+esc(formatDateClient(o['Order Date']))+'</td>'+
+      '<td class="order-action-cell"><button type="button" class="secondary order-action-trigger" aria-haspopup="menu" aria-expanded="false" aria-label="Actions for order '+orderIdSafe+'" '+
+        'onmouseenter="showOrderActionMenu(this,\''+orderIdSafe+'\','+archived+',false)" onmouseleave="queueCloseOrderActionMenu()" '+
+        'onfocus="showOrderActionMenu(this,\''+orderIdSafe+'\','+archived+',true)" onblur="queueCloseOrderActionMenu()" '+
+        'onclick="showOrderActionMenu(this,\''+orderIdSafe+'\','+archived+',true)">'+
+        '<span>View / Manage</span><span class="order-action-chevron" aria-hidden="true">⌄</span></button></td>'+
+      '</tr>';
+  }).join('')||'<tr><td colspan="12" class="empty">No orders in this view.</td></tr>';
+  const toolbar=document.querySelector('#orders .toolbar');
+  if(toolbar){
+    let active=document.getElementById('orderViewActive');
+    if(!active){
+      active=document.createElement('button');
+      active.id='orderViewActive';
+      active.className='secondary';
+      active.textContent='Active Orders';
+      active.onclick=()=>setOrderView('active');
+      toolbar.insertBefore(active,toolbar.lastElementChild);
+    }
+    let archivedBtn=document.getElementById('orderViewArchived');
+    if(!archivedBtn){
+      archivedBtn=document.createElement('button');
+      archivedBtn.id='orderViewArchived';
+      archivedBtn.className='secondary';
+      archivedBtn.textContent='Archived Orders';
+      archivedBtn.onclick=()=>setOrderView('archived');
+      toolbar.insertBefore(archivedBtn,toolbar.lastElementChild);
+    }
+  }
+  const selectAll=document.getElementById('orderSelectAll');
+  if(selectAll){
+    selectAll.checked=allSelected;
+    selectAll.indeterminate=rows.length>0&&!allSelected&&rows.some(o=>selectedOrderIds.has(String(o['Order ID'])));
+  }
+  updateOrderBulkBar();
+}
 async function bulkArchiveRestoreOrders(){const ids=[...selectedOrderIds];if(!ids.length)return;const action=orderView==='archived'?'restore':'archive';const verb=action==='archive'?'Archive':'Restore';const message=action==='archive'?`Archive ${ids.length} selected order${ids.length===1?'':'s'}?\n\nThe orders will stay in the database and be hidden from the respective Parent Portal.`:`Restore ${ids.length} selected order${ids.length===1?'':'s'}?\n\nThe orders will become visible again in the respective Parent Portal.`;if(!(await appConfirm(message,verb+' Selected Orders?')))return;try{DATA=await run(action==='archive'?'bulkArchiveOrders':'bulkRestoreOrders',ids);selectedOrderIds.clear();renderOrders();}catch(e){appNotify(e.message||e)}}
 function orderRecord(id){return DATA.orders.find(o=>String(o['Order ID'])===String(id))}
 function renderOrderDashboard(order){
@@ -2064,8 +2273,52 @@ async function verifyOrderPayment(id){const note=await appPrompt('Add an optiona
 async function rejectOrderPayment(id){const note=await appPrompt('Enter the reason shown in the payment verification record.','Receipt does not match the bank transaction.','Reject Payment Proof','Reason for rejection');if(note===null)return;try{DATA=await run('rejectOrderPaymentProof',id,note);openOrder(id)}catch(e){appNotify(e.message||e)}}
 function openOrder(id){const order=orderRecord(id);if(!order)return;currentOrderId=id;page('orderDashboard');renderOrderDashboard(order)}
 async function saveOrderDashboard(id){const order=orderRecord(id);if(!order)return;const product=document.getElementById('dProduct').value;const size=document.getElementById('dSize')?.value||'';if(product==='T Shirt'&&!size.trim())return appNotify('T Shirt size is required.');const proof=String(order['Payment Proof Status']||'Not Submitted');const storedPayment=String(order['Payment Status']||'Unpaid');const paymentSelect=document.getElementById('dPaymentStatus');const paymentStatus=proof==='Submitted'?'Unpaid':proof==='Verified'?'Paid':(paymentSelect?.value||storedPayment);const orderStatus=proof==='Submitted'?'Pending Payment':proof==='Rejected'?'Pending Payment':(document.getElementById('dOrderStatus')?.value||order['Order Status']||'Pending Order');try{DATA=await run('saveOrder',{orderId:id,studentId:order['Student ID'],customerName:order['Customer Name'],phone:order.Phone,product,size,quantity:Number(document.getElementById('dQty').value),unitPrice:Number(document.getElementById('dPrice').value),orderStatus,paymentStatus,collectionStatus:document.getElementById('dCollectionStatus').value,orderDate:document.getElementById('dDate').value,notes:document.getElementById('dNotes').value});openOrder(id)}catch(e){appNotify(e.message||e)}}
-async function archiveOrderAction(id){if(!(await appConfirm('The order will remain in history and be hidden from the active order list.','Archive Order?')))return;try{DATA=await run('archiveOrder',id);renderOrders()}catch(e){appNotify(e.message||e)}}
-async function restoreOrderAction(id){try{DATA=await run('restoreOrder',id);renderOrders()}catch(e){appNotify(e.message||e)}}
+async function archiveOrderAction(id){
+  const order=orderRecord(id);
+  if(!order)return;
+  if(!(await appConfirm('The order will remain in your database and order history. It will be hidden from the active order list and Parent Portal.','Archive Order?','ORDER ARCHIVE')))return;
+  try{
+    DATA=await run('archiveOrder',id);
+    renderOrders();
+    appNotify('The order has been moved to Archived Orders.','success','Order Archived');
+  }catch(e){
+    appNotify(e.message||e,'error','Archive Failed');
+  }
+}
+async function restoreOrderAction(id){
+  try{
+    DATA=await run('restoreOrder',id);
+    renderOrders();
+    appNotify('The order is active again.','success','Order Restored');
+  }catch(e){
+    appNotify(e.message||e,'error','Restore Failed');
+  }
+}
+async function deleteOrderAction(id){
+  const order=orderRecord(id);
+  if(!order)return;
+  if(isOrderProtectedFromDelete(order)){
+    appNotify('This order has a paid or verified payment. Archive the order instead.','warning','Deletion Protected');
+    return;
+  }
+  const customer=String(order['Customer Name']||'this customer');
+  const message='Permanently delete order '+String(id)+' for '+customer+'?\n\nThe order record will be removed. Any uploaded payment receipt for this unpaid order will also be removed from private storage. This action cannot be undone.';
+  if(!(await appConfirm(message,'Delete Order Permanently?','PERMANENT ACTION')))return;
+  try{
+    const result=await run('deleteOrder',id);
+    DATA=result.records;
+    selectedOrderIds.delete(String(id));
+    closeOrderActionMenu();
+    renderOrders();
+    if(result.receiptCleanupWarning){
+      appNotify('The order was deleted, but its private receipt file needs administrator cleanup: '+result.receiptCleanupWarning,'warning','Order Deleted With Cleanup Warning',{duration:8000});
+    }else{
+      appNotify('Order '+String(id)+' was permanently deleted.','success','Order Deleted');
+    }
+  }catch(e){
+    appNotify(e.message||'Unable to delete the order.','error','Delete Failed');
+  }
+}
 function showOrderForm(existing){const students=DATA.students.filter(s=>String(s.Active||'yes').toLowerCase()!=='no').map(s=>`<option value="${esc(s['Student ID'])}" ${existing&&String(existing['Student ID'])===String(s['Student ID'])?'selected':''}>${esc(s['Student Name'])} (${esc(s['Student ID'])})</option>`).join('');const nonStudent=existing&&!existing['Student ID'];showModal(`<h2>${existing?'Edit':'Add'} Order</h2><div class="form"><label>Customer type</label><select id="oType" onchange="toggleOrderCustomer()"><option value="student" ${!nonStudent?'selected':''}>Student</option><option value="other" ${nonStudent?'selected':''}>Non student</option></select><div id="studentBox" style="display:${nonStudent?'none':'block'}"><label>Student</label><select id="oStudent"><option value="">Choose student</option>${students}</select></div><div id="otherBox" style="display:${nonStudent?'block':'none'}"><label>Customer name</label><input id="oName" value="${esc(existing?.['Customer Name']||'')}"><label>Phone</label><input id="oPhone" value="${esc(existing?.Phone||'')}"></div><label>Product</label><select id="oProduct" onchange="toggleOrderProduct()"><option ${orderTab==='Scrabble Set'?'selected':''}>Scrabble Set</option><option ${orderTab==='T Shirt'?'selected':''}>T Shirt</option></select><div id="oSizeBox" style="display:${orderTab==='T Shirt'?'block':'none'}"><label>Size</label><input id="oSize" value="${esc(existing?.Size||'')}"></div><label>Quantity</label><input id="oQty" type="number" min="1" value="${esc(existing?.Quantity||1)}"><label>Unit Price</label><input id="oPrice" type="number" min="0" step="0.01" value="${esc(existing?.['Unit Price']||0)}"><label>Order Status</label><select id="oStatus"><option ${!existing||existing['Order Status']==='Pending Order'?'selected':''}>Pending Order</option><option ${existing?.['Order Status']==='Pending Payment'?'selected':''}>Pending Payment</option><option ${existing?.['Order Status']==='Processing'?'selected':''}>Processing</option><option ${existing?.['Order Status']==='Order Done'?'selected':''}>Order Done</option></select><label>Payment</label><select id="oPayment"><option ${!existing||existing['Payment Status']==='Unpaid'?'selected':''}>Unpaid</option><option ${existing?.['Payment Status']==='Paid'?'selected':''}>Paid</option></select><label>Collection</label><select id="oCollection"><option ${!existing||existing['Collection Status']==='Not Collected'?'selected':''}>Not Collected</option><option ${existing?.['Collection Status']==='Collected'?'selected':''}>Collected</option></select><label>Order Date</label><input id="oDate" type="date" value="${esc(existing?String(existing['Order Date']).slice(0,10):isoDate(new Date()))}"><label>Notes</label><textarea id="oNotes">${esc(existing?.Notes||'')}</textarea><div class="actions"><button class="secondary" onclick="closeModal()">Cancel</button><button class="primary" onclick="saveOrderForm('${esc(existing?.['Order ID']||'')}')">Save</button></div></div>`)}
 function toggleOrderProduct(){document.getElementById('oSizeBox').style.display=document.getElementById('oProduct').value==='T Shirt'?'block':'none'}
 async function saveOrderForm(orderId){const other=document.getElementById('oType').value==='other';const studentId=other?'':document.getElementById('oStudent').value;const product=document.getElementById('oProduct').value;const size=document.getElementById('oSize')?.value||'';if(!other&&!studentId)return appNotify('Choose a student or select Non student.');if(other&&!document.getElementById('oName').value.trim())return appNotify('Customer name is required.');if(product==='T Shirt'&&!size.trim())return appNotify('T Shirt size is required.');try{DATA=await run('saveOrder',{orderId,studentId,customerName:other?document.getElementById('oName').value:'',phone:other?document.getElementById('oPhone').value:'',product,size,quantity:Number(document.getElementById('oQty').value),unitPrice:Number(document.getElementById('oPrice').value),orderStatus:document.getElementById('oStatus').value,paymentStatus:document.getElementById('oPayment').value,collectionStatus:document.getElementById('oCollection').value,orderDate:document.getElementById('oDate').value,notes:document.getElementById('oNotes').value});closeModal();renderAll()}catch(e){appNotify(e.message||e)}}
