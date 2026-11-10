@@ -19,3 +19,7 @@ verify_jwt = false
 
 [functions.review-student-registration]
 verify_jwt = true
+
+# Teacher-only hard deletion for unpaid orders. The function validates the caller's JWT.
+[functions.delete-order]
+verify_jwt = true
