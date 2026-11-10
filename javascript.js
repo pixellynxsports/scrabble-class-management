@@ -2212,7 +2212,7 @@ function renderOrders(){
         'onmouseenter="showOrderActionMenu(this,\''+orderIdSafe+'\','+archived+',false)" onmouseleave="queueCloseOrderActionMenu()" '+
         'onfocus="showOrderActionMenu(this,\''+orderIdSafe+'\','+archived+',true)" onblur="queueCloseOrderActionMenu()" '+
         'onclick="showOrderActionMenu(this,\''+orderIdSafe+'\','+archived+',true)">'+
-        '<span>Manage</span><span class="order-action-chevron" aria-hidden="true">⌄</span></button></td>'+
+        '<span>Manage</span><span class="order-action-chevron" aria-hidden="true"></span></button></td>'+
       '</tr>';
   }).join('')||'<tr><td colspan="12" class="empty">No orders in this view.</td></tr>';
   const toolbar=document.querySelector('#orders .toolbar');
