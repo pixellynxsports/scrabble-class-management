@@ -2038,7 +2038,17 @@ let orderActionMenuListenersReady=false;
 function setOrderView(view){orderView=view;selectedOrderIds.clear();renderOrders()}
 function toggleOrderSelection(id,checked){if(checked)selectedOrderIds.add(String(id));else selectedOrderIds.delete(String(id));updateOrderBulkBar()}
 function toggleAllOrders(checked){const q=(document.getElementById('orderSearch')?.value||'').toLowerCase();const visible=DATA.orders.filter(o=>(orderView==='archived'?String(o.Archived||'').toLowerCase()==='yes':String(o.Archived||'no').toLowerCase()!=='yes')).filter(o=>o.Product===orderTab&&Object.values(o).some(v=>String(v).toLowerCase().includes(q)));visible.forEach(o=>checked?selectedOrderIds.add(String(o['Order ID'])):selectedOrderIds.delete(String(o['Order ID'])));renderOrders()}
-function updateOrderBulkBar(){const count=selectedOrderIds.size;const label=document.getElementById('orderSelectedCount');const action=document.getElementById('orderBulkAction');if(label)label.textContent=count?`${count} selected`:'';if(action){action.textContent=orderView==='archived'?'Restore Selected':'Archive Selected';action.disabled=count===0;action.classList.toggle('disabled',count===0)}}
+function updateOrderBulkBar(){
+  const count=selectedOrderIds.size;
+  const label=document.getElementById('orderSelectedCount');
+  const action=document.getElementById('orderBulkAction');
+  const deleteButton=document.getElementById('orderBulkDelete');
+  const deletable=[...selectedOrderIds].filter(id=>{const order=orderRecord(id);return order&&!isOrderProtectedFromDelete(order)}).length;
+  if(label)label.textContent=count?count+' selected':'';
+  if(action){action.textContent=orderView==='archived'?'Restore Selected':'Archive Selected';action.disabled=count===0;action.classList.toggle('disabled',count===0)}
+  if(deleteButton){deleteButton.disabled=deletable===0;deleteButton.classList.toggle('disabled',deletable===0);deleteButton.title=deletable?deletable+' eligible orders':'No eligible unpaid orders selected';}
+}
+
 /* ===== ORDERS ===== */
 function isOrderProtectedFromDelete(order){
   const paymentStatus=String(order?.['Payment Status']||'').trim().toLowerCase();
@@ -2119,7 +2129,7 @@ function showOrderActionMenu(trigger,orderId,archived,forceOpen=false){
   menu.setAttribute('aria-label','Order actions');
   menu.dataset.orderId=String(orderId);
   menu.innerHTML=
-    '<button type="button" role="menuitem" data-order-action="view"><span class="order-action-menu-icon">↗</span><span>View / Manage</span></button>'+
+    '<button type="button" role="menuitem" data-order-action="view"><span class="order-action-menu-icon">↗</span><span>Manage</span></button>'+
     '<button type="button" role="menuitem" data-order-action="'+(archived?'restore':'archive')+'"><span class="order-action-menu-icon">'+(archived?'↶':'▣')+'</span><span>'+(archived?'Restore Order':'Archive Order')+'</span></button>'+
     '<button type="button" role="menuitem" data-order-action="delete" class="order-action-delete" '+(protectedOrder?'disabled aria-disabled="true" title="Paid orders are protected from deletion"':'')+'><span class="order-action-menu-icon">⌫</span><span>Delete Order</span></button>'+
     (protectedOrder?'<div class="order-action-protected-note">Paid orders are protected. Archive this order instead.</div>':'');
@@ -2156,6 +2166,8 @@ function showOrderActionMenu(trigger,orderId,archived,forceOpen=false){
   positionOrderActionMenu();
 }
 function renderOrders(){
+  const ordersPage=document.getElementById('orders');
+  if(ordersPage)ordersPage.classList.toggle('orders-scrabble-view',orderTab!=='T Shirt');
   const q=(document.getElementById('orderSearch')?.value||'').toLowerCase();
   const visible=DATA.orders.filter(o=>(
     orderView==='archived'
@@ -2185,22 +2197,22 @@ function renderOrders(){
     const orderId=String(o['Order ID']||'');
     const orderIdSafe=esc(orderId);
     return '<tr>'+
-      '<td><input class="order-select" type="checkbox" '+checked+' aria-label="Select order '+orderIdSafe+'" onchange="toggleOrderSelection(\''+orderIdSafe+'\',this.checked)"></td>'+
-      '<td>'+orderIdSafe+'</td>'+
-      '<td><b>'+esc(o['Customer Name']||'')+'</b></td>'+
-      '<td>'+(o['Student ID']?'<button class="linkbtn" onclick="openStudent(\''+esc(o['Student ID'])+'\')">'+esc(studentName(o['Student ID']))+'</button>':'Non student')+'</td>'+
-      '<td>'+size+'</td>'+
-      '<td>'+esc(o.Quantity||1)+'</td>'+
-      '<td>RM'+esc(o.Total||0)+'</td>'+
-      '<td>'+esc(o['Order Status']||'')+'</td>'+
-      '<td>'+esc(String(o['Payment Proof Status']||'')==='Submitted'&&String(o['Payment Status']||'').toLowerCase()!=='paid'?'Awaiting Confirmation':o['Payment Status']||'')+'</td>'+
-      '<td>'+esc(o['Collection Status']||'')+'</td>'+
-      '<td>'+esc(formatDateClient(o['Order Date']))+'</td>'+
-      '<td class="order-action-cell"><button type="button" class="secondary order-action-trigger" aria-haspopup="menu" aria-expanded="false" aria-label="Actions for order '+orderIdSafe+'" '+
+      '<td class="order-select-cell" data-label="Select"><input class="order-select" type="checkbox" '+checked+' aria-label="Select order '+orderIdSafe+'" onchange="toggleOrderSelection(\''+orderIdSafe+'\',this.checked)"></td>'+
+      '<td class="order-id-cell" data-label="Order ID">'+orderIdSafe+'</td>'+
+      '<td data-label="Customer"><b>'+esc(o['Customer Name']||'')+'</b></td>'+
+      '<td data-label="Student">'+(o['Student ID']?'<button class="linkbtn" onclick="openStudent(\''+esc(o['Student ID'])+'\')">'+esc(studentName(o['Student ID']))+'</button>':'Non student')+'</td>'+
+      '<td class="order-size-column" data-label="Size">'+size+'</td>'+
+      '<td data-label="Qty">'+esc(o.Quantity||1)+'</td>'+
+      '<td data-label="Total">RM'+esc(o.Total||0)+'</td>'+
+      '<td data-label="Order">'+esc(o['Order Status']||'')+'</td>'+
+      '<td data-label="Payment">'+esc(String(o['Payment Proof Status']||'')==='Submitted'&&String(o['Payment Status']||'').toLowerCase()!=='paid'?'Awaiting Confirmation':o['Payment Status']||'')+'</td>'+
+      '<td data-label="Collection">'+esc(o['Collection Status']||'')+'</td>'+
+      '<td data-label="Date">'+esc(formatDateClient(o['Order Date']))+'</td>'+
+      '<td class="order-action-cell" data-label="Action"><button type="button" class="secondary order-action-trigger" aria-haspopup="menu" aria-expanded="false" aria-label="Actions for order '+orderIdSafe+'" '+
         'onmouseenter="showOrderActionMenu(this,\''+orderIdSafe+'\','+archived+',false)" onmouseleave="queueCloseOrderActionMenu()" '+
         'onfocus="showOrderActionMenu(this,\''+orderIdSafe+'\','+archived+',true)" onblur="queueCloseOrderActionMenu()" '+
         'onclick="showOrderActionMenu(this,\''+orderIdSafe+'\','+archived+',true)">'+
-        '<span>View / Manage</span><span class="order-action-chevron" aria-hidden="true">⌄</span></button></td>'+
+        '<span>Manage</span><span class="order-action-chevron" aria-hidden="true">⌄</span></button></td>'+
       '</tr>';
   }).join('')||'<tr><td colspan="12" class="empty">No orders in this view.</td></tr>';
   const toolbar=document.querySelector('#orders .toolbar');
@@ -2231,7 +2243,28 @@ function renderOrders(){
   }
   updateOrderBulkBar();
 }
-async function bulkArchiveRestoreOrders(){const ids=[...selectedOrderIds];if(!ids.length)return;const action=orderView==='archived'?'restore':'archive';const verb=action==='archive'?'Archive':'Restore';const message=action==='archive'?`Archive ${ids.length} selected order${ids.length===1?'':'s'}?\n\nThe orders will stay in the database and be hidden from the respective Parent Portal.`:`Restore ${ids.length} selected order${ids.length===1?'':'s'}?\n\nThe orders will become visible again in the respective Parent Portal.`;if(!(await appConfirm(message,verb+' Selected Orders?')))return;try{DATA=await run(action==='archive'?'bulkArchiveOrders':'bulkRestoreOrders',ids);selectedOrderIds.clear();renderOrders();}catch(e){appNotify(e.message||e)}}
+async function bulkArchiveRestoreOrders(){
+  const ids=[...selectedOrderIds];if(!ids.length)return;
+  const action=orderView==='archived'?'restore':'archive';
+  const verb=action==='archive'?'Archive':'Restore';
+  const message=action==='archive'?'Archive '+ids.length+' selected order'+(ids.length===1?'':'s')+'?\n\nThe orders will stay in the database and be hidden from the respective Parent Portal.':'Restore '+ids.length+' selected order'+(ids.length===1?'':'s')+'?\n\nThe orders will become visible again in the respective Parent Portal.';
+  if(!(await appConfirm(message,verb+' Selected Orders?')))return;
+  try{DATA=await run(action==='archive'?'bulkArchiveOrders':'bulkRestoreOrders',ids);selectedOrderIds.clear();renderOrders();}catch(e){appNotify(e.message||e)}
+}
+async function bulkDeleteSelectedOrders(){
+  const selected=[...selectedOrderIds];if(!selected.length)return;
+  const eligible=selected.filter(id=>{const order=orderRecord(id);return order&&!isOrderProtectedFromDelete(order)});
+  const protectedCount=selected.length-eligible.length;
+  if(!eligible.length){appNotify('All selected orders have paid or verified payments. Archive these orders instead.','warning','Deletion Protected');return;}
+  const summary='Permanently delete '+eligible.length+' unpaid order'+(eligible.length===1?'':'s')+'?'+(protectedCount?'\n\n'+protectedCount+' paid or verified order'+(protectedCount===1?'':'s')+' will be skipped.':'')+'\n\nDeleted orders and their private payment receipts cannot be recovered.';
+  if(!(await appConfirm(summary,'Delete Selected Orders?','PERMANENT ACTION')))return;
+  const deleted=[],failed=[];
+  for(const id of eligible){try{const result=await run('deleteOrder',id);DATA=result.records;deleted.push(id);}catch(error){failed.push({id,message:error&&error.message?error.message:'Deletion failed'});}}
+  selectedOrderIds.clear();renderOrders();
+  if(failed.length)appNotify(deleted.length+' order(s) deleted. '+failed.length+' failed: '+failed.map(x=>x.id+': '+x.message).join('; '),'warning','Bulk deletion partially completed',{duration:10000});
+  else appNotify(deleted.length+' unpaid order(s) permanently deleted.'+(protectedCount?' '+protectedCount+' protected order(s) skipped.':''),'success','Orders Deleted');
+}
+
 function orderRecord(id){return DATA.orders.find(o=>String(o['Order ID'])===String(id))}
 function renderOrderDashboard(order){
   const student=order&&order['Student ID']?DATA.students.find(s=>String(s['Student ID'])===String(order['Student ID'])):null;
