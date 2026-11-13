@@ -704,9 +704,11 @@ function renderArchivedParentPortal(s){
         ? '<span class="badge paid">Approved</span>'
         : '<span class="badge neutral">Not Submitted</span>';
 
-  const requestAction=pending
-    ? '<button class="parent-review-button submitted" type="button" disabled>Review Request Submitted</button>'
-    : '<button class="parent-review-button" type="button" onclick="submitParentReviewRequest()">Request Review</button>';
+  const requestAction=teacherPreviewMode
+    ? '<button class="parent-review-button submitted" type="button" disabled>Preview Only</button>'
+    : pending
+      ? '<button class="parent-review-button submitted" type="button" disabled>Review Request Submitted</button>'
+      : '<button class="parent-review-button" type="button" onclick="submitParentReviewRequest()">Request Review</button>';
 
   const attendancePreview=attendance.slice(0,5).map(a=>`
     <div class="parent-list-row">
@@ -827,7 +829,9 @@ function renderParentPortal(){
   const selector=document.getElementById('parentChildren'),dashboard=document.getElementById('parentDashboard');if(!selector||!dashboard)return;
   if(!PARENT_CONTEXT.students.length){selector.innerHTML='';dashboard.innerHTML='<div class="parent-card"><div class="empty">No student is linked to this parent account yet. Please contact the teacher.</div></div>';return;}
   if(!PARENT_CONTEXT.students.some(s=>String(s.student_id)===String(PARENT_CONTEXT.selectedStudentId)))PARENT_CONTEXT.selectedStudentId=PARENT_CONTEXT.students[0].student_id;
-  selector.innerHTML=`<div class="parent-card"><div class="eyebrow">MY CHILDREN</div><h2>Select a child</h2><div class="parent-child-tabs">${PARENT_CONTEXT.students.map(s=>{const active=String(s.student_id)===String(PARENT_CONTEXT.selectedStudentId);return `<button class="parent-child-tab ${active?'active':''}" onclick="selectParentChild('${esc(s.student_id)}')"><span>${esc(s.student_name)}</span><small>${esc(s.student_id)} · ${esc(s.normal_class_time||'Class time not recorded')}</small></button>`}).join('')}</div></div>`;
+  // A single linked student already has a prominent identity in the hero.
+  // Keep the child chooser only when there is an actual choice to make.
+  selector.innerHTML=PARENT_CONTEXT.students.length>1?`<div class="parent-card"><div class="eyebrow">MY CHILDREN</div><h2>Choose a student</h2><div class="parent-child-tabs">${PARENT_CONTEXT.students.map(s=>{const active=String(s.student_id)===String(PARENT_CONTEXT.selectedStudentId);return `<button class="parent-child-tab ${active?'active':''}" onclick="selectParentChild('${esc(s.student_id)}')"><span>${esc(s.student_name)}</span><small>${esc(s.student_id)} · ${esc(s.normal_class_time||'Class time not recorded')}</small></button>`}).join('')}</div></div>`:'';
   const s=PARENT_CONTEXT.students.find(x=>String(x.student_id)===String(PARENT_CONTEXT.selectedStudentId));if(!s){dashboard.innerHTML='';return;}
   const sid=String(s.student_id);
   if(s.active===false){
@@ -838,7 +842,14 @@ function renderParentPortal(){
   const packageClasses=state.classes.slice(0,4).map((a,i)=>`<div class="parent-package-row"><span class="package-number">${i+1}</span><div><b>${esc(formatDateClient(a.Date))}</b><small>${esc(a['Actual Class Time']||'')}</small></div><span class="badge present">Present</span></div>`).join('')||'<div class="empty">No Present classes in the current package yet.</div>';
   const tournamentPanel=renderParentTournamentPanel(sid);
   const certificates=parentCertificateRecords(sid);
-  dashboard.innerHTML=`<div id="parentActionRequired"></div>${tournamentPanel}<div class="parent-hero"><div><div class="eyebrow">MY CHILD</div><h2>${esc(s.student_name)}</h2><p>${esc(sid)} · ${esc(s.normal_class_time||'Class time not recorded')}</p></div><span class="badge blue">${esc(s.school||'School not recorded')}</span></div>${renderParentCertificateDashboardSection(certificates)}<div class="parent-metrics"><div class="parent-metric"><span>CLASSES USED</span><strong>${state.progress} / 4</strong><small>${esc(state.status)}</small></div><div class="parent-metric"><span>ATTENDANCE</span><strong>${attendanceRate}%</strong><small>${present} Present · ${absent} Absent</small></div><div class="parent-metric"><span>CURRENT CYCLE</span><strong>${esc(state.currentCycle)}</strong><small>4-class package</small></div><div class="parent-metric"><span>LAST PAYMENT</span><strong>${state.lastPayment?esc(formatDateClient(state.lastPayment['Payment Date'])):'-'}</strong><small>${state.lastPayment?'Payment recorded':'No payment recorded'}</small></div></div><button class="parent-card parent-click-card" onclick="openParentPanel('package')"><div class="section-head"><div><div class="eyebrow">CURRENT PACKAGE</div><h3>4-class package</h3></div>${parentStatusBadge(state)}</div><div class="parent-progress"><div style="width:${progressWidth}%"></div></div><div class="progress-labels"><span>${state.progress} of 4 classes used</span><span>${Math.max(0,4-state.progress)} remaining</span></div><div class="parent-package-list">${packageClasses}</div></button><div class="parent-two-col"><button class="parent-card parent-click-card" onclick="openParentPanel('attendance')"><div class="section-head"><div><div class="eyebrow">ATTENDANCE</div><h3>Attendance History</h3></div><span class="badge blue">${attendance.length} record${attendance.length===1?'':'s'}</span></div><div class="parent-list">${attendance.slice(0,8).map(a=>`<div class="parent-list-row"><div><b>${esc(formatDateClient(a.Date))}</b><small>${esc(a['Actual Class Time']||'')}</small></div>${a.Status==='Present'?'<span class="badge present">Present</span>':a.Status==='Absent'?'<span class="badge absent">Absent</span>':'<span class="badge neutral">Not marked</span>'}</div>`).join('')||'<div class="empty">No attendance records yet.</div>'}</div><div class="card-arrow">›</div></button><button class="parent-card parent-click-card" onclick="openParentPanel('payments')"><div class="section-head"><div><div class="eyebrow">PAYMENTS</div><h3>Payment History</h3></div><span class="badge blue">${payments.length} record${payments.length===1?'':'s'}</span></div><div class="parent-list">${payments.slice(0,6).map(p=>`<div class="parent-list-row"><div><b>Cycle ${esc(p['Cycle Number'])}</b><small>${esc(formatDateClient(p['Payment Date']))} · ${esc(p['Classes Covered']||'')}</small></div><div><strong>RM${esc(p.Amount||0)}</strong><span class="badge paid">${esc(p.Status||'')}</span></div></div>`).join('')||'<div class="empty">No payment records yet.</div>'}</div><div class="card-arrow">›</div></button></div><button class="parent-card parent-click-card" onclick="openParentPanel('orders')"><div class="section-head"><div><div class="eyebrow">ORDERS</div><h3>My Orders</h3></div><span class="badge blue">${orders.length} order${orders.length===1?'':'s'}</span></div><div class="parent-list">${orders.slice(0,8).map(o=>`<div class="parent-list-row"><div><b>${esc(o.Product||'Order')}</b><small>${o.Product==='T Shirt'?`Size ${esc(o.Size||'-')} · `:''}Qty ${esc(o.Quantity||1)} · ${esc(formatDateClient(o['Order Date']))}</small></div><div class="parent-order-status"><span>${esc(o['Order Status']||'')}</span><small>${esc(orderPaymentDisplay(o).label)} · ${esc(o['Collection Status']||'')}</small></div></div>`).join('')||'<div class="empty">No orders recorded.</div>'}<div class="card-arrow">›</div></div></button>`;
+  dashboard.innerHTML=`<div id="parentActionRequired"></div>${tournamentPanel}<div class="parent-hero"><div><div class="eyebrow">MY CHILD</div><h2>${esc(s.student_name)}</h2><p>${esc(sid)} · ${esc(s.normal_class_time||'Class time not recorded')}</p></div><span class="badge blue">${esc(s.school||'School not recorded')}</span></div><div class="parent-metrics"><div class="parent-metric"><span>CLASSES USED</span><strong>${state.progress} / 4</strong><small>${esc(state.status)}</small></div><div class="parent-metric"><span>ATTENDANCE</span><strong>${attendanceRate}%</strong><small>${present} Present · ${absent} Absent</small></div><div class="parent-metric"><span>CURRENT CYCLE</span><strong>${esc(state.currentCycle)}</strong><small>4-class package</small></div><div class="parent-metric"><span>LAST PAYMENT</span><strong>${state.lastPayment?esc(formatDateClient(state.lastPayment['Payment Date'])):'-'}</strong><small>${state.lastPayment?'Payment recorded':'No payment recorded'}</small></div></div>
+  <nav class="parent-quick-access" aria-label="Student information shortcuts">
+    <button type="button" onclick="openParentPanel('package')"><span class="parent-quick-access-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M10 4v16M14 9h3m-3 4h3"/></svg></span><span>Package</span><span class="parent-quick-access-arrow" aria-hidden="true">↗</span></button>
+    <button type="button" onclick="openParentPanel('attendance')"><span class="parent-quick-access-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 10h18m6 5 2 2 4-4"/></svg></span><span>Attendance</span><span class="parent-quick-access-arrow" aria-hidden="true">↗</span></button>
+    <button type="button" onclick="openParentPanel('payments')"><span class="parent-quick-access-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="15" rx="3"/><path d="M2 10h20m-15 6h4"/></svg></span><span>Payments</span><span class="parent-quick-access-arrow" aria-hidden="true">↗</span></button>
+    <button type="button" onclick="openParentPanel('orders')"><span class="parent-quick-access-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l2 14H4L6 7Zm3 0V5a3 3 0 0 1 6 0v2"/></svg></span><span>Orders</span><span class="parent-quick-access-arrow" aria-hidden="true">↗</span></button>
+  </nav>
+  <button class="parent-card parent-click-card parent-home-package" onclick="openParentPanel('package')"><div class="section-head"><div><div class="eyebrow">CURRENT PACKAGE</div><h3>4-class package</h3></div>${parentStatusBadge(state)}</div><div class="parent-progress"><div style="width:${progressWidth}%"></div></div><div class="progress-labels"><span>${state.progress} of 4 classes used</span><span>${Math.max(0,4-state.progress)} remaining</span></div><div class="parent-package-list">${packageClasses}</div></button><div class="parent-two-col parent-home-activity"><button class="parent-card parent-click-card" onclick="openParentPanel('attendance')"><div class="section-head"><div><div class="eyebrow">ATTENDANCE</div><h3>Attendance History</h3></div><span class="badge blue">${attendance.length} record${attendance.length===1?'':'s'}</span></div><div class="parent-list">${attendance.slice(0,3).map(a=>`<div class="parent-list-row"><div><b>${esc(formatDateClient(a.Date))}</b><small>${esc(a['Actual Class Time']||'')}</small></div>${a.Status==='Present'?'<span class="badge present">Present</span>':a.Status==='Absent'?'<span class="badge absent">Absent</span>':'<span class="badge neutral">Not marked</span>'}</div>`).join('')||'<div class="empty">No attendance records yet.</div>'}</div><div class="card-arrow">›</div></button><button class="parent-card parent-click-card" onclick="openParentPanel('payments')"><div class="section-head"><div><div class="eyebrow">PAYMENTS</div><h3>Payment History</h3></div><span class="badge blue">${payments.length} record${payments.length===1?'':'s'}</span></div><div class="parent-list">${payments.slice(0,3).map(p=>`<div class="parent-list-row"><div><b>Cycle ${esc(p['Cycle Number'])}</b><small>${esc(formatDateClient(p['Payment Date']))} · ${esc(p['Classes Covered']||'')}</small></div><div><strong>RM${esc(p.Amount||0)}</strong><span class="badge paid">${esc(p.Status||'')}</span></div></div>`).join('')||'<div class="empty">No payment records yet.</div>'}</div><div class="card-arrow">›</div></button></div><button class="parent-card parent-click-card parent-home-orders" onclick="openParentPanel('orders')"><div class="section-head"><div><div class="eyebrow">ORDERS</div><h3>My Orders</h3></div><span class="badge blue">${orders.length} order${orders.length===1?'':'s'}</span></div><div class="parent-list">${orders.slice(0,4).map(o=>`<div class="parent-list-row"><div><b>${esc(o.Product||'Order')}</b><small>${o.Product==='T Shirt'?`Size ${esc(o.Size||'-')} · `:''}Qty ${esc(o.Quantity||1)} · ${esc(formatDateClient(o['Order Date']))}</small></div><div class="parent-order-status"><span>${esc(o['Order Status']||'')}</span><small>${esc(orderPaymentDisplay(o).label)} · ${esc(o['Collection Status']||'')}</small></div></div>`).join('')||'<div class="empty">No orders recorded.</div>'}<div class="card-arrow">›</div></div></button>${renderParentCertificateDashboardSection(certificates)}`;
   renderActionRequired(state);
   hydrateParentCertificateCards();
   scheduleParentTournamentExpiry();
@@ -1651,18 +1662,61 @@ async function applyCancellationSelection(choice,restoring){
   }
 }
 
-function setStudentView(view){studentView=view;document.getElementById('activeStudentsBtn')?.classList.toggle('active',view==='active');document.getElementById('archivedStudentsBtn')?.classList.toggle('active',view==='archived');renderStudents()}
-function closeStudentActionMenus(){document.querySelectorAll('.student-action-menu.show').forEach(m=>m.classList.remove('show'))}
+function setStudentView(view){
+  studentView=view;
+  ['active','archived'].forEach(function(value){
+    const control=document.getElementById(value==='active'?'activeStudentsBtn':'archivedStudentsBtn');
+    if(control){const selected=value===view;control.classList.toggle('active',selected);control.setAttribute('aria-pressed',String(selected));}
+  });
+  renderStudents();
+}
+// UI-only action menu: render above overflowing table containers so the
+// last student's menu is never clipped. No student-management action changes.
+let studentMenuHost=null;
+let studentMenuOpenedAt=0;
+function closeStudentActionMenus(){
+  document.querySelectorAll('.student-action-menu.show').forEach(function(menu){
+    menu.classList.remove('show');
+    menu.style.position='';menu.style.left='';menu.style.top='';menu.style.width='';menu.style.maxHeight='';
+    menu.style.overflowY='';menu.style.zIndex='';
+    const wrap=menu._studentWrap;
+    if(wrap&&wrap.isConnected)wrap.appendChild(menu);
+    if(menu._studentAnchor&&menu._studentAnchor.isConnected)menu._studentAnchor.setAttribute('aria-expanded','false');
+    menu._studentWrap=null;menu._studentAnchor=null;
+  });
+  studentMenuHost=null;
+}
 function toggleStudentActionMenu(event,id){
   event.stopPropagation();
   const menu=document.getElementById('studentActionMenu-'+String(id).replace(/[^a-zA-Z0-9_-]/g,'_'));
   if(!menu)return;
   const wasOpen=menu.classList.contains('show');
   closeStudentActionMenus();
-  if(!wasOpen)menu.classList.add('show');
+  if(wasOpen)return;
+  const anchor=event.currentTarget;
+  const wrap=anchor.closest('.student-action-wrap');
+  menu._studentWrap=wrap;menu._studentAnchor=anchor;
+  document.body.appendChild(menu);
+  menu.classList.add('show');
+  anchor.setAttribute('aria-expanded','true');
+  menu.style.position='fixed';menu.style.width='min(260px, calc(100vw - 24px))';
+  menu.style.maxHeight='min(300px, calc(100dvh - 30px))';menu.style.overflowY='auto';menu.style.zIndex='20010';
+  const rect=anchor.getBoundingClientRect();
+  const width=menu.getBoundingClientRect().width;
+  const height=menu.getBoundingClientRect().height;
+  const left=Math.max(12,Math.min(rect.right-width,window.innerWidth-width-12));
+  const below=window.innerHeight-rect.bottom;
+  const top=below>=height+12||below>rect.top?Math.min(rect.bottom+9,window.innerHeight-height-12):Math.max(12,rect.top-height-9);
+  menu.style.left=left+'px';menu.style.top=top+'px';
+  studentMenuHost=menu;
+  studentMenuOpenedAt=Date.now();
+  if(event.detail===0)menu.querySelector('button')?.focus();
 }
 function runStudentAction(event,fn,id){event.stopPropagation();closeStudentActionMenus();fn(id)}
-document.addEventListener('click',event=>{if(!event.target.closest('.student-action-wrap'))closeStudentActionMenus()});
+document.addEventListener('click',event=>{if(!event.target.closest('.student-action-wrap')&&!event.target.closest('.student-action-menu'))closeStudentActionMenus()});
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&studentMenuHost){const anchor=studentMenuHost._studentAnchor;closeStudentActionMenus();anchor?.focus();}});
+window.addEventListener('resize',closeStudentActionMenus);
+document.addEventListener('scroll',event=>{if(studentMenuHost&&Date.now()-studentMenuOpenedAt>250&&!event.target.closest?.('.student-action-menu'))closeStudentActionMenus()},true);
 /* ===== STUDENTS ===== */
 function setStudentSort(key){
   if(studentSortKey===key)studentSortDirection=studentSortDirection==='asc'?'desc':'asc';
@@ -1895,6 +1949,7 @@ async function reviewStudentRequest(requestId,decision){
 }
 
 function renderStudents(){
+  closeStudentActionMenus();
   const q=(document.getElementById('studentSearch')?.value||'').toLowerCase();
   const students=DATA.students
     .filter(s=>(studentView==='archived'?String(s.Active||'').toLowerCase()==='no':String(s.Active||'yes').toLowerCase()!=='no'))
@@ -1911,10 +1966,12 @@ function renderStudents(){
     const safeId=String(s['Student ID']).replace(/[^a-zA-Z0-9_-]/g,'_');
     const finalAction=archived?'Restore Student':'Archive Student';
     const finalFn=archived?'restoreStudent':'archiveStudent';
-    const action=`<div class="student-action-wrap"><button class="student-action-trigger" type="button" aria-label="Student actions" aria-haspopup="true" onclick="toggleStudentActionMenu(event,'${esc(s['Student ID'])}')">⋮</button><div class="student-action-menu" id="studentActionMenu-${safeId}" role="menu"><button type="button" onclick="runStudentAction(event,editStudent,'${esc(s['Student ID'])}')">Edit Student</button><button type="button" onclick="runStudentAction(event,openTeacherParentPreview,'${esc(s['Student ID'])}')">View Parent Portal</button><button type="button" onclick="runStudentAction(event,generateParentLoginDetails,'${esc(s['Student ID'])}')">Generate Password &amp; Email</button><div class="student-action-divider"></div><button type="button" class="danger" onclick="runStudentAction(event,${finalFn},'${esc(s['Student ID'])}')">${finalAction}</button></div></div>`;
-    return `<tr class="clickable" onclick="openStudent('${esc(s['Student ID'])}')"><td>${esc(s['Student ID'])}</td><td><b>${esc(s['Student Name'])}</b></td><td>${esc(s['Normal Class Time']||'')}</td><td>${currentCycle}</td><td>${progress} / 4</td><td>${badge(progress,state)}</td><td>${esc(formatDateClient(s['Registration Date']))}</td><td>${action}</td></tr>`;
+    const action=`<div class="student-action-wrap"><button class="student-action-trigger" type="button" aria-label="Actions for ${esc(s['Student Name'])}" aria-haspopup="menu" aria-expanded="false" aria-controls="studentActionMenu-${safeId}" onclick="toggleStudentActionMenu(event,'${esc(s['Student ID'])}')"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><circle cx="12" cy="5" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="12" cy="19" r="1.9"/></svg></button><div class="student-action-menu" id="studentActionMenu-${safeId}" role="menu"><button type="button" onclick="runStudentAction(event,editStudent,'${esc(s['Student ID'])}')">Edit Student</button><button type="button" onclick="runStudentAction(event,openTeacherParentPreview,'${esc(s['Student ID'])}')">View Parent Portal</button><button type="button" onclick="runStudentAction(event,generateParentLoginDetails,'${esc(s['Student ID'])}')">Generate Password &amp; Email</button><div class="student-action-divider"></div><button type="button" class="danger" onclick="runStudentAction(event,${finalFn},'${esc(s['Student ID'])}')">${finalAction}</button></div></div>`;
+    return `<tr class="clickable" onclick="openStudent('${esc(s['Student ID'])}')"><td><span class="student-id-chip">${esc(s['Student ID'])}</span></td><td><span class="student-name">${esc(s['Student Name'])}</span></td><td>${esc(s['Normal Class Time']||'')}</td><td>${currentCycle}</td><td><span class="student-progress-value">${progress} <span>/ 4</span></span></td><td>${badge(progress,state)}</td><td>${esc(formatDateClient(s['Registration Date']))}</td><td class="student-actions-cell">${action}</td></tr>`;
   }).join('');
-  document.getElementById('studentsBody').innerHTML=rows||'<tr><td colspan="8" class="empty">No students found.</td></tr>';
+  document.getElementById('studentsBody').innerHTML=rows||'<tr><td colspan="8" class="empty">No students match this view. Try another search or filter.</td></tr>';
+  const count=document.getElementById('studentDirectoryCount');
+  if(count)count.textContent=prepared.length+' '+(prepared.length===1?'student':'students');
   renderTeacherReviewRequestPanel();
   const headers={id:'ID',studentName:'Student',normalTime:'Normal Time',currentCycle:'Current Cycle',classes:'Classes',status:'Status',enrollment:'Enrollment'};
   Object.entries(headers).forEach(([key,label])=>{
@@ -2283,7 +2340,7 @@ function renderOrderDashboard(order){
   const statusControl=proof==='Submitted'?`<select id="dOrderStatus" disabled><option selected>Awaiting Confirmation</option></select>`:proof==='Rejected'?`<select id="dOrderStatus" disabled><option selected>Pending Payment</option></select>`:`<select id="dOrderStatus">${statusSelect}</select>`;
   document.getElementById('orderDashboardContent').innerHTML=`<div class="order-dashboard-shell">
     <div class="order-dashboard-head panel">
-      <div class="order-title-block"><button class="secondary order-back" onclick="page('orders')">← Back to Orders</button><div class="eyebrow">ORDER ${esc(order['Order ID'])}</div><h2>${esc(order['Customer Name']||'Customer')}</h2><p class="subtle">${esc(order.Product||'Order')} <span class="order-dot">•</span> ${esc(formatDateClient(order['Order Date']))}</p></div>
+      <div class="order-title-block"><div class="eyebrow">ORDER ${esc(order['Order ID'])}</div><h2>${esc(order['Customer Name']||'Customer')}</h2><p class="subtle">${esc(order.Product||'Order')} <span class="order-dot">•</span> ${esc(formatDateClient(order['Order Date']))}</p></div>
       <div class="order-head-side"><div class="order-total"><small>ORDER TOTAL</small><strong>RM ${total.toFixed(2)}</strong></div><div class="order-head-badges"><span class="badge ${payment.badge}">${esc(payment.label)}</span><span class="badge ${statusTone}">${esc(orderStatus)}</span></div></div>
     </div>
     <div class="order-status-grid">

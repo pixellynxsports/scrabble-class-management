@@ -1,0 +1,511 @@
+/* ===================================================================
+   BANTING SCRABBLE ACADEMY · VISUAL QUALITY PASS V3 · 2026-11-12
+   Scope: interface presentation only. No database, business logic,
+   auth, payment, tournament rules or certificate data changes.
+   This is intentionally last in the cascade to unify the legacy UI.
+   =================================================================== */
+:root, html[data-theme="light"] {
+  --v3-base:#f3f7fc; --v3-glass:rgba(255,255,255,.91);
+  --v3-card:#fff; --v3-card-alt:#f8fbff; --v3-elevated:#fff;
+  --v3-field:#fff; --v3-line:#dce6f2; --v3-line-strong:#c8d8eb;
+  --v3-ink:#1b2f49; --v3-muted:#637892; --v3-faint:#8296ad;
+  --v3-blue:#326fd8; --v3-blue-soft:#eaf2ff;
+  --v3-teal:#148d88; --v3-teal-soft:#e3f7f1;
+  --v3-gold:#a86617; --v3-gold-soft:#fff3df;
+  --v3-rose:#be4e60; --v3-rose-soft:#fff0f2;
+  --v3-ring:rgba(63,124,215,.20);
+  --v3-shadow:0 2px 5px rgba(25,46,78,.03),0 13px 34px rgba(28,51,86,.045);
+  --v3-shadow-up:0 6px 14px rgba(25,46,78,.06),0 23px 40px rgba(28,51,86,.09);
+}
+html[data-theme="dark"] {
+  color-scheme:dark;
+  --v3-base:#101b2d;
+  --v3-glass:rgba(27,43,65,.96);
+  --v3-card:#1b2b43; --v3-card-alt:#223751; --v3-elevated:#29415c;
+  --v3-field:#172840; --v3-line:#334d68; --v3-line-strong:#496481;
+  --v3-ink:#f1f6ff; --v3-muted:#b8cbdf; --v3-faint:#91acc8;
+  --v3-blue:#a3c6ff; --v3-blue-soft:rgba(106,161,255,.15);
+  --v3-teal:#7de2d1; --v3-teal-soft:rgba(63,184,164,.14);
+  --v3-gold:#f1cc91; --v3-gold-soft:rgba(232,179,103,.13);
+  --v3-rose:#ffb6c0; --v3-rose-soft:rgba(221,108,127,.13);
+  --v3-ring:rgba(154,196,255,.23);
+  --v3-shadow:0 3px 12px rgba(0,8,20,.14),0 16px 40px rgba(0,8,20,.20);
+  --v3-shadow-up:0 7px 22px rgba(0,8,20,.23),0 22px 50px rgba(0,8,20,.3);
+  --sc-bg:#101b2d; --sc-bg-soft:#14253b;
+  --sc-surface:#1b2b43; --sc-surface-alt:#223751;
+  --sc-surface-raised:#29415c; --sc-line:#334d68;
+  --sc-line-strong:#496481; --sc-text:#e1eaf6;
+  --sc-heading:#f1f6ff; --sc-muted:#b8cbdf;
+  --sc-soft-muted:#91acc8; --sc-accent:#a3c6ff;
+  --sc-accent-soft:rgba(106,161,255,.15);
+  --sc-green:#7de2b9; --sc-teal:#7de2d1;
+  --sc-amber:#f1cc91; --sc-red:#ffb6c0;
+  --sc-elevate:var(--v3-shadow);--sc-elevate-hover:var(--v3-shadow-up);
+  --sc-focus:0 0 0 4px var(--v3-ring);
+  --sc-nav-bg:linear-gradient(180deg,#172b45,#122036);
+  --sc-hero:linear-gradient(126deg,#294a79 0%,#23667a 62%,#1f7b7a 100%);
+  --sc-gradient:linear-gradient(110deg,#4f83de 0%,#437fcf 48%,#268f97 100%);
+}
+@media screen {
+  /* Universal geometry & legibility */
+  body,.app,.main,.parent-portal{background-color:var(--v3-base)}
+  body{font-size:14px;line-height:1.53}
+  :where(.page,.panel,.parent-portal,.modalbox,.parent-detail-body){overflow-wrap:break-word}
+  :where(button,input,select,textarea){font:inherit}
+  :where(button,select){touch-action:manipulation}
+  :where(.page,.panel,.toolbar,.row,.parent-card,.parent-detail-panel,.tournament-panel){min-width:0}
+  :where(button,.primary,.secondary,.danger,.danger-secondary,.tab,.nav,.att-btn,.tournament-format-option,.tournament-check-option){transition:background-color .18s ease,color .18s ease,border-color .18s ease,transform .18s cubic-bezier(.2,.7,.3,1),box-shadow .18s ease}
+  :where(button,.primary,.secondary,.danger,.danger-secondary,.tab,.nav,.att-btn):active:not(:disabled){transform:scale(.985)}
+  :where(button,a,input,select,textarea,[role="button"]):focus-visible{outline:2px solid var(--v3-blue)!important;outline-offset:2px;box-shadow:0 0 0 4px var(--v3-ring)!important}
+  :where(input:not([type="checkbox"]):not([type="radio"]),select,textarea){min-height:43px;padding:10px 13px;border-radius:12px;border:1px solid var(--v3-line-strong);background:var(--v3-field);color:var(--v3-ink);max-width:100%;font-size:13px}
+  :where(input,textarea)::placeholder{color:var(--v3-faint);opacity:1}
+  :where(input[type="checkbox"],input[type="radio"]){width:17px;height:17px;min-width:17px;min-height:17px;flex:0 0 17px;accent-color:#669ef4;cursor:pointer}
+  :where(input[type="date"],input[type="time"]){color-scheme:inherit}
+  :where(label,.form label,.tournament-field label,.achievement-form-grid label){line-height:1.4}
+  :where(.primary,.secondary,.danger,.danger-secondary,.att-btn,.tab){border-radius:12px;min-height:41px;line-height:1.25;white-space:normal;word-break:normal;overflow-wrap:normal}
+  .primary{background:var(--sc-gradient);color:#fff;border-color:transparent;box-shadow:0 7px 16px rgba(38,104,184,.13)}
+  .primary:hover:not(:disabled){filter:brightness(1.08);transform:translateY(-1px)}
+  .secondary{background:var(--v3-card-alt);border:1px solid var(--v3-line);color:var(--v3-ink)}
+  .secondary:hover:not(:disabled){background:var(--v3-blue-soft);color:var(--v3-blue);border-color:var(--v3-line-strong)}
+  .danger-secondary{border:1px solid var(--v3-rose);color:var(--v3-rose);background:var(--v3-rose-soft)}
+  .danger-secondary:hover:not(:disabled){filter:brightness(1.05)}
+  .page.active{animation:v3-page-reveal .26s cubic-bezier(.2,.7,.2,1) both}
+  @keyframes v3-page-reveal{from{opacity:.4;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes v3-toast-in{from{opacity:0;transform:translateY(-8px) scale(.98)}to{opacity:1;transform:none}}
+  @keyframes v3-glow{0%,100%{opacity:.65}50%{opacity:1}}
+
+  /* Real visual hierarchy; use borders and restrained highlights, not loud fills */
+  :where(.panel,.metric,.class-card,.info,.parent-card,.parent-metric,.order-stat,.order-status-card,.registration-card,.registration-review-card,.tournament-stat-card,.tournament-round-panel,.tournament-settings-panel,.tournament-list-card){border:1px solid var(--v3-line);border-radius:18px;box-shadow:var(--v3-shadow)}
+  html[data-theme="dark"] :where(.panel,.metric,.class-card,.info,.parent-card,.parent-metric,.order-stat,.order-status-card,.registration-card,.registration-review-card,.tournament-stat-card,.tournament-round-panel,.tournament-settings-panel,.tournament-list-card){background:linear-gradient(180deg,#1b2c45,#192941);border-color:rgba(138,171,205,.19)}
+  :where(.panel h2,.panel h3,.metric strong,.class-card h3,.parent-card h2,.parent-card h3,.info b,.report-kpi strong){color:var(--v3-ink)}
+  :where(.subtle,.eyebrow,.metric small,.info small,.parent-list-row small){color:var(--v3-muted)}
+  .page-intro{margin-bottom:20px;gap:12px}
+  .page-intro h2{font-size:clamp(22px,2vw,29px);line-height:1.16;letter-spacing:-.025em}
+  .page-intro p{font-size:12px;max-width:720px;line-height:1.5}
+  .eyebrow,.home-kpi-label,.side-section-label{letter-spacing:.07em}
+  .top{margin-bottom:25px;padding-bottom:18px;border-color:var(--v3-line)}
+  .top h1{font-size:clamp(27px,2.5vw,37px);letter-spacing:-.035em;line-height:1.08}
+  .main{padding-top:30px}
+  .top-actions,.parent-top-actions{gap:10px}
+  .appearance-control,.sync,.top-actions .logout-button,.parent-top-actions .logout-button{min-height:41px;border-radius:12px}
+  .appearance-control{padding:5px 10px;gap:8px;box-shadow:none;border-color:var(--v3-line)}
+  .appearance-picker{font-size:12px;min-width:55px;padding-right:6px;color:var(--v3-ink)!important}
+  .appearance-text{font-size:10px;letter-spacing:.04em}
+  .sync{padding:8px 13px}
+  .sync.off{color:var(--v3-rose)}
+  .side{border-right-color:var(--v3-line)}
+  .side .nav{min-height:43px;margin:3px 0;border-radius:12px;font-size:13px}
+  .side .nav.active{font-weight:760}
+  html[data-theme="dark"] .side .nav:not(.active):hover{background:rgba(163,198,255,.09)}
+
+  /* Buttons/labels must fit comfortably and have consistent corner radii */
+  .toolbar{gap:10px;align-items:flex-end;flex-wrap:wrap}
+  .toolbar .grow{min-width:0}
+  .toolbar button{min-height:41px}
+  .student-toolbar{border-radius:17px;padding:12px;box-shadow:var(--v3-shadow)}
+  .student-toolbar .search{min-width:180px;min-height:43px}
+  .student-toolbar button{min-width:fit-content}
+  .student-action-trigger,.order-action-trigger,.modal-close,.parent-close-button,.tournament-modal-close{border-radius:11px}
+  :where(.student-action-menu,.order-action-menu,.report-period-picker){border-radius:15px;box-shadow:var(--v3-shadow-up)}
+  .student-action-menu button,.order-action-menu button{min-height:38px;border-radius:10px}
+  .badge{font-size:10px;font-weight:760;padding:6px 11px;line-height:1.25;border-radius:999px;white-space:nowrap}
+  html[data-theme="dark"] .badge.neutral{background:rgba(170,191,215,.11);color:#c7d7e8;border-color:rgba(170,191,215,.17)}
+  html[data-theme="dark"] .badge.blue{background:var(--v3-blue-soft);color:var(--v3-blue);border-color:rgba(163,198,255,.22)}
+  html[data-theme="dark"] .badge.almost{background:var(--v3-gold-soft);color:var(--v3-gold);border-color:rgba(241,204,145,.2)}
+  html[data-theme="dark"] .badge.absent{background:var(--v3-rose-soft);color:var(--v3-rose);border-color:rgba(255,182,192,.2)}
+  html[data-theme="dark"] .badge.present,html[data-theme="dark"] .badge.paid{background:var(--v3-teal-soft);color:#97ecd2;border-color:rgba(125,226,209,.2)}
+
+  /* Home: distinct but harmonious blue / teal / amber cards */
+  .home-overview-head{gap:16px}
+  .home-overview-head>div:first-child{border-radius:20px}
+  html[data-theme="dark"] .home-overview-head>div:first-child{background:linear-gradient(115deg,#2a4f83 0%,#255f83 50%,#16737a 100%);box-shadow:0 16px 35px rgba(1,12,29,.2)}
+  .home-kpi-grid{gap:15px;margin-bottom:26px}
+  .home-kpi{min-height:144px;border-radius:18px;padding:18px 19px;box-shadow:var(--v3-shadow)}
+  .home-kpi strong{font-size:clamp(29px,2.7vw,39px);margin-top:15px}
+  .home-kpi-decoration{border-radius:12px}
+  html[data-theme="dark"] .home-kpi{background:linear-gradient(160deg,#1c304b 0%,#192a43 85%);border:1px solid rgba(139,178,218,.21)}
+  html[data-theme="dark"] .home-kpi:nth-child(2){background:linear-gradient(155deg,#1b354c,#1a2c45 80%)}
+  html[data-theme="dark"] .home-kpi:nth-child(3){background:linear-gradient(155deg,#1d344e,#1b2b44 80%)}
+  html[data-theme="dark"] .home-kpi:nth-child(4){background:linear-gradient(155deg,#2a3247,#1c2b43 80%)}
+  html[data-theme="dark"] .home-kpi:nth-child(2) .home-kpi-decoration{background:rgba(79,207,184,.14);color:#82e8d2}
+  html[data-theme="dark"] .home-kpi:nth-child(3) .home-kpi-decoration{background:rgba(163,198,255,.13);color:#bbd2ff}
+  html[data-theme="dark"] .home-kpi:nth-child(4) .home-kpi-decoration{background:var(--v3-gold-soft);color:var(--v3-gold)}
+  html[data-theme="dark"] .home-kpi strong{color:var(--v3-ink)}
+  .home-date-control{border-radius:19px}
+  html[data-theme="dark"] .home-date-control{background:linear-gradient(180deg,#20344f,#1a2c43);border-color:rgba(139,178,218,.22)}
+  .home-date-actions{gap:7px}
+  .home-date-actions .secondary{min-height:36px}
+
+  /* Priority: avoid huge brown slabs, detached actions, uneven pill sizing */
+  .home-section-heading{margin-bottom:12px;gap:12px}
+  .home-section-heading h3{font-size:19px;line-height:1.2}
+  .home-attention-panel{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;border:0;background:transparent;box-shadow:none;overflow:visible;margin-bottom:25px}
+  .home-attention-panel>.home-attention-item{margin:0;border:1px solid var(--v3-line);border-radius:16px;min-height:84px;grid-template-columns:36px minmax(0,1fr) auto;gap:13px;padding:14px 15px;box-shadow:var(--v3-shadow);align-self:stretch}
+  .home-attention-item>.home-attention-icon{border-radius:11px;width:35px;height:35px}
+  .home-attention-copy strong{font-size:13px;line-height:1.3}
+  .home-attention-copy small{font-size:11px;line-height:1.4;color:var(--v3-muted);margin-top:4px}
+  .home-attention-item>b{font-size:11px;color:var(--v3-blue)}
+  html[data-theme="dark"] .home-attention-panel{background:transparent!important;border:0!important}
+  html[data-theme="dark"] .home-attention-item.info{background:linear-gradient(120deg,#203753,#1d3049);border-color:rgba(117,172,236,.25)}
+  html[data-theme="dark"] .home-attention-item.warning{background:linear-gradient(120deg,#283448,#213047);border-color:rgba(232,188,122,.25)}
+  html[data-theme="dark"] .home-attention-item.critical{background:linear-gradient(120deg,#2d3044,#223047);border-color:rgba(243,154,174,.25)}
+  html[data-theme="dark"] .home-attention-item.warning .home-attention-icon{background:var(--v3-gold-soft);color:var(--v3-gold)}
+  html[data-theme="dark"] .home-attention-item.info .home-attention-icon{background:var(--v3-blue-soft);color:var(--v3-blue)}
+  html[data-theme="dark"] .home-attention-item.critical .home-attention-icon{background:var(--v3-rose-soft);color:var(--v3-rose)}
+  html[data-theme="dark"] .home-attention-item:hover{filter:brightness(1.10);transform:translateY(-1px);box-shadow:var(--v3-shadow-up)}
+  .home-attention-panel>.home-clear-state{grid-column:1/-1;border:1px solid var(--v3-line);border-radius:15px}
+  html[data-theme="dark"] .home-clear-state{background:linear-gradient(115deg,#193a40,#1b2d43);color:#a1f1da}
+  html[data-theme="dark"] .home-clear-state small{color:var(--v3-muted)}
+
+  /* Reports: single attention item should not leave an awkward empty half */
+  .report-attention .attention-grid{grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));gap:12px;align-items:stretch}
+  .report-attention .attention-grid>.attention-card{height:auto;min-height:76px;border-radius:15px;grid-template-columns:40px minmax(0,1fr) auto;padding:13px 14px}
+  .report-attention .attention-grid>.attention-card:only-child{grid-column:1/-1}
+  .report-attention .attention-card span{font-size:12px;line-height:1.35}
+  .report-attention .attention-card b{font-size:10px;color:var(--v3-muted)}
+  html[data-theme="dark"] .report-attention .attention-card.warning{background:linear-gradient(115deg,#283548,#233148);border-color:rgba(241,204,145,.24)}
+  html[data-theme="dark"] .report-attention .attention-card.danger{background:linear-gradient(115deg,#303145,#243147);border-color:rgba(255,182,192,.24)}
+  html[data-theme="dark"] .report-attention .attention-card.info{background:linear-gradient(115deg,#20394f,#1e314a);border-color:rgba(163,198,255,.24)}
+  html[data-theme="dark"] .report-attention .attention-card.warning strong{background:var(--v3-gold-soft);color:var(--v3-gold)}
+  html[data-theme="dark"] .report-attention .attention-card.danger strong{background:var(--v3-rose-soft);color:var(--v3-rose)}
+  html[data-theme="dark"] .report-attention .attention-card.info strong{background:var(--v3-blue-soft);color:var(--v3-blue)}
+  html[data-theme="dark"] .report-attention .attention-card.warning span{color:#f3d8ab}
+  html[data-theme="dark"] .report-attention .attention-card.danger span{color:#f4c2c9}
+  html[data-theme="dark"] .report-attention .attention-card.info span{color:#c3d8fa}
+  html[data-theme="dark"] .report-attention .attention-card.warning:hover{background:#2c3b50!important;border-color:rgba(241,204,145,.4)!important}
+  html[data-theme="dark"] .report-attention .attention-card.danger:hover{background:#34354a!important;border-color:rgba(255,182,192,.4)!important}
+  html[data-theme="dark"] .report-attention .attention-card.info:hover{background:#244259!important;border-color:rgba(163,198,255,.4)!important}
+  html[data-theme="dark"] .report-attention .attention-card.warning:hover span{color:#f3d8ab!important}
+  html[data-theme="dark"] .report-attention .attention-card.danger:hover span{color:#f4c2c9!important}
+  html[data-theme="dark"] .report-attention .attention-card.info:hover span{color:#c3d8fa!important}
+  html[data-theme="dark"] .report-attention .attention-card b{color:#c1d1e4!important}
+  html[data-theme="dark"] .report-attention .attention-card:hover b{color:#d2e1f1!important}
+  html[data-theme="dark"] .report-attention{background:linear-gradient(150deg,#1a2a42,#18273d)}
+  .report-attention .subtle{font-size:12px}
+
+  /* Data-dense areas: remove harsh solid fills, improve row scan lines */
+  table{font-size:12.5px;line-height:1.45}
+  th,td{padding:13px 14px;border-bottom-color:var(--v3-line)}
+  th{font-size:10px;letter-spacing:.065em;line-height:1.4}
+  html[data-theme="dark"] th{background:#263d57;color:#bfcee1;border-color:rgba(140,172,205,.19)}
+  html[data-theme="dark"] td{background:transparent;color:#e0eaf6;border-color:rgba(140,172,205,.13)}
+  html[data-theme="dark"] tbody tr:hover td{background:rgba(94,150,231,.095)}
+  html[data-theme="dark"] .table-sort-button:hover,html[data-theme="dark"] .student-sort-button:hover{color:#c7dcff}
+  .scroll{border-radius:12px;scrollbar-color:var(--v3-line-strong) transparent}
+  .scroll table{min-width:660px}
+  .student-action-trigger{width:38px;height:38px}
+  html[data-theme="dark"] :where(.student-action-menu,.order-action-menu,.report-period-picker){background:#263a54;border-color:var(--v3-line);color:var(--v3-ink)}
+  html[data-theme="dark"] .student-action-menu button,.order-action-menu button{color:#e6eef9}
+  html[data-theme="dark"] .student-action-menu button:hover,.order-action-menu button:hover{background:#344c69;color:#fff}
+  html[data-theme="dark"] .order-action-trigger,.student-action-trigger{background:#233850;border-color:var(--v3-line)}
+  html[data-theme="dark"] .student-toolbar{background:linear-gradient(110deg,#1e3049,#1a2b42);border-color:var(--v3-line)}
+  .payment-class-chip{border-radius:8px}
+
+  /* Attendance cancelled: informative state, not a broad maroon table */
+  html[data-theme="dark"] .attendance-cancellation-notice{
+    background:linear-gradient(90deg,rgba(211,120,139,.13),rgba(68,100,148,.07));
+    color:#f6cad0;border-bottom:1px solid rgba(255,182,192,.22);
+    border-left:3px solid rgba(255,182,192,.68);border-radius:13px 13px 0 0;
+  }
+  html[data-theme="dark"] .attendance-cancellation-notice strong{color:#ffe0e4;font-size:13px}
+  html[data-theme="dark"] .attendance-cancellation-notice span{color:#dcb7c4}
+  html[data-theme="dark"] .attendance-cancelled-row{background:rgba(190,101,123,.05)}
+  html[data-theme="dark"] .attendance-cancelled-row:nth-child(even){background:rgba(190,101,123,.075)}
+  html[data-theme="dark"] .attendance-cancelled-row td{background:transparent!important;border-bottom:1px solid rgba(163,180,206,.14);color:#e1e9f5}
+  html[data-theme="dark"] .attendance-cancelled-row:hover{background:rgba(190,101,123,.12)}
+  html[data-theme="dark"] .cancelled-message{color:#ffc2ca;font-size:12px;font-weight:700}
+  html[data-theme="dark"] .attendance-summary-panel{background:linear-gradient(110deg,#20364f,#1c2d45);border-color:rgba(140,172,205,.21)}
+  html[data-theme="dark"] .attendance-summary-panel .subtle{color:#b7c9dc}
+  html[data-theme="dark"] .attendance-summary-actions .danger-secondary{background:rgba(220,101,127,.13);border-color:rgba(255,182,192,.31);color:#ffd0d6}
+  .attendance-summary-actions{gap:10px;flex-wrap:wrap}
+  .attendance-summary-panel .row{gap:16px;flex-wrap:wrap}
+  html[data-theme="dark"] .att-btn:not(.selected){background:#243951;color:#cad8e8;border-color:#405774}
+  html[data-theme="dark"] .att-btn:disabled{background:#243248;color:#9aacbf;border-color:rgba(133,155,182,.2);opacity:.60;cursor:not-allowed}
+  html[data-theme="dark"] .att-btn.selected:not(.absent){background:#187e71;border-color:#187e71;color:#fff}
+  html[data-theme="dark"] .att-btn.absent.selected{background:#a94e64;border-color:#a94e64;color:#fff}
+  .att-btn{padding:9px 13px}
+
+  /* Achievements: nested section should be distinguishable */
+  .profile-section-title{gap:12px;align-items:flex-end}
+  .profile-achievement-manager{border-radius:19px;overflow:hidden}
+  .achievement-manager-form{padding:24px;border-bottom:1px solid var(--v3-line)}
+  .achievement-form-grid{gap:15px;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) minmax(165px,.55fr)}
+  .achievement-form-grid :where(input,select,textarea){width:100%;font-size:13px;border-radius:12px}
+  .achievement-form-grid label{font-size:11px;margin-bottom:7px;color:var(--v3-muted)}
+  .achievement-manager-heading strong{font-size:15px;color:var(--v3-ink)}
+  .achievement-manager-heading small{font-size:12px;color:var(--v3-muted);line-height:1.5}
+  .achievement-form-actions{margin-top:17px}
+  .achievement-form-actions button{min-height:43px}
+  .achievement-record-list{padding:8px 24px}
+  .achievement-record-empty{padding:24px 14px;color:var(--v3-muted)}
+  html[data-theme="dark"] .profile-achievement-manager{background:linear-gradient(180deg,#1b2c44,#18283e);border:1px solid rgba(148,178,206,.25)}
+  html[data-theme="dark"] .achievement-manager-form{background:linear-gradient(145deg,#223951,#1e314b);border-bottom-color:rgba(148,178,206,.17)}
+  html[data-theme="dark"] .achievement-manager-heading strong{color:#f4f8ff}
+  html[data-theme="dark"] .achievement-manager-heading small{color:#b9cadc}
+  html[data-theme="dark"] .achievement-record-list{background:rgba(9,19,33,.15)}
+  html[data-theme="dark"] .achievement-form-grid input[type="file"]{background:#1c2d46;color:#dbe6f5;border:1px dashed #55708c;padding:8px 10px}
+  html[data-theme="dark"] .achievement-form-grid input[type="file"]::file-selector-button{background:#324e70;color:#f3f8ff;border:1px solid #4b688b;border-radius:9px;padding:7px 11px;margin-right:12px;cursor:pointer}
+  html[data-theme="dark"] .achievement-record-empty{color:#b5c9df}
+
+  /* Tournament: material layers, attractive gradient header, no white sticky footer */
+  #modal:has(.tournament-create-modal){background:rgba(5,12,24,.72)}
+  #modal:has(.tournament-create-modal) .modalbox{border-radius:22px;padding:0;overflow-y:auto;border:1px solid var(--v3-line);box-shadow:0 35px 85px rgba(0,10,25,.4)}
+  html[data-theme="dark"] #modal:has(.tournament-create-modal) .modalbox{background:#1a2c43}
+  .tournament-create-hero{border-radius:20px 20px 0 0;padding:25px 27px;gap:14px}
+  html[data-theme="dark"] .tournament-create-hero{
+    background:radial-gradient(circle at 95% -5%,rgba(129,202,205,.20),transparent 38%),linear-gradient(115deg,#294c88 0%,#286994 55%,#1c7980 100%);
+    border-bottom:1px solid rgba(178,217,255,.17);
+  }
+  html[data-theme="dark"] .tournament-create-heading .eyebrow{color:#c2e4f7}
+  html[data-theme="dark"] .tournament-create-heading h2{color:#fff;font-size:26px}
+  html[data-theme="dark"] .tournament-create-heading p{color:#e0effb;font-size:12px;max-width:600px}
+  .tournament-create-icon{width:46px;height:46px;border-radius:13px}
+  .tournament-modal-close{width:39px;height:39px;border-radius:11px}
+  .tournament-form-section{padding:23px 27px}
+  html[data-theme="dark"] .tournament-create-form{background:#1a2b42}
+  html[data-theme="dark"] .tournament-form-section{background:#1b2b43;border-bottom:1px solid rgba(147,177,210,.17)}
+  html[data-theme="dark"] .tournament-form-section:nth-of-type(even){background:#20344e}
+  html[data-theme="dark"] .tournament-form-section-head>span:first-child{background:#304a6e;border:1px solid #436289;color:#b9d5ff;border-radius:9px}
+  html[data-theme="dark"] .tournament-form-section-head strong{color:#f1f6ff;font-size:14px}
+  html[data-theme="dark"] .tournament-form-section-head small{color:#b8cadf;font-size:11px}
+  html[data-theme="dark"] .tournament-create-form .tournament-field label{color:#ccdaea;font-size:11px}
+  html[data-theme="dark"] .tournament-create-form :where(input:not([type="checkbox"]):not([type="radio"]),select,textarea){background:#182a42;color:#f0f7ff;border:1px solid #49647f;border-radius:12px;font-size:13px;min-height:44px}
+  .tournament-format-grid{gap:11px}
+  .tournament-format-option{grid-template-columns:40px minmax(0,1fr);min-height:82px;border-radius:14px;padding:12px;gap:11px}
+  .tournament-format-icon{width:38px;height:38px;border-radius:11px}
+  .tournament-format-option span:last-child{min-width:0;display:grid;gap:4px}
+  .tournament-format-option b{font-size:12px;line-height:1.25}
+  .tournament-format-option small{font-size:10px;line-height:1.45}
+  html[data-theme="dark"] .tournament-format-option{background:#1c3048;border:1px solid #3c5878}
+  html[data-theme="dark"] .tournament-format-option:hover{background:#253e5a;border-color:#769cd3}
+  html[data-theme="dark"] .tournament-format-option.selected{background:linear-gradient(130deg,#29466a,#254460);border:1px solid #7ca8ee;box-shadow:inset 0 0 0 1px rgba(156,201,255,.15)}
+  html[data-theme="dark"] .tournament-format-icon{background:#294462;color:#d1e1f6}
+  html[data-theme="dark"] .tournament-format-option.selected .tournament-format-icon{background:#375d8c;color:#e3eeff}
+  html[data-theme="dark"] .tournament-format-option b{color:#f0f6ff}
+  html[data-theme="dark"] .tournament-format-option small{color:#bdcee1}
+  html[data-theme="dark"] .tournament-round-setting{background:#233850;border-color:#3d5977;border-radius:13px}
+  html[data-theme="dark"] .tournament-round-setting label{color:#e2ecf8;font-size:11px}
+  html[data-theme="dark"] .tournament-round-setting small{color:#acbfd3;font-size:10px}
+  html[data-theme="dark"] .tournament-participant-list{background:#1a2a41;border-color:#3a5574;border-radius:13px;padding:6px;gap:8px}
+  html[data-theme="dark"] .tournament-participant-option{background:#21354e;border-color:#3b5776;border-radius:12px;padding:10px 12px;gap:10px}
+  html[data-theme="dark"] .tournament-participant-option:hover{background:#2b4462;border-color:#739bd0}
+  html[data-theme="dark"] .tournament-participant-option:has(input:checked){background:#2a4c68;border-color:#81b9e7}
+  html[data-theme="dark"] .tournament-participant-option strong{color:#eef5ff;font-size:11px;line-height:1.3}
+  html[data-theme="dark"] .tournament-participant-option small{color:#b9cde2;font-size:9px}
+  .tournament-participant-option input[type="checkbox"]{min-width:17px;min-height:17px;margin:0}
+  .tournament-check-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+  .tournament-check-option{min-width:0;min-height:74px;align-items:center;border-radius:13px;padding:11px 12px;gap:11px}
+  .tournament-check-option input[type="checkbox"]{width:18px!important;height:18px!important;min-width:18px!important;min-height:18px!important;flex:0 0 18px!important;margin:0!important;accent-color:#7faef8}
+  .tournament-check-option>span{min-width:0;display:grid;gap:4px}
+  .tournament-check-option b{font-size:11px;line-height:1.3;white-space:normal}
+  .tournament-check-option small{font-size:10px;line-height:1.35}
+  html[data-theme="dark"] .tournament-check-option{background:#1d334c;border-color:#3b5879}
+  html[data-theme="dark"] .tournament-check-option:hover{background:#274261;border-color:#7ca8dd}
+  html[data-theme="dark"] .tournament-check-option:has(input:checked){border-color:#668ac0;background:#26415f}
+  html[data-theme="dark"] .tournament-check-option b{color:#edf5ff}
+  html[data-theme="dark"] .tournament-check-option small{color:#c6d8e9}
+  .tournament-create-footer{min-height:84px;gap:16px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;border-radius:0 0 20px 20px;padding:15px 27px}
+  html[data-theme="dark"] .tournament-create-footer{background:rgba(24,40,62,.98);border-top:1px solid #43607c;backdrop-filter:blur(18px)}
+  .tournament-footer-note{min-width:0;flex:1 1 180px;gap:12px}
+  .tournament-footer-note>span{display:inline-block;flex:0 0 9px;font-size:0;width:9px;height:9px;box-shadow:0 0 0 5px rgba(77,184,149,.14)}
+  .tournament-footer-note div{min-width:0}
+  .tournament-footer-note strong{font-size:11px;line-height:1.4}
+  .tournament-footer-note small{font-size:10px;line-height:1.45}
+  html[data-theme="dark"] .tournament-footer-note strong{color:#ecf5ff}
+  html[data-theme="dark"] .tournament-footer-note small{color:#bbcee4}
+  .tournament-footer-actions{display:flex;flex:0 0 auto;align-items:center;gap:9px}
+  .tournament-footer-actions button{min-height:43px;white-space:normal;line-height:1.25;padding:11px 15px}
+  html[data-theme="dark"] .tournament-footer-actions .secondary{background:#29445f;color:#ecf5ff;border-color:#4b6b8f}
+  html[data-theme="dark"] .tournament-footer-actions .primary{background:linear-gradient(110deg,#4d85e4,#318eaa);color:white}
+
+  /* Other tournament views, standings, settings, score modals and certificates */
+  html[data-theme="dark"] :is(.tournament-page-head,.tournament-setup-card,.tournament-settings-panel,.tournament-special-awards,.tournament-certificate-panel,.tournament-list-card,.tournament-card,.tournament-round-panel,.tournament-settings-grid>div){background:linear-gradient(155deg,#203650,#1b2d45);border-color:rgba(143,175,209,.24)}
+  html[data-theme="dark"] :is(.tournament-match-card,.tournament-seed-row,.tournament-participant-option,.special-award-grid label){background:#243b57;border-color:#426080}
+  html[data-theme="dark"] :is(.tournament-match-card,.tournament-round-summary,.tournament-stat-card):hover{border-color:rgba(157,195,245,.4)}
+  html[data-theme="dark"] :is(.tournament-page-head,.tournament-settings-panel,.tournament-certificate-panel) h2{color:#f0f6ff}
+  html[data-theme="dark"] .tournament-tab.active{background:linear-gradient(120deg,#467ed2,#30869e)}
+  html[data-theme="dark"] .tournament-special-awards{background:linear-gradient(130deg,#303451,#20354d)}
+  html[data-theme="dark"] .special-award-grid label{border-radius:13px}
+  html[data-theme="dark"] #modal:has(.tournament-score-form) .tournament-form-footer{background:#1b2d45;border-color:#4b6480}
+  html[data-theme="dark"] #modal:has(.tournament-score-form) .tournament-modal-head{background:linear-gradient(125deg,#2f507d,#266980);color:white}
+  html[data-theme="dark"] #modal:has(.tournament-score-form) .tournament-score-grid input{background:#1b2f48;color:#f2f8ff}
+  html[data-theme="dark"] :is(.certificate-preview-status,.certificate-preview-footer,.tournament-review-gate){border-color:#415c78}
+  /* Brighter receipt/QR zones must preserve image legibility */
+  html[data-theme="dark"] .qr-payment-card img,
+  html[data-theme="dark"] .parent-certificate-thumb-wrap img{background:#fff}
+
+  /* Parent, orders, payments and report widgets: consistent elevated backgrounds */
+  html[data-theme="dark"] .parent-top{background:linear-gradient(140deg,#213c58,#1b2b42)}
+  html[data-theme="dark"] .parent-hero{background:linear-gradient(115deg,#2a4d80,#1d7780)}
+  html[data-theme="dark"] .parent-child-tab:not(.active){background:#233a54;border-color:#405b78}
+  html[data-theme="dark"] .parent-child-tab.active{background:linear-gradient(120deg,#376bad,#277f92);border-color:#83b4e0}
+  html[data-theme="dark"] .parent-detail-panel{background:linear-gradient(180deg,#223751,#1b2b43);border-color:#496581}
+  html[data-theme="dark"] .parent-notice:not(.due):not(.almost){background:#233a52}
+  html[data-theme="dark"] .parent-notice.due{background:rgba(214,102,128,.12);border-color:rgba(255,182,192,.24)}
+  html[data-theme="dark"] .parent-notice.almost{background:rgba(229,178,96,.12);border-color:rgba(241,204,145,.24)}
+  html[data-theme="dark"] .payment-gateway-card{background:linear-gradient(150deg,#223c58,#1e3049);border-color:#496583}
+  html[data-theme="dark"] .payment-gateway-note,.payment-order-summary>div,.qr-note{background:#263f5a;border-color:#47617b}
+  html[data-theme="dark"] .order-stat{background:linear-gradient(140deg,#23435b,#1b2c44)}
+  html[data-theme="dark"] .order-status-card{background:linear-gradient(140deg,#233956,#1c2c43)}
+  html[data-theme="dark"] .order-action-menu{background:#253b55;border-color:#4b6884}
+  html[data-theme="dark"] .report-period-picker{background:#223751;border-color:#4a6380}
+  html[data-theme="dark"] .report-picker-months button{background:#294460;color:#cbdcf0;border-color:#3e5875}
+  html[data-theme="dark"] .report-picker-months button:hover{background:#345473;color:#f2f7ff}
+  html[data-theme="dark"] .report-picker-months button.selected{background:linear-gradient(110deg,#487bd3,#348d9d);color:white;border-color:#82b0f1}
+  html[data-theme="dark"] .report-student-filters{background:#21374f;border-color:#3d5975}
+  html[data-theme="dark"] .report-student-filters .search{background:#1a2b42}
+  html[data-theme="dark"] :is(.profile-info-card,.profile-contact-card,.profile-kpi,.detail-summary-grid>div){background:#243b55;border-color:#405d79}
+  html[data-theme="dark"] :is(.profile-section-title,.section-head,.report-panel-header) h3{color:#f1f6ff}
+  html[data-theme="dark"] :is(.parent-list-row,.parent-package-row,.detail-list-row){border-bottom-color:rgba(144,171,204,.17)}
+
+  /* Notifications, dropdowns, form modals: edges, spacing and contrast */
+  .modalbox,.parent-detail-panel{border-radius:20px}
+  html[data-theme="dark"] :is(.modalbox,.sc-dialog,.registration-modal .registration-card,.payment-history-side-panel,.report-side-panel){background:#1d3049;border:1px solid #455f7d;color:#e8f1fc}
+  html[data-theme="dark"] .sc-notification{background:rgba(29,46,69,.98);border:1px solid #456181;color:#e9f2ff;box-shadow:var(--v3-shadow-up)}
+  html[data-theme="dark"] .sc-notification-title{color:#f1f6ff}
+  html[data-theme="dark"] .sc-notification-message{color:#c5d7e9}
+  html[data-theme="dark"] .sc-notification-eyebrow{color:#aac1db}
+  .sc-notification{border-radius:15px;padding:14px;gap:12px;animation:v3-toast-in .22s ease-out}
+  .sc-notification-root{top:17px;right:17px;gap:9px}
+  html[data-theme="dark"] .sc-notification-close{background:#324c68;color:#d0e1f4}
+  html[data-theme="dark"] .sc-notification-close:hover{background:#426281;color:white}
+  html[data-theme="dark"] .student-form-modal .form-actions{background:transparent}
+  html[data-theme="dark"] .commitment-section,html[data-theme="dark"] .edit-identity-strip{background:#253b56;border-color:#435f7e}
+  html[data-theme="dark"] .student-form-modal :where(label,.form-section-heading p){color:#c9dbec}
+  html[data-theme="dark"] .student-form-modal .form-section-heading h3{color:#f3f8ff}
+  html[data-theme="dark"] .login-screen,html[data-theme="dark"] .password-change-screen{background:#111f33}
+  html[data-theme="dark"] .login-card,html[data-theme="dark"] .password-change-card{background:linear-gradient(155deg,#243c59,#1b2b44);border-color:#496783}
+  html[data-theme="dark"] .login-mode-buttons{background:#1b2d44;border-color:#405d7c}
+  html[data-theme="dark"] .login-mode.active{background:#304d6c;color:#e9f3ff}
+}
+
+@media screen and (max-width:1150px) {
+  .home-attention-panel{grid-template-columns:minmax(0,1fr)}
+  .home-attention-panel>.home-attention-item{min-height:76px}
+  .achievement-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .achievement-form-grid>.full{grid-column:1/-1}
+}
+@media screen and (max-width:850px) {
+  .side{box-shadow:none}
+  .main{padding:20px 18px 40px}
+  .top{gap:12px}
+  .home-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .tournament-footer-actions{justify-content:flex-end}
+}
+@media screen and (max-width:650px) {
+  .main{padding:18px 13px 35px}
+  .top{margin-bottom:18px}
+  .top h1{font-size:27px}
+  .top-actions,.parent-top-actions{gap:7px;justify-content:flex-start}
+  .top-actions .appearance-control{flex:1 0 115px;max-width:none}
+  .top-actions .sync{flex:0 0 auto;min-height:38px}
+  .top-actions .logout-button{flex:0 0 auto;min-height:38px}
+  .home-kpi-grid{gap:9px}
+  .home-kpi{min-height:128px;padding:14px 13px}
+  .home-kpi strong{font-size:27px}
+  .home-kpi-label{font-size:9px}
+  .home-attention-panel{grid-template-columns:1fr;gap:10px}
+  .home-attention-panel>.home-attention-item{grid-template-columns:34px minmax(0,1fr);gap:10px;padding:13px}
+  .home-attention-item>b{grid-column:2;justify-self:end;margin-top:-3px}
+  .home-attention-copy strong{font-size:12px}
+  .home-attention-copy small{font-size:10px}
+  .achievement-form-grid{grid-template-columns:minmax(0,1fr)}
+  .achievement-form-grid>.full{grid-column:1}
+  .achievement-manager-form{padding:18px}
+  .achievement-record-list{padding:8px 18px}
+  .tournament-form-section{padding:18px 16px}
+  .tournament-create-hero{padding:19px 17px;align-items:flex-start}
+  .tournament-create-heading h2{font-size:21px}
+  .tournament-create-heading p{font-size:11px}
+  .tournament-format-grid,.tournament-check-grid{grid-template-columns:1fr}
+  .tournament-format-option{min-height:65px;padding:10px}
+  .tournament-create-footer{padding:14px 16px;gap:10px}
+  .tournament-footer-note{flex:1 1 100%;margin-right:0}
+  .tournament-footer-actions{flex:1 1 100%;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr)}
+  .tournament-footer-actions button{width:100%;min-height:42px;padding:9px}
+  .tournament-participant-list{grid-template-columns:1fr}
+  .report-attention .attention-grid{grid-template-columns:1fr}
+  .sc-notification-root{top:73px;left:12px;right:12px;width:auto;max-height:calc(100dvh - 84px);overflow-y:auto}
+  .sc-notification{font-size:12px}
+  .modalbox,.parent-detail-panel{border-radius:16px}
+  .attendance-summary-panel .row{flex-direction:column;align-items:flex-start}
+  .attendance-summary-actions{justify-content:flex-start;width:100%}
+}
+@media screen and (max-width:390px) {
+  .top-actions{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center}
+  .top-actions .appearance-control{min-width:0;padding:4px 6px;gap:4px}
+  .appearance-text{display:none}
+  .appearance-picker{font-size:11px;min-width:45px}
+  .top-actions .sync,.top-actions .logout-button{font-size:10px;padding:8px 9px}
+  .tournament-footer-actions{grid-template-columns:1fr}
+  .home-kpi strong{font-size:24px}
+  .home-kpi-meta{font-size:9px}
+}
+@media (prefers-reduced-motion:reduce){
+  :where(*, *::before,*::after){animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+}
+@media print {
+  :root,html[data-theme="dark"]{--v3-base:#fff;--v3-card:#fff;--v3-card-alt:#fff;--v3-field:#fff;--v3-ink:#172033;--v3-muted:#667085;--v3-line:#e4e7ec;color-scheme:light!important}
+  .home-attention-item,.attention-card,.panel,.metric,.parent-card{box-shadow:none!important}
+}
+
+/* Final responsive repairs found during visual QA */
+@media screen {
+  /* The legacy #homeActionRequired rule is more specific than its class. */
+  #homeActionRequired{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:10px}
+  #homeActionRequired>.home-attention-item{width:100%;height:100%}
+  #homeActionRequired>.home-clear-state{grid-column:1/-1}
+  /* Chart metrics receive deliberate, subtle colour differentiation. */
+  html[data-theme="dark"] .report-kpi{position:relative;overflow:hidden;border-color:rgba(142,173,208,.21)}
+  html[data-theme="dark"] .report-kpi:before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:3px;border-radius:0 8px 8px 0;background:#648ddc;opacity:.85}
+  html[data-theme="dark"] .report-kpi:nth-child(2):before,
+  html[data-theme="dark"] .report-kpi:nth-child(5):before{background:#56c9b5}
+  html[data-theme="dark"] .report-kpi:nth-child(3):before,
+  html[data-theme="dark"] .report-kpi:nth-child(6):before{background:#e5bd80}
+  html[data-theme="dark"] .report-kpi:nth-child(4):before{background:#ac9eed}
+  html[data-theme="dark"] .report-kpi:nth-child(2){background:linear-gradient(145deg,#1d364c,#1a2b42)}
+  html[data-theme="dark"] .report-kpi:nth-child(3){background:linear-gradient(145deg,#28364b,#1c2d44)}
+  html[data-theme="dark"] .report-kpi:nth-child(4){background:linear-gradient(145deg,#272f4b,#1c2b43)}
+  html[data-theme="dark"] input:is([type="date"],[type="time"])::-webkit-calendar-picker-indicator{filter:invert(.82) sepia(.05) saturate(.4);opacity:.9;cursor:pointer}
+  html[data-theme="dark"] .tournament-create-form{min-width:0;max-width:100%;grid-template-columns:minmax(0,1fr)}
+  .tournament-create-footer{min-width:0;max-width:100%;box-sizing:border-box}
+  .tournament-footer-actions,.tournament-footer-note{min-width:0}
+}
+@media screen and (max-width:1150px){
+  #homeActionRequired{grid-template-columns:minmax(0,1fr)}
+}
+@media screen and (max-width:650px){
+  #homeActionRequired{grid-template-columns:1fr;gap:10px}
+  #modal:has(.tournament-create-modal) .modalbox{width:calc(100vw - 16px)!important;max-width:calc(100vw - 16px)!important;overflow-x:hidden;box-sizing:border-box}
+  #modal .tournament-create-modal,
+  #modal .tournament-create-form,
+  #modal .tournament-create-footer{min-width:0;width:100%;max-width:100%;box-sizing:border-box}
+  #modal .tournament-create-form{grid-template-columns:minmax(0,1fr)}
+  #modal .tournament-create-footer{display:flex;flex-direction:column;align-items:stretch;flex-wrap:nowrap;gap:13px}
+  #modal .tournament-footer-note{width:100%;flex:none;min-width:0;margin:0}
+  #modal .tournament-footer-actions{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);width:100%;min-width:0;flex:none;gap:8px}
+  #modal .tournament-footer-actions button{min-width:0;width:100%;max-width:100%;font-size:12px;padding:10px 8px;white-space:normal}
+}
+@media screen and (max-width:390px){
+  #modal .tournament-footer-actions{grid-template-columns:minmax(0,1fr) minmax(0,1.25fr)}
+}
+@media screen and (max-width:650px){
+  #modal .tournament-create-footer{margin-left:0!important;margin-right:0!important;border-radius:0 0 18px 18px}
+}
+@media screen {
+  /* Chromium already draws the date icon light with color-scheme:dark. */
+  html[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator{filter:none;opacity:1}
+}
+
+/* Visibility and mobile finishing fixes validated in browser snapshots. */
+@media screen {
+  #teacherPreviewBanner.hidden{display:none!important}
+  .parent-detail-modal.hidden,.registration-modal.hidden,
+  .payment-history-overlay.hidden,.report-overlay.hidden{display:none!important}
+}
+@media screen and (max-width:650px){
+  .sc-notification-root{top:auto!important;bottom:max(12px,env(safe-area-inset-bottom))!important;left:12px!important;right:12px!important;width:auto!important;max-height:calc(100dvh - 24px)}
+  .profile-section-title{align-items:flex-start;flex-direction:column;gap:5px;text-align:left}
+  .profile-section-title>div{width:100%;text-align:left}
+  .profile-section-title .profile-section-note{align-self:flex-start;text-align:left}
+}

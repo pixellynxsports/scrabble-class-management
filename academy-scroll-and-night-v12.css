@@ -1,0 +1,128 @@
+/* Banting Scrabble Academy — V12 visual consistency patch.
+ * Scope: conceal scrollbars (never disable scrolling), and remove warm brown
+ * panel fills in NIGHT mode. No markup, layout or behaviour changes.
+ * Keep LAST in the stylesheets cascade. */
+
+@media screen {
+  /* This changes the scrollbar's visibility, not the scrollable behaviour.
+     Includes page, sidebar, table scrollers, parent detail sheets and modals. */
+  html, body, body * {
+    scrollbar-width: none !important;  /* Firefox */
+  }
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar,
+  body *::-webkit-scrollbar {
+    width: 0 !important;
+    height: 0 !important;
+    display: none !important;      /* Chromium, Safari and WebKit */
+  }
+  :is(html,body,.modalbox,.modal-body,.side,.scroll,.parent-detail-body,
+      .parent-detail-dialog,.tournament-tabs,.parent-child-tabs){
+    scrollbar-gutter: auto !important;
+  }
+
+  /* Night palette: warm orange-brown cards become restrained slate-navy.
+     Status messages retain a readable amber ACCENT rather than a brown fill. */
+  html[data-theme="dark"] {
+    --tt-amber-soft: #28394e;
+    --v3-gold-soft: rgba(111,151,194,.15);
+    --sc-amber-soft: #28394e;
+  }
+
+  html[data-theme="dark"] :is(
+    .home-attention-item.warning,
+    .home-attention-item.warn,
+    .home-kpi-attention,
+    .attention-card.warning,
+    .parent-notice.almost,
+    .parent-package-notice.almost,
+    .payment-proof-pending,
+    .registration-reason,
+    .teacher-preview-banner,
+    .parent-complete-badge,
+    .certificate-review-progress-state.pending,
+    .certificate-review-status.pending,
+    .certificate-full-review-status span,
+    .certificate-preview-status > span.pending
+  ) {
+    background: linear-gradient(125deg,#26374e 0%,#223148 100%) !important;
+    border-color: rgba(125,154,191,.30) !important;
+  }
+
+  html[data-theme="dark"] :is(
+    .home-attention-item.warning,
+    .home-attention-item.warn,
+    .attention-card.warning,
+    .report-attention .attention-card.warning,
+    .parent-notice.almost,
+    .payment-proof-pending,
+    .registration-reason
+  ):hover {
+    background: linear-gradient(125deg,#2d4059 0%,#273851 100%) !important;
+    border-color: rgba(142,174,210,.37) !important;
+  }
+
+  /* The certificate workflow's broad review gate is the primary user example. */
+  html[data-theme="dark"] #tournament .tournament-review-gate:not(.reviewed),
+  html[data-theme="dark"] #tournament .certificate-review-progress-state.pending {
+    background: linear-gradient(125deg,#26374e 0%,#223148 100%) !important;
+    border-color: rgba(125,154,191,.30) !important;
+    color: #e2ecf9;
+  }
+  html[data-theme="dark"] #tournament .tournament-review-gate:not(.reviewed):hover {
+    background: linear-gradient(125deg,#2d4059 0%,#273851 100%) !important;
+  }
+
+  /* Match the subtle small status tile in the user's Orders example. */
+  html[data-theme="dark"] :is(
+    .home-attention-item.warning .home-attention-icon,
+    .home-attention-item.warn .home-attention-icon,
+    .report-attention .attention-card.warning strong,
+    .attention-card.warning strong,
+    .home-kpi-attention .home-kpi-decoration,
+    .tournament-review-icon,
+    .tournament-setup-icon,
+    .certificate-preview-status > span.pending b
+  ) {
+    background: #36475b !important;
+    color: #f0c996;
+    border-color: rgba(139,163,189,.22) !important;
+  }
+  html[data-theme="dark"] #tournament .tournament-review-gate.reviewed .tournament-review-icon {
+    background: var(--tt-panel) !important;
+    color: var(--tt-teal) !important;
+  }
+
+  /* Legacy dark styles also paint smaller notices with warm fills. */
+  html[data-theme="dark"] :is(.almost,.badge.almost,.badge.new-student),
+  html[data-theme="dark"] #tournament :is(.certificate-review-status.pending,.certificate-preview-status > span.pending),
+  html[data-theme="dark"] #modal:is(:has(.certificate-review-center),:has(.certificate-preview-modal),:has(.certificate-full-review))
+    :is(.certificate-review-status.pending,.certificate-review-progress-state:not(.done),.certificate-preview-status > span.pending) {
+    background: #2a3d53 !important;
+    border-color: rgba(132,162,197,.27) !important;
+    color: #f0c996;
+  }
+
+  /* Warm parent notices and podium plates receive the same blue-grey base;
+     the title/accent may still communicate first place or a pending state. */
+  html[data-theme="dark"] #parentPortal.ph10-installed .ph10-notice.amber,
+  html[data-theme="dark"] .parent-tournament-podium-place.first {
+    background: linear-gradient(125deg,#26374e,#223148) !important;
+    border-color: rgba(125,154,191,.30) !important;
+  }
+  html[data-theme="dark"] .parent-tournament-progress-track span.live {
+    background: #3a9da5 !important;
+  }
+
+  /* Report cards previously kept yellow/orange foreground on hover.
+     Retain warm meaning only in their small badges; body text stays neutral. */
+  html[data-theme="dark"] .report-attention .attention-card.warning span,
+  html[data-theme="dark"] .report-attention .attention-card.warning:hover span {
+    color: #e2ebf7 !important;
+  }
+  html[data-theme="dark"] .report-attention .attention-card.warning b,
+  html[data-theme="dark"] .home-attention-item.warning .home-attention-copy strong,
+  html[data-theme="dark"] .home-attention-item.warn .home-attention-copy strong {
+    color: #eef5ff !important;
+  }
+}
