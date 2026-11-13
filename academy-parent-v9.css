@@ -1,0 +1,423 @@
+/* =====================================================================
+   Banting Scrabble Academy — Parent Workspace V9
+   Focus: actual dashboard composition, visual rhythm, functional shortcuts,
+   and consistent motion. Common to parent login and teacher preview.
+   No payment, database, certificate artwork or role logic is modified.
+   ===================================================================== */
+@media screen {
+  #parentPortal {
+    --v9-gap:18px;
+    --v9-radius:20px;
+    --v9-inner:#f6f9fe;
+    --v9-sky:#dceafe;
+    --v9-highlight:#2e76db;
+    --v9-track:#dfeaf5;
+    --v9-tile-shadow:0 13px 32px rgba(25,65,111,.055), 0 2px 6px rgba(25,65,111,.025);
+    --v9-hover-shadow:0 19px 39px rgba(19,68,115,.11), 0 5px 12px rgba(19,68,115,.035);
+    background:radial-gradient(ellipse at 92% 1%,rgba(68,158,233,.10),transparent 38%),linear-gradient(180deg,#f3f7fc 0%,#eaf1f8 100%);
+  }
+  html[data-theme="dark"] #parentPortal {
+    --v9-inner:#20364f;
+    --v9-sky:#263f5e;
+    --v9-highlight:#9bc4ff;
+    --v9-track:#31475f;
+    --v9-tile-shadow:0 14px 33px rgba(1,9,23,.21), 0 2px 8px rgba(1,9,23,.1);
+    --v9-hover-shadow:0 24px 44px rgba(1,9,23,.33),0 7px 14px rgba(1,9,23,.12);
+    --pp-bg:#0e1b2e;
+    --pp-card:#1b2e46;
+    --pp-card-alt:#213850;
+    --pp-border:rgba(149,181,212,.19);
+    --pp-border-strong:rgba(149,181,212,.32);
+    background:radial-gradient(ellipse at 91% -9%,rgba(64,118,184,.20),transparent 40%),radial-gradient(ellipse at 3% 95%,rgba(38,157,145,.075),transparent 30%),linear-gradient(180deg,#0f2034 0%,#0e1b2d 100%);
+  }
+
+  /* A lighter, quieter application header with a small identity mark. */
+  #parentPortal .parent-shell {max-width:1300px}
+  #parentPortal .parent-top {
+    display:flex;
+    align-items:center;
+    padding:17px clamp(20px,2.2vw,29px);
+    margin-bottom:21px;
+    gap:17px;
+    min-height:98px;
+    border-radius:20px;
+    background:linear-gradient(108deg,rgba(255,255,255,.97),rgba(246,250,255,.98));
+    box-shadow:var(--v9-tile-shadow);
+  }
+  html[data-theme="dark"] #parentPortal .parent-top {
+    background:linear-gradient(110deg,rgba(37,62,88,.97),rgba(25,43,65,.98));
+  }
+  #parentPortal .parent-top::before {
+    content:'SC';display:grid;place-items:center;flex:0 0 45px;
+    width:45px;height:45px;border-radius:14px;
+    color:#fff;font-size:14px;font-weight:850;letter-spacing:-.04em;
+    background:linear-gradient(155deg,#3b78db,#249da4);
+    box-shadow:0 7px 15px rgba(47,112,178,.18);
+  }
+  #parentPortal .parent-top > div:first-child{flex:1}
+  #parentPortal .parent-top .eyebrow{font-size:10px;color:var(--pp-muted)}
+  #parentPortal .parent-top h1{font-size:clamp(23px,2vw,29px);margin:3px 0 1px;letter-spacing:-.035em}
+  #parentPortal .parent-top p{font-size:12px}
+  #parentPortal .parent-top-actions{gap:9px}
+  #parentPortal .parent-top-actions .sync,
+  #parentPortal .parent-top-actions .logout-button{border-radius:13px!important;min-height:42px!important}
+
+  /* Child switching should be a compact navigation band, not a second hero. */
+  #parentPortal .parent-child-selector{margin-bottom:20px}
+  #parentPortal .parent-child-selector:empty{display:none}
+  #parentPortal .parent-child-selector .parent-card{
+    display:flex;align-items:center;gap:20px;
+    padding:13px 17px;
+    background:var(--pp-card);
+    box-shadow:var(--v9-tile-shadow);
+  }
+  #parentPortal .parent-child-selector .parent-card>.eyebrow{display:none}
+  #parentPortal .parent-child-selector h2{font-size:14px;white-space:nowrap;margin:0}
+  #parentPortal .parent-child-tabs{
+    display:flex;flex:1 1 auto;overflow-x:auto;
+    scrollbar-width:thin;gap:9px;margin:0;min-width:0;padding:2px;
+  }
+  #parentPortal .parent-child-tab{
+    flex:0 1 265px;min-width:190px;min-height:59px;padding:10px 15px;
+    border-radius:13px;box-shadow:none;
+  }
+  #parentPortal .parent-child-tab>span{font-size:12px}
+  #parentPortal .parent-child-tab small{font-size:10px}
+
+  /* True dashboard grid, not a full-width stack of unrelated boxes. */
+  #parentPortal .parent-dashboard{
+    display:grid;
+    grid-template-columns:repeat(12,minmax(0,1fr));
+    grid-auto-flow:row;
+    gap:var(--v9-gap);
+    align-items:stretch;
+    min-width:0;
+  }
+  #parentPortal .parent-dashboard > *{min-width:0;margin:0}
+  #parentPortal .parent-dashboard > #parentActionRequired:not(.hidden),
+  #parentPortal .parent-dashboard > .parent-tournament-live,
+  #parentPortal .parent-dashboard > .parent-tournament-complete {grid-column:1/-1}
+  #parentPortal .parent-dashboard > #parentActionRequired.hidden{display:none!important}
+  #parentPortal .parent-dashboard > .parent-hero{grid-column:span 7}
+  #parentPortal .parent-dashboard > .parent-metrics{grid-column:span 5}
+  #parentPortal .parent-dashboard > .parent-home-package{grid-column:span 6}
+  #parentPortal .parent-dashboard > .parent-home-activity{grid-column:span 6}
+  #parentPortal .parent-dashboard > .parent-home-orders{grid-column:span 6}
+  #parentPortal .parent-dashboard > .parent-certificates-dashboard{grid-column:span 6}
+  #parentPortal .parent-quick-access{display:none}
+
+  /* Stronger focal point: one real hero with controlled decorative motion. */
+  #parentPortal .parent-hero{
+    display:flex;align-items:flex-end;justify-content:space-between;
+    flex-wrap:wrap;min-height:270px;
+    padding:clamp(26px,3vw,39px);
+    border:1px solid rgba(255,255,255,.15);border-radius:24px;
+    background:radial-gradient(circle at 92% 17%,rgba(152,231,225,.22) 0%,transparent 34%),
+      linear-gradient(124deg,#224b7d 0%,#22688a 58%,#118b84 100%);
+    box-shadow:0 19px 40px rgba(39,106,157,.16);
+  }
+  html[data-theme="dark"] #parentPortal .parent-hero {
+    background:radial-gradient(circle at 91% 9%,rgba(143,218,211,.23),transparent 33%),
+      linear-gradient(128deg,#28518a 0%,#235978 53%,#1a817e 100%);
+  }
+  #parentPortal .parent-hero::before {
+    content:"";position:absolute;z-index:-1;
+    width:225px;height:225px;border:1px solid rgba(255,255,255,.12);
+    top:-84px;right:-55px;border-radius:46px;
+    transform:rotate(22deg);
+    box-shadow:0 0 0 29px rgba(255,255,255,.035),0 0 0 67px rgba(255,255,255,.024);
+    animation:pp9Decor 9s ease-in-out infinite alternate;
+  }
+  #parentPortal .parent-hero::after{width:175px;height:175px;right:-65px;top:30px;opacity:.55}
+  #parentPortal .parent-hero>div{position:relative;z-index:1;min-width:0}
+  #parentPortal .parent-hero .eyebrow{color:#bff3ec;font-size:11px}
+  #parentPortal .parent-hero h2{
+    font-size:clamp(29px,3.5vw,43px);line-height:1.12;
+    max-width:590px;margin:11px 0 13px;
+    letter-spacing:-.045em;overflow-wrap:anywhere
+  }
+  #parentPortal .parent-hero p{color:#e5f6ff;font-size:13px}
+  #parentPortal .parent-hero>.badge{
+    background:rgba(6,44,72,.20);border:1px solid rgba(229,251,255,.27);
+    color:#f1fbff;backdrop-filter:blur(6px);border-radius:12px;
+    padding:10px 14px;max-width:300px;
+  }
+
+  /* Statistics belong to a 2×2 instrument board alongside the hero. */
+  #parentPortal .parent-metrics:not(.archived-history-metrics){
+    display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    grid-template-rows:repeat(2,minmax(0,1fr));gap:12px;
+    min-height:270px;
+  }
+  #parentPortal .parent-metric{
+    display:flex;flex-direction:column;justify-content:center;
+    min-height:0;padding:19px 21px;
+    border-radius:19px;
+    box-shadow:var(--v9-tile-shadow);
+    background:linear-gradient(155deg,var(--pp-card),var(--pp-card-alt));
+  }
+  html[data-theme="dark"] #parentPortal .parent-metric{
+    background:linear-gradient(150deg,#203751,#1b2e46);
+  }
+  #parentPortal .parent-metric::before{width:3px;top:21px;bottom:21px}
+  #parentPortal .parent-metric strong{
+    font-size:clamp(22px,2.3vw,30px);margin-top:8px;
+    line-height:1.12;letter-spacing:-.045em;
+  }
+  #parentPortal .parent-metric small{margin-top:6px;line-height:1.35}
+
+  /* Package is the main actionable card, with its own visual rhythm. */
+  #parentPortal .parent-home-package{
+    display:flex!important;flex-direction:column;gap:0;
+    border-radius:21px;
+    padding:25px 26px;
+    background:linear-gradient(155deg,var(--pp-card),var(--pp-card-alt));
+  }
+  #parentPortal .parent-home-package .section-head{padding-bottom:14px}
+  #parentPortal .parent-home-package .section-head h3{font-size:23px}
+  #parentPortal .parent-home-package .parent-progress{
+    height:13px;margin-top:18px;border-radius:999px;background:var(--v9-track);
+  }
+  #parentPortal .parent-home-package .parent-progress>div{
+    background:linear-gradient(90deg,#4b85f4,#29b4aa);
+    box-shadow:0 0 15px rgba(64,173,199,.28)
+  }
+  #parentPortal .parent-home-package .progress-labels{margin-top:12px}
+  #parentPortal .parent-home-package .parent-package-list{margin-top:18px}
+  #parentPortal .parent-package-row{min-height:58px;padding:11px 0}
+
+  /* Activity: compact preview cards; all records remain accessible on click. */
+  #parentPortal .parent-home-activity{
+    display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;
+    height:100%;align-items:stretch;
+  }
+  #parentPortal .parent-home-activity>.parent-click-card{
+    min-width:0;min-height:0;display:flex!important;flex-direction:column;
+    padding:22px 18px 18px;
+  }
+  #parentPortal .parent-home-activity .section-head{display:flex;align-items:flex-start;gap:8px}
+  #parentPortal .parent-home-activity .section-head h3{font-size:18px;line-height:1.3}
+  #parentPortal .parent-home-activity .section-head>.badge{font-size:10px}
+  #parentPortal .parent-home-activity .parent-list{margin-top:12px}
+  #parentPortal .parent-home-activity .parent-list-row{gap:8px;padding:13px 0}
+  #parentPortal .parent-home-activity .parent-list-row b{font-size:12px}
+  #parentPortal .parent-home-activity .parent-list-row small{font-size:10px}
+  #parentPortal .parent-home-activity .parent-list-row>.badge{font-size:10px}
+  #parentPortal .parent-click-card .card-arrow{
+    right:16px;bottom:14px;border:1px solid var(--pp-border);
+    background:var(--pp-blue-soft);color:var(--pp-blue);
+    border-radius:11px;transition:transform .22s ease,background .22s ease;
+  }
+  #parentPortal .parent-click-card:hover .card-arrow{transform:translate(2px,-2px)}
+
+  /* Lower row is a purposeful pair, not two oversized full-width panels. */
+  #parentPortal .parent-home-orders,
+  #parentPortal .parent-certificates-dashboard{
+    display:flex!important;flex-direction:column;
+    padding:24px 25px;min-height:260px;
+  }
+  #parentPortal .parent-home-orders .parent-list{margin-top:13px}
+  #parentPortal .parent-home-orders .parent-list-row{padding:14px 0}
+  #parentPortal .parent-certificates-dashboard .section-head{margin-bottom:2px}
+  #parentPortal .parent-certificates-dashboard:has(.parent-certificates-empty) .parent-certificates-empty{
+    flex:1;align-self:stretch;
+    margin-top:16px;padding:22px;
+    border-radius:16px;
+    background:var(--v9-inner);
+    border-color:var(--pp-border-strong);
+  }
+  #parentPortal .parent-certificates-dashboard .parent-latest-certificate{margin-top:14px}
+
+  /* Motion is subtle but deliberate: presence, not a bouncing UI. */
+  #parentPortal .parent-dashboard > :is(.parent-hero,.parent-metrics,.parent-home-package,.parent-home-activity,.parent-home-orders,.parent-certificates-dashboard){
+    animation:pp9Reveal .48s cubic-bezier(.2,.8,.2,1) both;
+  }
+  #parentPortal .parent-dashboard > .parent-metrics{animation-delay:.07s}
+  #parentPortal .parent-dashboard > .parent-home-package{animation-delay:.11s}
+  #parentPortal .parent-dashboard > .parent-home-activity{animation-delay:.15s}
+  #parentPortal .parent-dashboard > .parent-home-orders{animation-delay:.18s}
+  #parentPortal .parent-dashboard > .parent-certificates-dashboard{animation-delay:.2s}
+  #parentPortal .parent-click-card{transition:transform .2s ease,border-color .2s ease,box-shadow .24s ease,background-color .2s ease}
+  #parentPortal .parent-click-card:hover{transform:translateY(-3px);box-shadow:var(--v9-hover-shadow)}
+  #parentPortal .parent-click-card:active{transform:translateY(-1px) scale(.997)}
+  #parentPortal .parent-progress>div{transition:width .65s cubic-bezier(.18,.84,.3,1)}
+  #parentPortal .parent-detail-modal:not(.hidden) .parent-detail-panel{animation:pp9Dialog .28s cubic-bezier(.17,.8,.2,1) both}
+  #parentPortal .parent-detail-backdrop{transition:opacity .25s ease}
+  @keyframes pp9Reveal{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes pp9Dialog{from{opacity:0;transform:translateY(13px) scale(.988)}to{opacity:1;transform:translateY(0) scale(1)}}
+  @keyframes pp9Decor{from{transform:rotate(20deg) translateY(0)}to{transform:rotate(23deg) translateY(8px)}}
+
+  /* Archived view uses a coherent grid too. */
+  #parentPortal .parent-dashboard > .archived-parent-hero{grid-column:span 7;min-height:180px}
+  #parentPortal .parent-dashboard > .archived-parent-notice{grid-column:span 5;min-height:180px;margin:0;display:flex;align-items:center}
+  #parentPortal .parent-dashboard > .archived-review-card{grid-column:1/-1;margin:0}
+  #parentPortal .parent-dashboard > .archived-history-metrics{grid-column:1/-1}
+  #parentPortal .parent-dashboard > .archived-history-grid{grid-column:span 8}
+  #parentPortal .parent-dashboard > .archived-orders-card{grid-column:span 4}
+  #parentPortal .parent-dashboard > .archived-readonly-note{grid-column:1/-1}
+  #parentPortal .archived-history-grid{align-items:stretch}
+  #parentPortal .archived-history-grid .parent-click-card{min-width:0}
+}
+
+/* Tablet: keep the primary panel visible, allow the lower sections to breathe. */
+@media screen and (max-width:1180px){
+  #parentPortal .parent-dashboard > .parent-hero,
+  #parentPortal .parent-dashboard > .parent-metrics{grid-column:1/-1}
+  #parentPortal .parent-hero{min-height:205px}
+  #parentPortal .parent-metrics:not(.archived-history-metrics){grid-template-columns:repeat(4,minmax(0,1fr))!important;grid-template-rows:1fr;min-height:126px}
+  #parentPortal .parent-home-activity{grid-template-columns:1fr}
+  #parentPortal .parent-dashboard > .archived-parent-hero,
+  #parentPortal .parent-dashboard > .archived-parent-notice{grid-column:span 6}
+}
+@media screen and (max-width:860px){
+  #parentPortal .parent-dashboard > .parent-home-package,
+  #parentPortal .parent-dashboard > .parent-home-activity,
+  #parentPortal .parent-dashboard > .parent-home-orders,
+  #parentPortal .parent-dashboard > .parent-certificates-dashboard,
+  #parentPortal .parent-dashboard > .archived-parent-hero,
+  #parentPortal .parent-dashboard > .archived-parent-notice,
+  #parentPortal .parent-dashboard > .archived-history-grid,
+  #parentPortal .parent-dashboard > .archived-orders-card{grid-column:1/-1}
+  #parentPortal .parent-home-activity{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #parentPortal .parent-quick-access{display:grid;grid-column:1/-1;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+  #parentPortal .parent-quick-access button{
+    display:flex;align-items:center;justify-content:center;flex-direction:column;gap:7px;
+    min-height:78px;padding:10px 5px;
+    border:1px solid var(--pp-border);border-radius:16px;
+    background:var(--pp-card);color:var(--pp-heading);box-shadow:var(--v9-tile-shadow);
+    font-size:11px;font-weight:760;cursor:pointer;
+    transition:transform .18s ease,border-color .18s ease,background-color .18s ease;
+  }
+  #parentPortal .parent-quick-access button:hover{border-color:var(--pp-blue);background:var(--pp-blue-soft);transform:translateY(-2px)}
+  #parentPortal .parent-quick-access-icon{display:grid;place-items:center;width:27px;height:27px;border-radius:9px;background:var(--pp-blue-soft);color:var(--pp-blue);font-size:17px}
+  #parentPortal .parent-quick-access-arrow{display:none}
+}
+@media screen and (max-width:700px){
+  #parentPortal .parent-top{padding:17px 16px;min-height:0;border-radius:18px;gap:13px}
+  #parentPortal .parent-top::before{width:38px;height:38px;flex-basis:38px;border-radius:12px}
+  #parentPortal .parent-top h1{font-size:25px}
+  #parentPortal .parent-top-actions{width:100%;margin-top:3px}
+  #parentPortal .parent-child-selector .parent-card{flex-direction:column;align-items:stretch;gap:9px;padding:12px 14px}
+  #parentPortal .parent-child-selector h2{font-size:13px}
+  #parentPortal .parent-child-tabs{width:100%}
+  #parentPortal .parent-child-tab{flex:0 0 185px;min-width:185px}
+  #parentPortal .parent-dashboard{gap:13px}
+  #parentPortal .parent-hero{min-height:195px;padding:25px 22px;border-radius:20px}
+  #parentPortal .parent-hero h2{font-size:clamp(27px,6vw,34px)}
+  #parentPortal .parent-hero>.badge{font-size:11px}
+  #parentPortal .parent-metrics:not(.archived-history-metrics){grid-template-columns:repeat(2,minmax(0,1fr))!important;grid-template-rows:repeat(2,minmax(0,1fr));min-height:0;gap:10px}
+  #parentPortal .parent-metric{padding:17px 15px;min-height:115px}
+  #parentPortal .parent-metric strong{font-size:23px}
+  #parentPortal .parent-home-activity{grid-template-columns:1fr}
+  #parentPortal .parent-home-package,.parent-home-orders,#parentPortal .parent-certificates-dashboard{padding:20px 18px}
+  #parentPortal .parent-home-activity>.parent-click-card{padding:20px 19px}
+  #parentPortal .parent-quick-access{gap:7px}
+  #parentPortal .parent-quick-access button{font-size:10px;min-height:72px}
+  #parentPortal .parent-quick-access-icon{width:25px;height:25px;font-size:15px}
+  #parentPortal .parent-dashboard > .archived-history-metrics{grid-column:1/-1}
+}
+@media screen and (max-width:370px){
+  #parentPortal .parent-quick-access button{font-size:9px;letter-spacing:-.02em;padding:9px 3px}
+  #parentPortal .parent-quick-access-icon{width:24px;height:24px}
+  #parentPortal .parent-metric{padding:14px 11px}
+  #parentPortal .parent-metric strong{font-size:20px}
+}
+@media screen and (prefers-reduced-motion:reduce){
+  #parentPortal *,#parentPortal *::before,#parentPortal *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+}
+/* Final visual alignment from real browser review. */
+@media screen {
+  #parentPortal .parent-quick-access-icon svg{width:17px;height:17px;display:block}
+  #parentPortal .parent-certificates-dashboard:has(.parent-certificates-empty) .parent-certificates-empty{
+    display:grid!important;
+    grid-template-columns:42px minmax(0,1fr);
+    grid-template-rows:auto auto;
+    column-gap:14px;row-gap:3px;
+    align-content:center;align-items:center;
+    text-align:left!important;
+  }
+  #parentPortal .parent-certificates-dashboard:has(.parent-certificates-empty) .parent-certificates-empty-icon{
+    grid-column:1;grid-row:1/3;align-self:center;justify-self:center;
+  }
+  #parentPortal .parent-certificates-dashboard:has(.parent-certificates-empty) .parent-certificates-empty strong,
+  #parentPortal .parent-certificates-dashboard:has(.parent-certificates-empty) .parent-certificates-empty span{
+    justify-self:start;text-align:left!important;margin:0;
+  }
+  #parentPortal .parent-certificates-dashboard:has(.parent-certificates-empty) .parent-certificates-empty strong{grid-column:2;grid-row:1}
+  #parentPortal .parent-certificates-dashboard:has(.parent-certificates-empty) .parent-certificates-empty span{grid-column:2;grid-row:2}
+}
+@media screen and (max-width:700px){
+  #parentPortal .parent-top{
+    display:grid!important;
+    grid-template-columns:38px minmax(0,1fr);
+    grid-template-rows:auto auto;
+    align-items:center;
+    column-gap:12px;row-gap:14px;
+    padding:15px 16px;
+  }
+  #parentPortal .parent-top::before{grid-column:1;grid-row:1;align-self:center;margin:0}
+  #parentPortal .parent-top>div:first-child{grid-column:2;grid-row:1;align-self:center}
+  #parentPortal .parent-top .eyebrow{font-size:9px}
+  #parentPortal .parent-top h1{font-size:23px;margin:1px 0}
+  #parentPortal .parent-top-actions{
+    grid-column:1/-1;grid-row:2;
+    display:grid!important;
+    grid-template-columns:114px minmax(0,1fr) auto!important;
+    gap:8px!important;
+    margin:0!important;
+    align-items:center;
+    width:100%;
+  }
+  #parentPortal .parent-top-actions .appearance-control{width:114px!important;min-width:114px!important;height:40px!important}
+  #parentPortal .parent-top-actions .sync{width:100%;max-width:none!important;min-width:0}
+  #parentPortal .parent-top-actions .logout-button{grid-column:auto!important;max-width:none!important;min-width:0;width:auto!important;font-size:11px;white-space:nowrap}
+  #parentPortal .parent-child-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));overflow:visible}
+  #parentPortal .parent-child-tab{min-width:0!important;width:100%;flex:auto;max-width:100%;}
+  #parentPortal .parent-hero{align-items:flex-start;justify-content:flex-end;text-align:left;flex-direction:column}
+  #parentPortal .parent-hero>div{align-self:stretch;max-width:100%}
+  #parentPortal .parent-hero>.badge{align-self:flex-start}
+}
+@media screen and (max-width:375px){
+  #parentPortal .parent-top-actions{grid-template-columns:110px minmax(0,1fr) auto!important;gap:6px!important}
+  #parentPortal .parent-top-actions .appearance-control{width:110px!important;min-width:110px!important}
+  #parentPortal .parent-top-actions .sync{font-size:10px;padding:7px 6px!important}
+  #parentPortal .parent-top-actions .logout-button{font-size:10px;padding:7px 8px!important}
+}
+/* Archived students and preview-specific access states. */
+@media screen {
+  #parentPortal .archived-parent-hero{
+    min-height:170px;
+    padding:25px 28px;
+    border-radius:22px;
+    border:1px solid rgba(255,255,255,.11);
+    background:radial-gradient(circle at 90% 10%,rgba(103,200,206,.16),transparent 45%),linear-gradient(117deg,#23496f,#2b6072);
+    box-shadow:var(--v9-tile-shadow);
+    align-items:center;
+  }
+  html[data-theme="dark"] #parentPortal .archived-parent-hero{
+    background:radial-gradient(circle at 93% 12%,rgba(111,189,191,.16),transparent 43%),linear-gradient(125deg,#284563,#285d6a);
+  }
+  #parentPortal .archived-parent-hero h2{color:#fff;font-size:clamp(25px,2.7vw,33px)}
+  #parentPortal .archived-parent-hero p{color:#dfedf5}
+  #parentPortal .archived-parent-hero .eyebrow{color:#b1e6e9}
+  #parentPortal .archived-history-grid .parent-list,
+  #parentPortal .archived-orders-card .parent-list,
+  #parentPortal .parent-home-activity .parent-list,
+  #parentPortal .parent-home-orders .parent-list{padding-bottom:34px!important}
+  #parentPortal .archived-review-card .parent-review-button.submitted:disabled{
+    opacity:1;color:var(--pp-muted);background:var(--pp-card-alt);border:1px solid var(--pp-border);
+  }
+}
+@media screen and (max-width:700px){
+  #parentPortal:has(#teacherPreviewBanner:not(.hidden)) .parent-top-actions{
+    grid-template-columns:114px minmax(0,1fr)!important;
+  }
+  #parentPortal:has(#teacherPreviewBanner:not(.hidden)) .parent-top-actions .logout-button{
+    grid-column:1/-1!important;width:100%!important;
+  }
+  #parentPortal .archived-parent-hero{min-height:144px;padding:22px 20px;align-items:center}
+  #parentPortal .archived-parent-hero h2{font-size:27px}
+}
+@media screen and (max-width:375px){
+  #parentPortal:has(#teacherPreviewBanner:not(.hidden)) .parent-top-actions{grid-template-columns:110px minmax(0,1fr)!important}
+}

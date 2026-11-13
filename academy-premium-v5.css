@@ -1,0 +1,634 @@
+/* Banting Scrabble Academy — Premium refinement pass V4
+   Focus: softer geometry, stronger list/table presentation,
+   cleaner attendance states, and icon-only 3-state appearance switch. */
+
+html[data-theme-setting="light"]{--v4-appearance-offset:0%}
+html[data-theme-setting="auto"]{--v4-appearance-offset:100%}
+html[data-theme-setting="dark"]{--v4-appearance-offset:200%}
+
+:root{
+  --v4-radius-sm:12px;
+  --v4-radius-md:16px;
+  --v4-radius-lg:20px;
+  --v4-radius-xl:24px;
+  --v4-surface-glow:0 16px 34px rgba(11,28,53,.08);
+  --v4-surface-glow-dark:0 20px 42px rgba(2,10,23,.28);
+  --v4-line-soft:rgba(121,147,182,.16);
+  --v4-dark-navy:#0f1d2f;
+  --v4-dark-panel:#15263c;
+  --v4-dark-panel-2:#1a2d45;
+  --v4-dark-panel-3:#213650;
+  --v4-dark-head:#263c56;
+  --v4-dark-ink:#e8f1fb;
+  --v4-dark-muted:#b6c7d9;
+  --v4-dark-blue:#a8cbff;
+  --v4-dark-teal:#88ead8;
+  --v4-dark-gold:#f0cb94;
+  --v4-dark-rose:#ffc2cb;
+  --v4-light-shell:#f6f8fc;
+  --v4-light-panel:#ffffff;
+  --v4-light-panel-2:#f9fbff;
+  --v4-light-line:#dbe4ef;
+}
+
+/* -------- appearance switch -------- */
+.appearance-control{
+  --track-bg:rgba(255,255,255,.62);
+  position:relative;
+  isolation:isolate;
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  align-items:center;
+  width:124px;
+  min-width:124px;
+  height:44px;
+  padding:4px;
+  border-radius:999px;
+  border:1px solid rgba(135,160,191,.28)!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.88),rgba(246,249,253,.95));
+  box-shadow:0 8px 18px rgba(31,57,90,.08), inset 0 1px 0 rgba(255,255,255,.92);
+  gap:0!important;
+}
+.appearance-control::before{
+  content:"";
+  position:absolute;
+  left:4px;top:4px;
+  width:calc((100% - 8px)/3);
+  height:calc(100% - 8px);
+  border-radius:999px;
+  background:linear-gradient(180deg,#4d85ec 0%,#3a70d5 100%);
+  box-shadow:0 8px 18px rgba(50,95,179,.24), inset 0 1px 0 rgba(255,255,255,.22);
+  transform:translateX(var(--v4-appearance-offset));
+  transition:transform .26s cubic-bezier(.2,.8,.2,1), background .22s ease, box-shadow .22s ease;
+  z-index:0;
+}
+html[data-theme="dark"] .appearance-control{
+  --track-bg:rgba(15,31,50,.92);
+  background:linear-gradient(180deg,rgba(26,43,66,.96),rgba(19,34,53,.96));
+  border-color:rgba(110,139,171,.3)!important;
+  box-shadow:0 12px 24px rgba(2,10,22,.2), inset 0 1px 0 rgba(255,255,255,.03);
+}
+html[data-theme="dark"] .appearance-control::before{
+  background:linear-gradient(180deg,#3966bf 0%,#3357a2 100%);
+  box-shadow:0 10px 18px rgba(13,34,73,.35), inset 0 1px 0 rgba(255,255,255,.08);
+}
+.appearance-symbol,.appearance-text,.appearance-picker{display:none!important}
+.appearance-segment{
+  position:relative;
+  z-index:1;
+  display:grid;
+  place-items:center;
+  width:100%;
+  height:100%;
+  border:0;
+  border-radius:999px;
+  background:transparent;
+  color:#466582;
+  cursor:pointer;
+  transition:color .2s ease, transform .2s ease, opacity .2s ease;
+  padding:0;
+}
+html[data-theme="dark"] .appearance-segment{color:#9eb4cf}
+.appearance-segment .ui-icon{width:18px;height:18px;display:block}
+.appearance-segment:hover{color:#1d3f66;transform:translateY(-1px)}
+html[data-theme="dark"] .appearance-segment:hover{color:#d9e7fa}
+.appearance-segment.is-active{color:#fff}
+.appearance-segment:focus-visible{outline:0;box-shadow:none!important}
+
+/* header actions */
+.top-actions,.parent-top-actions{gap:10px;align-items:center}
+.sync,.top-actions .logout-button,.parent-top-actions .logout-button{
+  min-height:44px!important;
+  border-radius:14px!important;
+  padding:10px 15px!important;
+}
+.top-actions .logout-button,.parent-top-actions .logout-button{
+  box-shadow:none;
+}
+html[data-theme="dark"] .top-actions .logout-button,
+html[data-theme="dark"] .parent-top-actions .logout-button{
+  background:linear-gradient(180deg,#1d3049,#1a2b43)!important;
+  border-color:rgba(119,150,185,.22)!important;
+}
+
+/* panels and listings feel more refined */
+.panel,
+.metric,
+.class-card,
+.info,
+.parent-card,
+.parent-metric,
+.order-stat,
+.order-status-card,
+.registration-card,
+.registration-review-card,
+.tournament-stat-card,
+.tournament-round-panel,
+.tournament-settings-panel,
+.tournament-list-card{
+  border-radius:18px!important;
+}
+.panel{box-shadow:var(--v4-surface-glow)}
+html[data-theme="dark"] .panel{box-shadow:var(--v4-surface-glow-dark)}
+
+.panel .row > h3,
+.panel .row > div > h3,
+.profile-section-title h3{letter-spacing:-.02em}
+
+.panel>.scroll,
+.report-student-panel .scroll,
+.orders-table-panel .scroll,
+.payment-history-panel .scroll,
+#students .panel.scroll,
+#payments .panel .scroll,
+#attendance .panel.scroll{
+  margin-top:14px;
+  border:1px solid var(--v4-line-soft);
+  border-radius:18px;
+  overflow:auto;
+  background:linear-gradient(180deg,var(--v4-light-panel),var(--v4-light-panel-2));
+}
+html[data-theme="dark"] :is(.panel>.scroll,.report-student-panel .scroll,.orders-table-panel .scroll,.payment-history-panel .scroll,#students .panel.scroll,#payments .panel .scroll,#attendance .panel.scroll){
+  background:linear-gradient(180deg,#16283f,#152439);
+  border-color:rgba(116,148,183,.18);
+}
+
+/* table geometry */
+.scroll table,
+.payment-history-table,
+.orders-table,
+.report-student-table,
+.tournament-table{min-width:720px}
+
+table{border-collapse:separate;border-spacing:0;overflow:hidden}
+
+thead th{
+  font-size:11px!important;
+  letter-spacing:.04em!important;
+  font-weight:800!important;
+  padding-top:17px!important;
+  padding-bottom:17px!important;
+}
+html[data-theme="dark"] th{
+  background:linear-gradient(180deg,#28415d,#263c56)!important;
+  color:#d5e2ef!important;
+}
+html[data-theme="light"] th,
+:root th{
+  background:linear-gradient(180deg,#eef4fb,#e8eff7)!important;
+  color:#7388a4!important;
+}
+td{
+  padding-top:18px!important;
+  padding-bottom:18px!important;
+  vertical-align:middle;
+}
+:where(th,td):first-child{padding-left:22px!important}
+:where(th,td):last-child{padding-right:22px!important}
+html[data-theme="dark"] td{border-bottom-color:rgba(121,151,184,.12)!important}
+html[data-theme="dark"] tbody tr:nth-child(even) td{background:rgba(255,255,255,.012)}
+html[data-theme="dark"] tbody tr:hover td{background:rgba(111,163,233,.09)!important}
+html[data-theme="light"] tbody tr:hover td{background:#f5f9ff!important}
+
+.student-sort-button,.table-sort-button{min-height:auto!important;padding:0!important}
+.student-sort-button,.table-sort-button,.linkbtn{font-weight:760!important}
+
+/* attendance list and cancelled state */
+.attendance-summary-panel{border-radius:20px!important}
+.attendance-summary-panel .row{min-height:72px}
+.attendance-summary-actions{gap:12px}
+.attendance-summary-panel .danger-secondary,
+.attendance-summary-panel .badge.blue{border-radius:999px}
+
+.attendance-cancellation-notice{
+  display:flex;align-items:center;justify-content:space-between;gap:15px;
+  padding:16px 18px!important;
+  border-radius:18px 18px 0 0;
+  background:linear-gradient(110deg,rgba(255,243,246,.98),rgba(246,247,252,.98));
+  border-bottom:1px solid rgba(226,199,207,.65)!important;
+  border-left:3px solid rgba(198,76,103,.42);
+  color:#8d2741;
+}
+.attendance-cancellation-notice strong{font-size:14px!important;color:#8d2741}
+.attendance-cancellation-notice span{font-size:12px!important;color:#b05a70}
+.attendance-cancellation-notice .secondary{border-radius:14px!important;padding-inline:18px!important}
+html[data-theme="dark"] .attendance-cancellation-notice{
+  background:linear-gradient(110deg,rgba(61,45,67,.58),rgba(24,42,62,.98));
+  border-bottom-color:rgba(135,163,198,.18)!important;
+  border-left-color:rgba(255,181,196,.5);
+  color:#ffd8df;
+}
+html[data-theme="dark"] .attendance-cancellation-notice strong{color:#ffd8df!important}
+html[data-theme="dark"] .attendance-cancellation-notice span{color:#cdb7ca!important}
+html[data-theme="dark"] .attendance-cancelled-row{background:transparent!important}
+html[data-theme="dark"] .attendance-cancelled-row td{
+  background:linear-gradient(180deg,rgba(25,39,58,.94),rgba(22,35,53,.94))!important;
+  color:#e4edf8!important;
+}
+html[data-theme="dark"] .attendance-cancelled-row td:first-child{box-shadow:inset 3px 0 0 rgba(255,181,196,.22)}
+html[data-theme="dark"] .attendance-cancelled-row:nth-child(even) td{background:linear-gradient(180deg,rgba(28,43,63,.95),rgba(24,37,56,.95))!important}
+html[data-theme="dark"] .attendance-cancelled-row:hover td{background:linear-gradient(180deg,rgba(33,49,72,.98),rgba(26,40,60,.98))!important}
+.cancelled-message{display:block;font-size:12px;font-weight:760;letter-spacing:-.01em}
+html[data-theme="dark"] .cancelled-message{color:#ffc5ce!important}
+html[data-theme="light"] .cancelled-message{color:#cf2a3c!important}
+.att-btn{
+  border-radius:15px!important;
+  min-width:92px;
+  min-height:50px!important;
+  padding:10px 14px!important;
+  font-weight:750!important;
+}
+html[data-theme="dark"] .att-btn:not(.selected){background:#223752!important;border-color:#395572!important;color:#cddaea!important}
+html[data-theme="dark"] .att-btn:disabled{background:#23344a!important;color:#7f94ab!important;border-color:rgba(101,129,160,.22)!important;opacity:.82}
+html[data-theme="light"] .att-btn:disabled{background:#f5f7fa!important;color:#98a3b5!important;border-color:#d6deea!important;opacity:1}
+
+/* payments and student listings */
+#payments .panel,
+#students .panel,
+#attendance .panel,
+#orders .panel{padding:16px 16px 14px!important}
+#payments .panel>.row,
+#students .page-intro,
+#attendance .page-intro{padding-inline:2px}
+#payments .metric,
+#orders .metric,
+#home .metric{overflow:hidden}
+#payments .linkbtn,
+#students .linkbtn,
+#attendance .linkbtn{font-size:13px}
+#payments .badge,#students .badge,#attendance .badge{border-radius:999px;padding:7px 12px!important}
+
+/* generic buttons and fields: softer edges */
+.primary,.secondary,.danger,.danger-secondary,.tab,
+.student-action-trigger,.order-action-trigger,.home-date-actions .secondary,
+.home-date-latest,.payment-view-more{
+  border-radius:14px!important;
+}
+.primary,.secondary,.danger,.danger-secondary{font-weight:760!important}
+input,select,textarea{border-radius:14px!important}
+.student-toolbar{border-radius:18px!important;padding:13px!important}
+.student-action-trigger{width:42px!important;height:42px!important}
+.student-action-menu,.order-action-menu,.report-period-picker{border-radius:16px!important;overflow:hidden}
+
+/* theme-specific container polish */
+html[data-theme="dark"] body{
+  background:
+    radial-gradient(circle at 98% 4%, rgba(93,135,207,.14), transparent 27%),
+    radial-gradient(circle at 0% 100%, rgba(30,147,146,.06), transparent 28%),
+    linear-gradient(180deg,#122238 0%,#102033 100%)!important;
+}
+html[data-theme="dark"] :is(.panel,.metric,.class-card,.info,.parent-card,.parent-metric,.order-stat,.order-status-card,.registration-card,.registration-review-card,.tournament-stat-card,.tournament-round-panel,.tournament-settings-panel,.tournament-list-card){
+  background:linear-gradient(180deg,#1a2d45,#16273d)!important;
+  border-color:rgba(120,152,184,.18)!important;
+}
+html[data-theme="dark"] .report-kpi,
+html[data-theme="dark"] .home-kpi,
+html[data-theme="dark"] .tournament-format-card,
+html[data-theme="dark"] .participant-select-card,
+html[data-theme="dark"] .certificate-option-card{
+  border-radius:18px!important;
+}
+
+/* mobile */
+@media (max-width: 650px){
+  .top-actions,.parent-top-actions{grid-template-columns:minmax(0,1fr) auto auto!important;gap:8px!important}
+  .top-actions .appearance-control,.parent-top-actions .appearance-control{width:116px;min-width:116px;height:40px}
+  .sync,.top-actions .logout-button,.parent-top-actions .logout-button{min-height:40px!important;padding:9px 11px!important}
+  :where(th,td):first-child{padding-left:16px!important}
+  :where(th,td):last-child{padding-right:16px!important}
+  td{padding-top:15px!important;padding-bottom:15px!important}
+  .att-btn{min-width:84px;min-height:46px!important;padding:8px 11px!important}
+}
+
+/* ========================================================================
+   V5 precision refinement — 12 Nov 2026
+   One consistent, substantial table-header band across the complete
+   management UI; action buttons sized to their contents, not icon buttons.
+   No data, permissions, calculations, or workflow code is altered.
+   ======================================================================== */
+@media screen {
+  /* All desktop table headings match the established Student Management band. */
+  .app .scroll > table > thead > tr,
+  .app .scroll table > thead > tr,
+  .parent-portal .scroll table > thead > tr {
+    height:62px;
+  }
+  .app .scroll table > thead > tr > th,
+  .parent-portal .scroll table > thead > tr > th {
+    box-sizing:border-box;
+    height:62px;
+    min-height:62px;
+    padding:18px 15px!important;
+    vertical-align:middle;
+    line-height:1.35;
+    font-size:10.5px!important;
+    font-weight:800!important;
+    letter-spacing:.055em!important;
+    white-space:normal;
+    border-bottom:1px solid rgba(118,148,183,.24)!important;
+  }
+  .app .scroll table > thead > tr > th:first-child,
+  .parent-portal .scroll table > thead > tr > th:first-child{
+    padding-left:22px!important;
+    border-top-left-radius:14px;
+  }
+  .app .scroll table > thead > tr > th:last-child,
+  .parent-portal .scroll table > thead > tr > th:last-child{
+    padding-right:20px!important;
+    border-top-right-radius:14px;
+  }
+  html[data-theme="dark"] .app .scroll table > thead > tr > th,
+  html[data-theme="dark"] .parent-portal .scroll table > thead > tr > th{
+    background:linear-gradient(180deg,#2a4360 0%,#243b55 100%)!important;
+    color:#d2e0ef!important;
+    border-bottom-color:rgba(149,181,214,.22)!important;
+  }
+  html[data-theme="light"] .app .scroll table > thead > tr > th,
+  html[data-theme="light"] .parent-portal .scroll table > thead > tr > th{
+    background:linear-gradient(180deg,#edf4fb 0%,#e7eef7 100%)!important;
+    color:#5b718b!important;
+    border-bottom-color:#d8e2ee!important;
+  }
+  /* Consistent softly rounded table frames and row rhythm. */
+  .app .scroll:has(>table){
+    border-radius:18px;
+    scrollbar-gutter:stable;
+  }
+  .app .scroll table>tbody>tr>td{
+    line-height:1.48;
+    vertical-align:middle;
+  }
+  .app .scroll table>tbody>tr:last-child>td{
+    border-bottom-color:transparent;
+  }
+  /* Prevent vertical padding on header sort buttons from collapsing the band. */
+  .app table thead :is(.student-sort-button,.table-sort-button){
+    display:inline-flex;
+    align-items:center;
+    min-height:25px!important;
+    max-width:100%;
+    line-height:1.3;
+    white-space:normal;
+    vertical-align:middle;
+  }
+  /* Attendance should have the same full-width header and structured panel. */
+  #attContent .panel>.scroll,
+  #payments .panel>.scroll,
+  #reports .report-student-panel>.scroll,
+  #students .panel.scroll {
+    margin-top:15px;
+    border-radius:18px;
+    border:1px solid var(--v4-line-soft);
+  }
+  #attContent .attendance-cancellation-notice+.scroll {
+    margin-top:14px;
+  }
+  /* Order action: the V4 shared icon-size rule erroneously constrained text. */
+  #orders .orders-table .order-action-cell{
+    vertical-align:middle;
+  }
+  #orders .order-action-trigger{
+    box-sizing:border-box;
+    display:inline-flex!important;
+    align-items:center;
+    justify-content:space-between!important;
+    gap:11px!important;
+    width:112px!important;
+    max-width:100%;
+    height:44px!important;
+    min-height:44px!important;
+    padding:9px 13px!important;
+    flex:0 0 auto;
+    border-radius:13px!important;
+    line-height:1.2;
+    font-size:12px;
+    font-weight:750;
+    white-space:nowrap;
+    overflow:visible;
+    text-align:left;
+    box-shadow:none;
+  }
+  #orders .order-action-trigger>span:first-child{display:inline-block;flex:0 0 auto;white-space:nowrap}
+  #orders .order-action-chevron{
+    flex:0 0 8px;
+    width:8px;height:8px;
+    margin:0 2px 3px 0;
+    border-right-width:1.7px;
+    border-bottom-width:1.7px;
+  }
+  #orders .order-action-trigger[aria-expanded="true"] .order-action-chevron{margin:4px 2px 0 0}
+  html[data-theme="dark"] #orders .order-action-trigger{
+    background:linear-gradient(180deg,#2b405b,#22364f)!important;
+    color:#e7f0fd!important;
+    border:1px solid rgba(145,179,215,.29)!important;
+  }
+  html[data-theme="dark"] #orders .order-action-trigger:hover,
+  html[data-theme="dark"] #orders .order-action-trigger[aria-expanded="true"]{
+    background:linear-gradient(180deg,#334e70,#283f5c)!important;
+    border-color:rgba(166,199,234,.52)!important;
+  }
+  html[data-theme="dark"] #orders .order-action-chevron{border-color:#b6cde8}
+  html[data-theme="light"] #orders .order-action-trigger{
+    background:linear-gradient(180deg,#fff,#f4f7fb);
+    color:#263f5e;
+    border:1px solid #cbd8e7;
+  }
+  /* No overlapping checkbox with the Order ID, even with left-pad rules. */
+  #orders .orders-table th.order-select-cell,
+  #orders .orders-table td.order-select-cell{
+    padding:0 8px!important;
+    width:44px!important;
+    text-align:center!important;
+  }
+  #orders .orders-table :is(th,td).order-select-cell input[type="checkbox"]{
+    display:inline-block;
+    width:18px;
+    height:18px;
+    min-height:18px;
+    padding:0;
+    margin:0;
+    vertical-align:middle;
+  }
+  #orders .orders-table th:last-child,
+  #orders .orders-table td.order-action-cell{
+    padding-left:9px!important;
+    padding-right:15px!important;
+    width:140px;
+  }
+  #orders .orders-table td.order-action-cell{text-align:left}
+  #orders .orders-table th:last-child{padding-right:15px!important}
+  #orders .orders-table th,
+  #orders .orders-table td{
+    overflow-wrap:break-word;
+    word-break:normal;
+  }
+  #orders .orders-table-scroll{
+    overflow-x:auto;
+    overflow-y:hidden;
+    scrollbar-width:thin;
+  }
+  #orders .orders-table {table-layout:fixed;width:100%;min-width:1090px;}
+  /* Give order cells room without sacrificing action-column usability. */
+  #orders .orders-table td[data-label="Customer"],
+  #orders .orders-table td[data-label="Student"]{line-height:1.45}
+  #orders .orders-table td[data-label="Student"] .linkbtn{text-align:left;line-height:1.4}
+}
+@media screen and (max-width:1180px) and (min-width:761px){
+  #orders .orders-table{min-width:1120px}
+}
+@media screen and (max-width:760px){
+  /* Orders intentionally become labeled cards on phone; never force the
+     desktop table's min-width, header, or action button into this layout. */
+  #orders .orders-table{min-width:0!important;width:100%!important}
+  #orders .orders-table-scroll{overflow:visible!important}
+  #orders .orders-table tbody td.order-select-cell{
+    padding:5px 0 9px!important;
+    width:auto!important;
+    justify-content:flex-start;
+  }
+  #orders .orders-table tbody td.order-action-cell{
+    width:auto!important;
+    padding:12px 0 2px!important;
+  }
+  #orders .orders-table tbody td.order-action-cell .order-action-trigger{
+    width:100%!important;
+    min-width:0!important;
+  }
+  .app .scroll table>thead>tr>th{height:auto;min-height:0}
+  .app .scroll:has(>table){scrollbar-gutter:auto}
+}
+@media print{
+  .app .scroll table > thead > tr > th,
+  .parent-portal .scroll table > thead > tr > th{
+    background:#f1f3f7!important;
+    color:#172033!important;
+    height:auto!important;
+    min-height:0!important;
+    padding:8px!important;
+  }
+}
+
+@media screen and (min-width:761px){
+  /* Keep compact labels from wrapping vertically in the many-column Orders table. */
+  #orders .orders-table thead tr>th{
+    height:62px!important;
+    padding:17px 8px!important;
+    font-size:10px!important;
+    line-height:1.25!important;
+    letter-spacing:.02em!important;
+    white-space:nowrap!important;
+  }
+  #orders .orders-table thead tr>th:first-child{padding:0 8px!important}
+  #orders .orders-table thead tr>th:last-child{padding-left:9px!important;padding-right:15px!important}
+  #orders .orders-table th:nth-child(6),
+  #orders .orders-table td:nth-child(6){width:48px}
+  #orders .orders-table th:nth-child(7),
+  #orders .orders-table td:nth-child(7){width:65px}
+  #orders .orders-table th:nth-child(10),
+  #orders .orders-table td:nth-child(10){width:10%}
+  #orders .orders-table th:nth-child(3),
+  #orders .orders-table th:nth-child(4){white-space:normal!important}
+}
+
+@media screen and (max-width:760px){
+  /* Wide data tables scroll instead of squeezing column titles into thin
+     vertical stacks on phones. The Orders table uses its existing cards. */
+  .app .scroll table > thead > tr > th,
+  .parent-portal .scroll table > thead > tr > th{
+    white-space:nowrap!important;
+    height:56px!important;
+    min-height:56px!important;
+    padding:15px 13px!important;
+    line-height:1.35!important;
+    font-size:10px!important;
+  }
+  #attContent .scroll table{min-width:930px!important}
+  #payments .scroll table,#students .scroll table{min-width:820px}
+  #reports .report-student-panel .scroll table{min-width:875px}
+  #orders .orders-table tbody tr{border-radius:16px;gap:1px 14px;padding:12px 14px}
+  #orders .orders-table tbody td[data-label="Customer"],
+  #orders .orders-table tbody td[data-label="Student"]{
+    grid-column:1/-1;
+    padding:11px 2px!important;
+    justify-content:space-between;
+    gap:14px;
+    line-height:1.48;
+    text-align:right!important;
+  }
+  #orders .orders-table tbody td[data-label="Customer"] > b,
+  #orders .orders-table tbody td[data-label="Student"] > .linkbtn{
+    max-width:66%;
+    min-width:0;
+    text-align:right;
+    overflow-wrap:break-word;
+  }
+  #orders .orders-table tbody td[data-label="Customer"]::before,
+  #orders .orders-table tbody td[data-label="Student"]::before{max-width:30%}
+  #orders .orders-table tbody td.order-action-cell{
+    grid-column:1/-1;
+    padding:13px 0 3px!important;
+  }
+}
+
+
+/* 2026-11-12 / Order dashboard hero clean-up.
+   The page-level Back to Orders action remains above the panel;
+   the duplicate inside the panel has been removed from javascript.js. */
+#orderDashboard .order-dashboard-shell{gap:18px}
+#orderDashboard .order-dashboard-head.panel{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(185px,max-content);
+  align-items:center;
+  column-gap:clamp(22px,3vw,48px);
+  row-gap:20px;
+  padding:clamp(23px,2.2vw,34px) clamp(24px,2.5vw,38px)!important;
+  min-height:182px;
+  border-radius:22px!important;
+}
+#orderDashboard .order-title-block{min-width:0;align-self:center}
+#orderDashboard .order-title-block .eyebrow{
+  margin:0 0 11px;
+  font-size:12px;
+  line-height:1.4;
+  letter-spacing:.085em;
+}
+#orderDashboard .order-title-block h2{
+  margin:0 0 12px;
+  font-size:clamp(24px,2.15vw,34px);
+  line-height:1.2;
+  letter-spacing:-.032em;
+  font-weight:800;
+  overflow-wrap:anywhere;
+}
+#orderDashboard .order-title-block p{
+  margin:0;
+  font-size:13px;
+  line-height:1.5;
+  overflow-wrap:anywhere;
+}
+#orderDashboard .order-head-side{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  justify-content:center;
+  gap:17px;
+  min-width:0;
+}
+#orderDashboard .order-total{text-align:right}
+#orderDashboard .order-total small{font-size:10px;line-height:1.3;letter-spacing:.09em}
+#orderDashboard .order-total strong{font-size:clamp(23px,2.15vw,30px);line-height:1.2;margin-top:6px}
+#orderDashboard .order-head-badges{justify-content:flex-end;gap:8px}
+#orderDashboard .order-head-badges .badge{white-space:normal;text-align:center}
+#orderDashboard>.toolbar{margin-bottom:20px}
+#orderDashboard>.toolbar .secondary{min-height:43px;padding-inline:17px;border-radius:14px}
+@media(max-width:700px){
+  #orderDashboard .order-dashboard-head.panel{grid-template-columns:minmax(0,1fr);padding:22px!important;min-height:0}
+  #orderDashboard .order-head-side{width:100%;display:flex;flex-direction:row;justify-content:space-between;align-items:end;gap:16px}
+  #orderDashboard .order-total{text-align:left}
+  #orderDashboard .order-head-badges{justify-content:flex-end}
+}
+@media(max-width:420px){
+  #orderDashboard .order-head-side{flex-direction:column;align-items:flex-start;gap:12px}
+  #orderDashboard .order-head-badges{justify-content:flex-start}
+  #orderDashboard .order-dashboard-head.panel{padding:20px!important}
+}

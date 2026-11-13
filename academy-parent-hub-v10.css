@@ -1,0 +1,348 @@
+/* =====================================================================
+   Banting Scrabble Academy · Parent Hub V10
+   Purpose-built page navigation, matching the Teacher Portal's palette.
+   Screen styling only: no impact on payments, records or calculations.
+   ===================================================================== */
+@media screen {
+#parentPortal.ph10-installed {
+  --ph-bg:#f3f7fb;
+  --ph-side:#19314b;
+  --ph-side-2:#15293f;
+  --ph-card:#ffffff;
+  --ph-soft:#f5f9fd;
+  --ph-row:#f8fbfe;
+  --ph-ink:#223750;
+  --ph-heading:#172e48;
+  --ph-muted:#677f98;
+  --ph-line:#dce6f1;
+  --ph-line-strong:#c7d7e9;
+  --ph-blue:#3b76ca;
+  --ph-blue-soft:#e9f2fd;
+  --ph-teal:#168b81;
+  --ph-teal-soft:#e4f6f1;
+  --ph-shadow:0 7px 25px rgba(31,66,105,.055);
+  background:var(--ph-bg)!important;
+  padding:0!important;
+  min-height:100vh;
+  color:var(--ph-ink);
+}
+html[data-theme="dark"] #parentPortal.ph10-installed{
+  --ph-bg:#15273d;
+  --ph-side:#17293f;
+  --ph-side-2:#132238;
+  --ph-card:#1b2f48;
+  --ph-soft:#213953;
+  --ph-row:#20364f;
+  --ph-ink:#e0ebf8;
+  --ph-heading:#f0f6ff;
+  --ph-muted:#aec2d8;
+  --ph-line:rgba(146,177,208,.17);
+  --ph-line-strong:rgba(146,177,208,.29);
+  --ph-blue:#9ec4ff;
+  --ph-blue-soft:rgba(110,158,234,.13);
+  --ph-teal:#88ddcd;
+  --ph-teal-soft:rgba(70,187,164,.13);
+  --ph-shadow:0 12px 31px rgba(2,12,26,.14);
+  background:#14273d!important;
+}
+#parentPortal.ph10-installed *,#parentPortal.ph10-installed *::before,#parentPortal.ph10-installed *::after{box-sizing:border-box}
+#parentPortal.ph10-installed .ph10-frame{display:grid;grid-template-columns:244px minmax(0,1fr);min-height:100vh}
+#parentPortal.ph10-installed .ph10-work{min-width:0}
+#parentPortal.ph10-installed .parent-shell{max-width:none!important;width:100%;margin:0!important;padding:29px clamp(22px,3vw,45px) 66px}
+#parentPortal.ph10-installed #parentDashboard{display:none!important}
+#parentPortal.ph10-installed .ph10-side{
+  position:sticky;top:0;align-self:start;height:100vh;
+  padding:25px 17px 20px;display:flex;flex-direction:column;
+  background:linear-gradient(175deg,var(--ph-side),var(--ph-side-2));
+  border-right:1px solid rgba(168,200,236,.12);color:#dceaff;z-index:15;
+}
+#parentPortal.ph10-installed .ph10-brand{display:flex;gap:11px;align-items:center;padding:5px 5px 25px;border-bottom:1px solid rgba(186,209,235,.14)}
+#parentPortal.ph10-installed .ph10-mark{display:flex;gap:4px}
+#parentPortal.ph10-installed .ph10-mark span{display:grid;place-items:center;background:#3b79d4;color:#fff;border-radius:9px;font-size:14px;font-weight:850;width:31px;height:34px;box-shadow:0 5px 14px rgba(10,25,52,.16)}
+#parentPortal.ph10-installed .ph10-mark span:last-child{background:#254261;border:1px solid rgba(184,208,233,.2)}
+#parentPortal.ph10-installed .ph10-brand strong{display:block;color:#f5f9ff;font-size:12px;letter-spacing:-.01em;white-space:nowrap}
+#parentPortal.ph10-installed .ph10-brand small{display:block;color:#aabfd6;font-size:11px;margin-top:3px}
+#parentPortal.ph10-installed .ph10-nav-label{font-size:10px;color:#9eb8d4;letter-spacing:.095em;font-weight:800;margin:26px 12px 10px}
+#parentPortal.ph10-installed #ph10SidebarNav{display:grid;gap:5px}
+#parentPortal.ph10-installed .ph10-nav-button{
+  color:#c3d4e8;font-size:13px;font-weight:650;line-height:1.3;
+  display:flex;gap:12px;align-items:center;text-align:left;
+  border:1px solid transparent;border-radius:13px;padding:12px 13px;
+  min-height:47px;width:100%;background:transparent;cursor:pointer;
+  transition:background .18s ease,color .18s ease,transform .18s ease,border-color .18s ease;
+}
+#parentPortal.ph10-installed .ph10-nav-button:hover{color:#fff;background:rgba(182,210,243,.075)}
+#parentPortal.ph10-installed .ph10-nav-button[aria-current="page"]{color:#fff;background:linear-gradient(130deg,#376fd0,#347cba);border-color:rgba(186,215,251,.25);box-shadow:0 8px 19px rgba(10,24,45,.17)}
+#parentPortal.ph10-installed .ph10-nav-icon{width:21px;height:21px;display:grid;place-items:center;flex:0 0 21px}
+#parentPortal.ph10-installed .ph10-nav-icon svg,#parentPortal.ph10-installed .ph10-list-icon svg,#parentPortal.ph10-installed .ph10-student-mini svg{display:block;width:20px;height:20px}
+#parentPortal.ph10-installed .ph10-side-footer{margin-top:auto;padding:19px 9px 0;border-top:1px solid rgba(186,209,235,.14)}
+#parentPortal.ph10-installed .ph10-side-footer strong{font-size:11px;color:#e4f1ff;display:block;line-height:1.5}
+#parentPortal.ph10-installed .ph10-side-footer span{font-size:10px;color:#a7bdd6;display:block;margin-top:3px}
+#parentPortal.ph10-installed .parent-top{padding:16px 21px!important;min-height:85px!important;margin-bottom:22px!important;border-radius:18px!important;box-shadow:var(--ph-shadow)!important;background:var(--ph-card)!important;border:1px solid var(--ph-line)!important}
+#parentPortal.ph10-installed .parent-top::before{content:none!important;display:none!important}
+#parentPortal.ph10-installed .parent-top .eyebrow{font-size:10px;color:var(--ph-blue)}
+#parentPortal.ph10-installed .parent-top h1{font-size:24px!important;line-height:1.2;margin:2px 0!important;color:var(--ph-heading)}
+#parentPortal.ph10-installed .parent-top p{font-size:11px;color:var(--ph-muted)}
+#parentPortal.ph10-installed .parent-top-actions .sync{font-size:11px;min-height:39px!important}
+#parentPortal.ph10-installed .parent-top-actions .logout-button{font-size:12px;min-height:40px!important}
+#parentPortal.ph10-installed .parent-top-actions .appearance-control{height:40px;width:116px;min-width:116px}
+#parentPortal.ph10-installed #teacherPreviewBanner{margin:0 0 19px;border-radius:15px;padding:14px 17px}
+#parentPortal.ph10-installed .parent-child-selector{margin:0 0 20px}
+#parentPortal.ph10-installed .parent-child-selector .parent-card{border-radius:16px;padding:12px 15px;background:var(--ph-card)!important;box-shadow:var(--ph-shadow)!important}
+#parentPortal.ph10-installed .parent-child-tab{border-radius:12px;font-size:12px;min-width:170px}
+#parentPortal.ph10-installed .ph10-content{min-height:350px;outline:none}
+#parentPortal.ph10-installed .ph10-heading{display:flex;align-items:center;justify-content:space-between;gap:22px;min-width:0;margin:5px 0 23px}
+#parentPortal.ph10-installed .ph10-kicker{color:var(--ph-blue);font-size:10px;font-weight:800;letter-spacing:.085em;margin-bottom:8px}
+#parentPortal.ph10-installed .ph10-kicker span{color:var(--ph-muted);margin:0 8px}
+#parentPortal.ph10-installed .ph10-heading h2{font-size:clamp(25px,2.5vw,32px);font-weight:800;color:var(--ph-heading);margin:0 0 6px;letter-spacing:-.035em;line-height:1.18}
+#parentPortal.ph10-installed .ph10-heading p{font-size:12px;color:var(--ph-muted);line-height:1.6;margin:0}
+#parentPortal.ph10-installed .ph10-student-mini{display:flex;align-items:center;gap:11px;max-width:330px;min-width:205px;padding:11px 14px;border-radius:14px;background:var(--ph-card);border:1px solid var(--ph-line);box-shadow:var(--ph-shadow)}
+#parentPortal.ph10-installed .ph10-student-mini>svg{flex:0 0 20px;color:var(--ph-blue)}
+#parentPortal.ph10-installed .ph10-student-mini>div{min-width:0}
+#parentPortal.ph10-installed .ph10-student-mini strong{font-size:12px;color:var(--ph-heading);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#parentPortal.ph10-installed .ph10-student-mini small{font-size:10px;color:var(--ph-muted);display:block;margin-top:3px;line-height:1.4}
+#parentPortal.ph10-installed .ph10-page-content{display:grid;gap:18px;animation:ph10In .24s ease-out}
+#parentPortal.ph10-installed .ph10-card{min-width:0;background:var(--ph-card);border:1px solid var(--ph-line);border-radius:19px;padding:clamp(18px,2vw,26px);box-shadow:var(--ph-shadow)}
+#parentPortal.ph10-installed .ph10-card-head{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:18px;flex-wrap:wrap}
+#parentPortal.ph10-installed .ph10-card-head h3{font-size:18px;color:var(--ph-heading);font-weight:800;letter-spacing:-.025em;line-height:1.35;margin:5px 0 0}
+#parentPortal.ph10-installed .ph10-label{font-size:10px;color:var(--ph-blue);font-weight:820;letter-spacing:.09em}
+#parentPortal.ph10-installed .ph10-two-col{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+#parentPortal.ph10-installed .ph10-welcome{position:relative;isolation:isolate;min-height:196px;overflow:hidden;padding:31px 33px;background:linear-gradient(125deg,#245179 0%,#246989 58%,#19827e 100%);color:#fff;border-radius:20px;border:1px solid rgba(255,255,255,.12);display:flex;align-items:center}
+#parentPortal.ph10-installed .ph10-welcome h3{font-size:clamp(23px,2.4vw,31px);color:#fff;margin:7px 0 8px;font-weight:800;letter-spacing:-.035em;overflow-wrap:anywhere}
+#parentPortal.ph10-installed .ph10-welcome p{margin:0;font-size:13px;color:#e3f4fc;line-height:1.5}
+#parentPortal.ph10-installed .ph10-eyebrow-on-dark{font-size:10px;font-weight:800;color:#b6e8e8;letter-spacing:.09em}
+#parentPortal.ph10-installed .ph10-welcome-badge{display:inline-flex;gap:7px;align-items:center;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:99px;color:#fff;font-size:11px;font-weight:700;padding:8px 11px;margin-top:18px}
+#parentPortal.ph10-installed .ph10-welcome-badge svg{height:14px;width:14px}
+#parentPortal.ph10-installed .ph10-welcome-decor{position:absolute;right:20px;bottom:-27px;font-size:112px;letter-spacing:-.14em;color:rgba(255,255,255,.045);font-weight:900;z-index:-1;pointer-events:none}
+#parentPortal.ph10-installed .ph10-stat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}
+#parentPortal.ph10-installed .ph10-stat-grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+#parentPortal.ph10-installed .ph10-stat{position:relative;min-height:127px;background:var(--ph-card);border:1px solid var(--ph-line);border-radius:17px;padding:20px 18px;box-shadow:var(--ph-shadow);display:flex;flex-direction:column;justify-content:space-between;gap:9px;min-width:0;overflow:hidden}
+#parentPortal.ph10-installed .ph10-stat::before{position:absolute;content:'';width:3px;top:18px;bottom:18px;left:0;background:#5389d9;border-radius:0 5px 5px 0}
+#parentPortal.ph10-installed .ph10-stat.teal::before{background:#36baa9}
+#parentPortal.ph10-installed .ph10-stat.warn::before{background:#dfb06a}
+#parentPortal.ph10-installed .ph10-stat small{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--ph-muted)}
+#parentPortal.ph10-installed .ph10-stat strong{font-size:clamp(21px,2vw,29px);line-height:1.14;letter-spacing:-.03em;color:var(--ph-heading);overflow-wrap:anywhere}
+#parentPortal.ph10-installed .ph10-stat span{font-size:11px;color:var(--ph-muted);line-height:1.4}
+#parentPortal.ph10-installed .ph10-notice{display:flex;align-items:center;gap:13px;background:var(--ph-blue-soft);border:1px solid var(--ph-line-strong);border-radius:16px;padding:16px 20px;color:var(--ph-heading)}
+#parentPortal.ph10-installed .ph10-notice>svg{height:22px;width:22px;flex:0 0 22px;color:var(--ph-blue)}
+#parentPortal.ph10-installed .ph10-notice>div{flex:1;min-width:0}
+#parentPortal.ph10-installed .ph10-notice strong{display:block;color:var(--ph-heading);font-size:13px;font-weight:800}
+#parentPortal.ph10-installed .ph10-notice span:not(.ph10-notice-icon){display:block;color:var(--ph-muted);font-size:12px;margin-top:3px;line-height:1.5}
+#parentPortal.ph10-installed .ph10-notice.amber{background:rgba(205,156,80,.09);border-color:rgba(210,168,94,.22)}
+#parentPortal.ph10-installed .ph10-notice.amber>svg{color:#c8984e}
+#parentPortal.ph10-installed .ph10-notice.due{background:rgba(208,111,125,.095);border-color:rgba(208,111,125,.23)}
+#parentPortal.ph10-installed .ph10-notice-icon{flex:0 0 28px;width:28px;height:28px;border-radius:50%;display:grid!important;place-items:center;color:#d36e7d;border:1px solid rgba(205,100,120,.24);font-weight:850}
+#parentPortal.ph10-installed .ph10-card-sub{font-size:12px;color:var(--ph-muted);line-height:1.6;margin:13px 0 0}
+#parentPortal.ph10-installed .ph10-progress-label{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:6px 0 19px;flex-wrap:wrap}
+#parentPortal.ph10-installed .ph10-progress-label strong{color:var(--ph-heading);font-size:15px}
+#parentPortal.ph10-installed .ph10-progress{height:12px;border-radius:99px;background:var(--ph-line);overflow:hidden}
+#parentPortal.ph10-installed .ph10-progress>span{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#4685dc,#2bafa5);transition:width .45s ease}
+#parentPortal.ph10-installed .ph10-text-action{display:inline-flex;align-items:center;gap:8px;background:transparent;border:0;color:var(--ph-blue);font-size:12px;font-weight:800;padding:0;margin-top:19px;cursor:pointer}
+#parentPortal.ph10-installed .ph10-text-action:hover{text-decoration:underline}
+#parentPortal.ph10-installed .ph10-text-action svg{height:15px;width:15px}
+#parentPortal.ph10-installed .ph10-list{display:grid;gap:0;border-radius:13px;overflow:hidden;border:1px solid var(--ph-line)}
+#parentPortal.ph10-installed .ph10-list-row,.ph10-order-row{min-width:0;display:flex;align-items:center;gap:13px;padding:15px 17px;border-bottom:1px solid var(--ph-line);background:var(--ph-row)}
+#parentPortal.ph10-installed .ph10-list-row:last-child,#parentPortal.ph10-installed .ph10-order-row:last-child{border-bottom:0}
+#parentPortal.ph10-installed .ph10-list-row:nth-child(2n),#parentPortal.ph10-installed .ph10-order-row:nth-child(2n){background:var(--ph-card)}
+#parentPortal.ph10-installed .ph10-list-icon{width:36px;height:36px;flex:0 0 36px;display:grid;place-items:center;border-radius:11px;color:var(--ph-blue);background:var(--ph-blue-soft)}
+#parentPortal.ph10-installed .ph10-list-icon.good{background:var(--ph-teal-soft);color:var(--ph-teal)}
+#parentPortal.ph10-installed .ph10-list-icon.bad{color:#cc7b8b;background:rgba(213,113,140,.12)}
+#parentPortal.ph10-installed .ph10-list-icon svg{height:17px;width:17px}
+#parentPortal.ph10-installed .ph10-list-copy{display:block;flex:1;min-width:0}
+#parentPortal.ph10-installed .ph10-list-copy strong{font-size:13px;color:var(--ph-heading);display:block;line-height:1.4;overflow-wrap:anywhere}
+#parentPortal.ph10-installed .ph10-list-copy small{font-size:11px;color:var(--ph-muted);display:block;line-height:1.5;margin-top:3px;overflow-wrap:anywhere}
+#parentPortal.ph10-installed .ph10-list-right{display:grid;justify-items:end;gap:4px;text-align:right;min-width:0}
+#parentPortal.ph10-installed .ph10-list-right strong{font-size:13px;color:var(--ph-heading)}
+#parentPortal.ph10-installed .ph10-list-right small{font-size:11px;color:var(--ph-muted)}
+#parentPortal.ph10-installed .ph10-order-row{width:100%;border:0;border-bottom:1px solid var(--ph-line);border-radius:0;cursor:pointer;text-align:left;color:var(--ph-ink);font:inherit;transition:background .15s ease}
+#parentPortal.ph10-installed .ph10-order-row:hover{background:var(--ph-blue-soft)!important}
+#parentPortal.ph10-installed .ph10-order-row>svg{width:17px;height:17px;color:var(--ph-muted);flex:0 0 17px}
+#parentPortal.ph10-installed .ph10-empty{padding:37px 18px;display:flex;flex-direction:column;align-items:center;gap:11px;text-align:center;border:1px dashed var(--ph-line-strong);border-radius:14px;color:var(--ph-muted);background:var(--ph-soft);font-size:12px;line-height:1.6}
+#parentPortal.ph10-installed .ph10-empty svg{width:25px;height:25px;color:var(--ph-blue)}
+#parentPortal.ph10-installed .ph10-package-layout{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(270px,.82fr);gap:18px}
+#parentPortal.ph10-installed .ph10-package-focus{background:linear-gradient(120deg,var(--ph-card),var(--ph-soft))}
+#parentPortal.ph10-installed .ph10-package-count{display:flex;align-items:end;justify-content:space-between;gap:12px;margin:15px 0 18px}
+#parentPortal.ph10-installed .ph10-package-count strong{font-size:clamp(40px,5vw,59px);line-height:1;color:var(--ph-heading);letter-spacing:-.055em}
+#parentPortal.ph10-installed .ph10-package-count strong span{font-size:.55em;color:var(--ph-muted)}
+#parentPortal.ph10-installed .ph10-package-count small{font-size:12px;color:var(--ph-muted);text-align:right}
+#parentPortal.ph10-installed .ph10-class-steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:21px}
+#parentPortal.ph10-installed .ph10-class-step{display:grid;justify-items:center;gap:8px;text-align:center;background:var(--ph-soft);padding:15px 5px;border:1px solid var(--ph-line);border-radius:14px}
+#parentPortal.ph10-installed .ph10-step-index{display:grid;place-items:center;height:35px;width:35px;border-radius:12px;font-size:12px;font-weight:800;color:var(--ph-muted);background:var(--ph-line)}
+#parentPortal.ph10-installed .ph10-class-step.done .ph10-step-index{background:var(--ph-teal-soft);color:var(--ph-teal)}
+#parentPortal.ph10-installed .ph10-step-index svg{height:18px;width:18px}
+#parentPortal.ph10-installed .ph10-class-step strong{font-size:11px;color:var(--ph-heading)}
+#parentPortal.ph10-installed .ph10-class-step small{font-size:10px;color:var(--ph-muted);line-height:1.4;min-height:25px}
+#parentPortal.ph10-installed .ph10-fact{display:flex;align-items:center;justify-content:space-between;gap:13px;padding:15px 0;border-bottom:1px solid var(--ph-line)}
+#parentPortal.ph10-installed .ph10-fact>span{font-size:12px;color:var(--ph-muted)}
+#parentPortal.ph10-installed .ph10-fact>b{font-size:12px;color:var(--ph-heading);text-align:right;overflow-wrap:anywhere}
+#parentPortal.ph10-installed .ph10-card-bottom{margin-top:17px;display:flex;justify-content:flex-end}
+#parentPortal.ph10-installed .ph10-pay{min-height:40px;padding:9px 14px;border-radius:11px}
+#parentPortal.ph10-installed .ph10-certificate-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(230px,100%),1fr));gap:16px}
+#parentPortal.ph10-installed .parent-certificate-grid-card{min-width:0;max-width:100%}
+#parentPortal.ph10-installed .ph10-tournaments .parent-card{max-width:100%;margin:0}
+#parentPortal.ph10-installed .ph10-tournaments .parent-tournament-table{display:block;overflow-x:auto}
+#parentPortal.ph10-installed .ph10-archive-content{display:grid;gap:16px}
+#parentPortal.ph10-installed .ph10-archive-content .archived-review-card,#parentPortal.ph10-installed .ph10-archive-content .archived-parent-notice{margin:0;max-width:100%;width:100%;border-radius:17px}
+#parentPortal.ph10-installed .ph10-bottom-nav{display:none}
+#parentPortal.ph10-installed :is(.ph10-nav-button,.ph10-order-row,.ph10-text-action):focus-visible{outline:2px solid var(--ph-blue)!important;outline-offset:2px}
+@keyframes ph10In{from{opacity:.72;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+}
+@media screen and (max-width:1080px){
+ #parentPortal.ph10-installed .ph10-frame{grid-template-columns:210px minmax(0,1fr)}
+ #parentPortal.ph10-installed .ph10-side{padding-inline:12px}
+ #parentPortal.ph10-installed .ph10-brand strong{font-size:11px}
+ #parentPortal.ph10-installed .ph10-mark span{width:27px;height:30px}
+ #parentPortal.ph10-installed .ph10-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #parentPortal.ph10-installed .ph10-package-layout{grid-template-columns:minmax(0,1fr)}
+}
+@media screen and (max-width:780px){
+ #parentPortal.ph10-installed .ph10-frame{display:block}
+ #parentPortal.ph10-installed .ph10-side{display:none}
+ #parentPortal.ph10-installed .parent-shell{padding:16px 16px 105px}
+ #parentPortal.ph10-installed .parent-top{min-height:72px!important;padding:13px 15px!important}
+ #parentPortal.ph10-installed .parent-top h1{font-size:21px!important}
+ #parentPortal.ph10-installed .parent-top .eyebrow{font-size:9px}
+ #parentPortal.ph10-installed .parent-top p{font-size:10px}
+ #parentPortal.ph10-installed .ph10-student-mini{max-width:270px}
+ #parentPortal.ph10-installed .ph10-heading{gap:12px}
+ #parentPortal.ph10-installed .ph10-heading h2{font-size:25px}
+ #parentPortal.ph10-installed .ph10-bottom-nav{display:block;position:fixed;z-index:45;left:0;right:0;bottom:0;padding:6px max(8px,env(safe-area-inset-right)) max(7px,env(safe-area-inset-bottom));background:var(--ph-card);box-shadow:0 -10px 28px rgba(2,14,31,.13);border-top:1px solid var(--ph-line)}
+ #parentPortal.ph10-installed .ph10-bottom-main{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:2px}
+ #parentPortal.ph10-installed .ph10-bottom-main .ph10-nav-button{display:grid;justify-items:center;align-content:center;gap:5px;min-height:57px;padding:6px 2px;border-radius:11px;text-align:center;font-size:10px;white-space:nowrap;color:var(--ph-muted)}
+ #parentPortal.ph10-installed .ph10-bottom-main .ph10-nav-button .ph10-nav-icon{width:20px;height:20px}
+ #parentPortal.ph10-installed .ph10-bottom-main .ph10-nav-button[aria-current="page"],#parentPortal.ph10-installed .ph10-bottom-nav.ph10-more-current .ph10-more-toggle{background:var(--ph-blue-soft);border-color:var(--ph-line);box-shadow:none;color:var(--ph-blue)}
+ #parentPortal.ph10-installed .ph10-more-menu{position:absolute;bottom:calc(100% + 9px);right:12px;left:12px;background:var(--ph-card);border:1px solid var(--ph-line);box-shadow:0 14px 35px rgba(4,18,37,.22);border-radius:17px;padding:10px;display:grid;gap:4px}
+ #parentPortal.ph10-installed .ph10-more-menu[hidden]{display:none}
+ #parentPortal.ph10-installed .ph10-more-menu .ph10-nav-button{background:transparent;border-color:transparent;color:var(--ph-ink);min-height:47px}
+ #parentPortal.ph10-installed .ph10-more-menu .ph10-nav-button[aria-current="page"]{background:var(--ph-blue-soft);color:var(--ph-blue)}
+ #parentPortal.ph10-installed .ph10-more-menu .ph10-nav-button:hover{background:var(--ph-soft)}
+ #parentPortal.ph10-installed .parent-detail-modal{z-index:100!important}
+ #parentPortal.ph10-installed .ph10-two-col{grid-template-columns:1fr}
+}
+@media screen and (max-width:540px){
+ #parentPortal.ph10-installed .parent-shell{padding:12px 11px 99px}
+ #parentPortal.ph10-installed .parent-top{gap:8px!important;flex-wrap:wrap!important;margin-bottom:19px!important}
+ #parentPortal.ph10-installed .parent-top>div:first-child{flex:1 1 135px;min-width:125px}
+ #parentPortal.ph10-installed .parent-top h1{font-size:19px!important}
+ #parentPortal.ph10-installed .parent-top p{display:none}
+ #parentPortal.ph10-installed .parent-top-actions{gap:7px!important;flex:0 1 auto;width:auto!important;justify-content:flex-end}
+ #parentPortal.ph10-installed .parent-top-actions .sync{display:none!important}
+ #parentPortal.ph10-installed .parent-top-actions .appearance-control{width:106px!important;min-width:106px!important;height:38px!important}
+ #parentPortal.ph10-installed .parent-top-actions .logout-button{min-height:38px!important;font-size:10px;padding:8px 9px!important}
+ #parentPortal.ph10-installed .parent-child-selector .parent-card{display:block;padding:11px 12px}
+ #parentPortal.ph10-installed .parent-child-selector h2{margin-bottom:8px}
+ #parentPortal.ph10-installed .parent-child-tab{min-width:160px}
+ #parentPortal.ph10-installed .ph10-heading{display:block;margin-bottom:18px}
+ #parentPortal.ph10-installed .ph10-student-mini{margin-top:13px;width:100%;max-width:none;min-width:0}
+ #parentPortal.ph10-installed .ph10-heading h2{font-size:25px}
+ #parentPortal.ph10-installed .ph10-page-content{gap:13px}
+ #parentPortal.ph10-installed .ph10-welcome{min-height:160px;padding:23px 21px}
+ #parentPortal.ph10-installed .ph10-welcome h3{font-size:23px}
+ #parentPortal.ph10-installed .ph10-welcome-decor{font-size:83px}
+ #parentPortal.ph10-installed .ph10-stat-grid,.parentPortal.ph10-installed .ph10-stat-grid.three,#parentPortal.ph10-installed .ph10-stat-grid.three{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ #parentPortal.ph10-installed .ph10-stat{padding:15px 12px;min-height:105px;gap:6px}
+ #parentPortal.ph10-installed .ph10-stat strong{font-size:20px}
+ #parentPortal.ph10-installed .ph10-stat small{font-size:9px}
+ #parentPortal.ph10-installed .ph10-stat span{font-size:10px}
+ #parentPortal.ph10-installed .ph10-card{padding:17px 15px;border-radius:16px}
+ #parentPortal.ph10-installed .ph10-card-head h3{font-size:17px}
+ #parentPortal.ph10-installed .ph10-list-row,#parentPortal.ph10-installed .ph10-order-row{padding:12px 10px;gap:9px}
+ #parentPortal.ph10-installed .ph10-list-icon{width:31px;height:31px;flex-basis:31px;border-radius:10px}
+ #parentPortal.ph10-installed .ph10-list-copy strong{font-size:12px}
+ #parentPortal.ph10-installed .ph10-list-copy small{font-size:10px}
+ #parentPortal.ph10-installed .ph10-list-right strong{font-size:12px}
+ #parentPortal.ph10-installed .ph10-class-steps{gap:6px}
+ #parentPortal.ph10-installed .ph10-class-step{padding:12px 3px}
+ #parentPortal.ph10-installed .ph10-step-index{width:28px;height:28px;border-radius:9px}
+ #parentPortal.ph10-installed .ph10-class-step strong{font-size:9px}
+ #parentPortal.ph10-installed .ph10-class-step small{font-size:9px}
+ #parentPortal.ph10-installed .ph10-notice{flex-wrap:wrap;padding:13px 14px}
+ #parentPortal.ph10-installed .ph10-notice .ph10-pay{margin-left:auto}
+ #parentPortal.ph10-installed .ph10-bottom-main .ph10-nav-button{font-size:9px}
+ #parentPortal.ph10-installed #teacherPreviewBanner{padding:11px 13px}
+}
+@media (prefers-reduced-motion:reduce){
+ #parentPortal.ph10-installed :is(.ph10-page-content,.ph10-nav-button,.ph10-order-row,.ph10-progress>span){animation:none!important;transition:none!important}
+}
+@media print{
+ #parentPortal.ph10-installed .ph10-side,#parentPortal.ph10-installed .ph10-bottom-nav{display:none!important}
+ #parentPortal.ph10-installed .ph10-frame{display:block}
+ #parentPortal.ph10-installed .parent-shell{padding:0!important}
+ #parentPortal.ph10-installed .ph10-card,.ph10-stat{box-shadow:none!important}
+}
+
+/* Final mobile header alignment and non-duplicated child identity. */
+@media screen {
+  #parentPortal.ph10-installed:has(#parentChildren .parent-child-tab) .ph10-student-mini{display:none}
+}
+@media screen and (max-width:540px){
+  #parentPortal.ph10-installed .parent-top{
+    flex-direction:row!important;
+    flex-wrap:nowrap!important;
+    align-items:center!important;
+    justify-content:space-between!important;
+    gap:7px!important;
+  }
+  #parentPortal.ph10-installed .parent-top>div:first-child{
+    min-width:0!important;
+    flex:1 1 0!important;
+  }
+  #parentPortal.ph10-installed .parent-top-actions{
+    display:flex!important;
+    flex:0 0 auto!important;
+    width:auto!important;
+    flex-wrap:nowrap!important;
+    gap:6px!important;
+  }
+  #parentPortal.ph10-installed .parent-top h1{font-size:18px!important;white-space:nowrap}
+  #parentPortal.ph10-installed .parent-top .eyebrow{font-size:8px}
+  #parentPortal.ph10-installed .parent-top-actions .appearance-control{width:102px!important;min-width:102px!important;height:37px!important}
+  #parentPortal.ph10-installed .parent-top-actions .logout-button{font-size:10px!important;padding:7px 8px!important;min-height:37px!important}
+}
+@media screen and (max-width:355px){
+  #parentPortal.ph10-installed .parent-top{padding:12px 10px!important}
+  #parentPortal.ph10-installed .parent-top h1{font-size:16px!important}
+  #parentPortal.ph10-installed .parent-top-actions .appearance-control{width:94px!important;min-width:94px!important;height:35px!important}
+  #parentPortal.ph10-installed .parent-top-actions .logout-button{padding:6px 7px!important;min-height:35px!important}
+}
+@media screen and (max-width:540px){
+  #parentPortal.ph10-installed .parent-top{display:flex!important}
+}
+@media screen {
+ #parentPortal.ph10-installed .ph10-payment-hint{font-size:11px;line-height:1.5;color:var(--ph-muted);font-weight:650;text-align:right}
+}
+
+/* V10.1 — desktop navigation stays fixed, matching Teacher Portal.
+   The content page scrolls normally; only a short viewport makes the
+   navigation itself scroll. Phone/tablet bottom navigation is unchanged. */
+@media screen and (min-width:781px) {
+  #parentPortal.ph10-installed .ph10-frame {
+    display:grid;
+    grid-template-columns:244px minmax(0,1fr);
+    min-height:100vh;
+  }
+  #parentPortal.ph10-installed .ph10-side {
+    position:fixed;
+    top:0;
+    bottom:0;
+    left:0;
+    width:244px;
+    height:100vh;
+    height:100dvh;
+    max-height:100vh;
+    max-height:100dvh;
+    overflow-x:hidden;
+    overflow-y:auto;
+    overscroll-behavior-y:contain;
+    scrollbar-width:thin;
+    scrollbar-color:rgba(160,192,226,.28) transparent;
+  }
+  #parentPortal.ph10-installed .ph10-work {
+    grid-column:2;
+    min-width:0;
+  }
+}
+@media screen and (min-width:781px) and (max-width:1080px) {
+  #parentPortal.ph10-installed .ph10-frame {grid-template-columns:210px minmax(0,1fr)}
+  #parentPortal.ph10-installed .ph10-side {width:210px}
+}

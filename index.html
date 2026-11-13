@@ -4,9 +4,22 @@
 <title>Scrabble Class Management</title>
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f3f7fc">
+<script src="academy-theme.js?v=20261113.2"></script>
 <link rel="stylesheet" href="style.css?v=20261110.2">
 <link rel="stylesheet" href="tournament.css?v=20261012.1">
+<link rel="stylesheet" href="academy-night-coverage.css?v=20261112.1">
+<link rel="stylesheet" href="academy-design.css?v=20261112.2">
+<link rel="stylesheet" href="academy-premium-v3.css?v=20261112.3">
+<link rel="stylesheet" href="academy-premium-v5.css?v=20261112.6">
+<link rel="stylesheet" href="academy-students-v7.css?v=20261112.7">
+<link rel="stylesheet" href="academy-parent-v8.css?v=20261112.8">
+<link rel="stylesheet" href="academy-parent-v9.css?v=20261113.1">
 <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261006.2">
+<link rel="stylesheet" href="academy-parent-hub-v10.css?v=20261113.11">
+<link rel="stylesheet" href="academy-tournament-theme-v11.css?v=20261113.1">
+<link rel="stylesheet" href="academy-scroll-and-night-v12.css?v=20261113.12">
+<link rel="stylesheet" href="academy-appearance-v12-2.css?v=20261113.2">
 </head>
 <body>
 <div id="bootScreen" class="boot-screen">
@@ -18,6 +31,17 @@
 </div>
 <div id="loginScreen" class="login-screen">
   <div class="login-card">
+    <div class="login-appearance"><div class="appearance-control" role="group" aria-label="Website appearance">
+  <button type="button" class="appearance-segment" data-appearance-option="light" aria-label="Light mode" title="Light mode">
+    <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.93 4.93l1.56 1.56M17.51 17.51l1.56 1.56M2.5 12h2.2M19.3 12h2.2M4.93 19.07l1.56-1.56M17.51 6.49l1.56-1.56"/></svg>
+  </button>
+  <button type="button" class="appearance-segment" data-appearance-option="auto" aria-label="Automatic theme" title="Automatic theme">
+    <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="7.5"/><circle cx="12" cy="12" r="1.7" fill="currentColor" stroke="none"/></svg>
+  </button>
+  <button type="button" class="appearance-segment" data-appearance-option="dark" aria-label="Night mode" title="Night mode">
+    <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.7 13A8.8 8.8 0 1 1 11 3.3 7.2 7.2 0 0 0 20.7 13Z"/></svg>
+  </button>
+</div></div>
     <div class="login-brand">
       <div class="scrabble-mark" aria-hidden="true"><span>S</span><span>C</span></div>
       <div class="brand">SCRABBLE CLASS<small>Management System</small></div>
@@ -42,6 +66,17 @@
 </div>
 <div id="passwordChangeScreen" class="password-change-screen hidden">
   <div class="password-change-card">
+    <div class="login-appearance"><div class="appearance-control" role="group" aria-label="Website appearance">
+  <button type="button" class="appearance-segment" data-appearance-option="light" aria-label="Light mode" title="Light mode">
+    <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.93 4.93l1.56 1.56M17.51 17.51l1.56 1.56M2.5 12h2.2M19.3 12h2.2M4.93 19.07l1.56-1.56M17.51 6.49l1.56-1.56"/></svg>
+  </button>
+  <button type="button" class="appearance-segment" data-appearance-option="auto" aria-label="Automatic theme" title="Automatic theme">
+    <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="7.5"/><circle cx="12" cy="12" r="1.7" fill="currentColor" stroke="none"/></svg>
+  </button>
+  <button type="button" class="appearance-segment" data-appearance-option="dark" aria-label="Night mode" title="Night mode">
+    <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.7 13A8.8 8.8 0 1 1 11 3.3 7.2 7.2 0 0 0 20.7 13Z"/></svg>
+  </button>
+</div></div>
     <div class="login-brand">
       <div class="scrabble-mark" aria-hidden="true"><span>S</span><span>C</span></div>
       <div class="brand">SCRABBLE CLASS<small>Management System</small></div>
@@ -71,7 +106,17 @@
         <h1>Parent Portal</h1>
         <p id="parentWelcome" class="subtle">Welcome.</p>
       </div>
-      <div><span class="sync">● Online</span><button class="secondary logout-button" id="parentPortalExitButton" onclick="signOut()">Sign Out</button></div>
+      <div class="parent-top-actions"><div class="appearance-control" role="group" aria-label="Website appearance">
+  <button type="button" class="appearance-segment" data-appearance-option="light" aria-label="Light mode" title="Light mode">
+    <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.93 4.93l1.56 1.56M17.51 17.51l1.56 1.56M2.5 12h2.2M19.3 12h2.2M4.93 19.07l1.56-1.56M17.51 6.49l1.56-1.56"/></svg>
+  </button>
+  <button type="button" class="appearance-segment" data-appearance-option="auto" aria-label="Automatic theme" title="Automatic theme">
+    <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="7.5"/><circle cx="12" cy="12" r="1.7" fill="currentColor" stroke="none"/></svg>
+  </button>
+  <button type="button" class="appearance-segment" data-appearance-option="dark" aria-label="Night mode" title="Night mode">
+    <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.7 13A8.8 8.8 0 1 1 11 3.3 7.2 7.2 0 0 0 20.7 13Z"/></svg>
+  </button>
+</div><span class="sync">● Online</span><button class="secondary logout-button" id="parentPortalExitButton" onclick="signOut()">Sign Out</button></div>
     </div>
 
     <div id="teacherPreviewBanner" class="teacher-preview-banner hidden">
@@ -99,20 +144,30 @@
     <div><div class="side-brand-name">SCRABBLE CLASS</div><div class="side-brand-sub">Management System</div></div>
   </div>
   <div class="side-section-label">WORKSPACE</div>
-  <button class="nav active" data-page="home" onclick="page('home')"><span class="nav-icon">01</span><span>Overview</span></button>
-  <button class="nav" data-page="attendance" onclick="page('attendance')"><span class="nav-icon">02</span><span>Attendance</span></button>
-  <button class="nav" data-page="tournament" onclick="page('tournament')"><span class="nav-icon">03</span><span>Tournament</span></button>
-  <button class="nav" data-page="students" onclick="page('students')"><span class="nav-icon">04</span><span>Students</span></button>
-  <button class="nav" data-page="payments" onclick="page('payments')"><span class="nav-icon">05</span><span>Payments</span></button>
-  <button class="nav" data-page="orders" onclick="page('orders')"><span class="nav-icon">06</span><span>Orders</span></button>
+  <button class="nav active" data-page="home" onclick="page('home')"><span class="nav-icon"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span><span>Overview</span></button>
+  <button class="nav" data-page="attendance" onclick="page('attendance')"><span class="nav-icon"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 10h18m-13 5 2.5 2.5L16 12"/></svg></span><span>Attendance</span></button>
+  <button class="nav" data-page="tournament" onclick="page('tournament')"><span class="nav-icon"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8m-4-4v4M7 3h10v6a5 5 0 0 1-10 0V3Zm0 2H4v2a4 4 0 0 0 4 4m9-6h3v2a4 4 0 0 1-4 4"/></svg></span><span>Tournament</span></button>
+  <button class="nav" data-page="students" onclick="page('students')"><span class="nav-icon"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m14-17.1a4 4 0 0 1 0 7.8M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/></svg></span><span>Students</span></button>
+  <button class="nav" data-page="payments" onclick="page('payments')"><span class="nav-icon"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="15" rx="3"/><path d="M2 10h20m-15 6h4"/></svg></span><span>Payments</span></button>
+  <button class="nav" data-page="orders" onclick="page('orders')"><span class="nav-icon"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 7h12l2 14H4L6 7Zm3 0V5a3 3 0 0 1 6 0v2"/></svg></span><span>Orders</span></button>
   <div class="side-section-label">INSIGHTS</div>
-  <button class="nav" data-page="reports" onclick="page('reports')"><span class="nav-icon">07</span><span>Reports</span></button>
+  <button class="nav" data-page="reports" onclick="page('reports')"><span class="nav-icon"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V11m5 8V5m5 14v-7m5 7V8M2 21h20"/></svg></span><span>Reports</span></button>
   <div class="side-footer"><div class="side-footer-label">TEACHER PORTAL</div><div class="side-footer-name">Banting Scrabble Academy</div></div>
 </aside>
 <main class="main">
 <div class="top">
   <div class="top-heading"><div class="eyebrow">TEACHER PORTAL <span class="heading-separator">/</span> BANTING SCRABBLE ACADEMY</div><h1 id="title">Overview</h1></div>
-  <div class="top-actions"><span class="sync" id="connection">● Connecting...</span><button class="secondary logout-button" onclick="signOut()">Sign Out</button></div>
+  <div class="top-actions"><div class="appearance-control" role="group" aria-label="Website appearance">
+  <button type="button" class="appearance-segment" data-appearance-option="light" aria-label="Light mode" title="Light mode">
+    <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.93 4.93l1.56 1.56M17.51 17.51l1.56 1.56M2.5 12h2.2M19.3 12h2.2M4.93 19.07l1.56-1.56M17.51 6.49l1.56-1.56"/></svg>
+  </button>
+  <button type="button" class="appearance-segment" data-appearance-option="auto" aria-label="Automatic theme" title="Automatic theme">
+    <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="7.5"/><circle cx="12" cy="12" r="1.7" fill="currentColor" stroke="none"/></svg>
+  </button>
+  <button type="button" class="appearance-segment" data-appearance-option="dark" aria-label="Night mode" title="Night mode">
+    <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.7 13A8.8 8.8 0 1 1 11 3.3 7.2 7.2 0 0 0 20.7 13Z"/></svg>
+  </button>
+</div><span class="sync" id="connection">● Connecting...</span><button class="secondary logout-button" onclick="signOut()">Sign Out</button></div>
 </div>
 <section id="home" class="page active">
   <div class="home-overview-head">
@@ -134,22 +189,22 @@
 
   <div class="home-kpi-grid">
     <button type="button" class="home-kpi" onclick="page('students')">
-      <span class="home-kpi-label">ACTIVE STUDENTS</span>
+      <span class="home-kpi-label">ACTIVE STUDENTS</span><span class="home-kpi-decoration"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m14-17.1a4 4 0 0 1 0 7.8M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/></svg></span>
       <strong id="homeActiveStudents">0</strong>
       <span class="home-kpi-meta">Current enrolment <b>→</b></span>
     </button>
     <button type="button" class="home-kpi" onclick="page('attendance')">
-      <span class="home-kpi-label">ATTENDANCE</span>
+      <span class="home-kpi-label">ATTENDANCE</span><span class="home-kpi-decoration"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 10h18"/></svg></span>
       <strong id="homeAttendanceMarked">0 / 0</strong>
       <span class="home-kpi-meta">Marked for selected Sunday <b>→</b></span>
     </button>
     <button type="button" class="home-kpi" onclick="navigateToSection('payments','paymentDueSection')">
-      <span class="home-kpi-label">PAYMENT DUE</span>
+      <span class="home-kpi-label">PAYMENT DUE</span><span class="home-kpi-decoration"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10h18m-5 5h2"/></svg></span>
       <strong id="homePaymentDue">0</strong>
       <span class="home-kpi-meta">Packages ready for payment <b>→</b></span>
     </button>
     <button type="button" class="home-kpi home-kpi-attention" onclick="focusHomeAttention()">
-      <span class="home-kpi-label">ATTENTION</span>
+      <span class="home-kpi-label">ATTENTION</span><span class="home-kpi-decoration"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 21h20L12 3Zm0 7v4m0 4h.01"/></svg></span>
       <strong id="homeAttentionCount">0</strong>
       <span class="home-kpi-meta">Items needing action <b>→</b></span>
     </button>
@@ -224,7 +279,21 @@
 </section>
 <section id="attendance" class="page"><div class="toolbar"><div><label class="subtle">Sunday</label><br><input id="attDate" type="date" min="2026-09-06"></div><button class="secondary" onclick="setAttDate(-7)">Previous Sunday</button><button class="secondary" onclick="setAttDate(7)">Next Sunday</button><button class="secondary" onclick="setAttDate(0)">Latest Sunday</button></div><div class="panel attendance-summary-panel" style="margin-bottom:15px"><div class="row"><div><h3 style="margin:0">Attendance</h3><div class="subtle">Select one button for each active student. One attendance record is kept per student per Sunday.</div></div><div class="attendance-summary-actions"><button id="classCancellationBtn" class="danger-secondary" type="button" onclick="openClassCancellation()">Cancel Class</button><span class="badge blue" id="attSummary">0 / 25 marked</span></div></div></div><div id="attContent"></div></section>
 <section id="tournament" class="page"><div id="tournamentContent"></div></section>
-<section id="students" class="page"><div class="page-intro"><div><div class="eyebrow">STUDENT MANAGEMENT</div><h2>Students</h2><p>Manage enrolment, class placement and student records.</p></div><button class="primary page-primary-action" onclick="showStudentForm()">+ Add Student</button></div><div class="toolbar student-toolbar"><input id="studentSearch" class="search grow" placeholder="Search name, ID, parent, school or WhatsApp" oninput="renderStudents()"><button class="secondary" id="activeStudentsBtn" onclick="setStudentView('active')">Active Students</button><button class="secondary" id="archivedStudentsBtn" onclick="setStudentView('archived')">Archived Students</button><button class="secondary" onclick="syncNow()">Refresh Data</button></div><div id="studentReviewRequestPanel" class="student-review-request-slot"></div><div class="panel scroll"><table><thead><tr><th><button type="button" class="student-sort-button" data-student-sort="id" onclick="setStudentSort('id')">ID</button></th><th><button type="button" class="student-sort-button" data-student-sort="studentName" onclick="setStudentSort('studentName')">Student</button></th><th><button type="button" class="student-sort-button" data-student-sort="normalTime" onclick="setStudentSort('normalTime')">Normal Time</button></th><th><button type="button" class="student-sort-button" data-student-sort="currentCycle" onclick="setStudentSort('currentCycle')">Current Cycle</button></th><th><button type="button" class="student-sort-button" data-student-sort="classes" onclick="setStudentSort('classes')">Classes</button></th><th><button type="button" class="student-sort-button" data-student-sort="status" onclick="setStudentSort('status')">Status</button></th><th><button type="button" class="student-sort-button" data-student-sort="enrollment" onclick="setStudentSort('enrollment')">Enrollment</button></th><th>Action</th></tr></thead><tbody id="studentsBody"></tbody></table></div></section>
+<section id="students" class="page"><div class="page-intro"><div><div class="eyebrow">STUDENT MANAGEMENT</div><h2>Manage students</h2><p>Manage enrolment, class placement and student records.</p></div><button class="primary page-primary-action" onclick="showStudentForm()">+ Add Student</button></div><div class="toolbar student-toolbar">
+  <div class="student-search-field grow">
+    <svg class="student-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+    <input id="studentSearch" class="search" type="search" aria-label="Search students" placeholder="Search students, parent, school or ID" oninput="renderStudents()">
+  </div>
+  <div class="student-view-toggle" role="group" aria-label="Student record status">
+    <button class="secondary active" id="activeStudentsBtn" type="button" aria-pressed="true" onclick="setStudentView('active')">Active</button>
+    <button class="secondary" id="archivedStudentsBtn" type="button" aria-pressed="false" onclick="setStudentView('archived')">Archived</button>
+  </div>
+  <button class="secondary student-refresh-button" type="button" onclick="syncNow()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2 6M20 4v7h-7"/></svg><span>Refresh</span></button>
+</div>
+<div id="studentReviewRequestPanel" class="student-review-request-slot"></div>
+<div class="student-directory-bar"><div><div class="student-directory-eyebrow">DIRECTORY</div><h3>Student records</h3><p>Choose a student to view their complete profile and history.</p></div><span id="studentDirectoryCount" class="student-directory-count" aria-live="polite">Loading…</span></div>
+<div class="student-scroll-hint" aria-hidden="true">↔ Swipe horizontally to view all columns</div>
+<div class="panel scroll student-directory-panel" role="region" aria-label="Student records table" tabindex="0"><table class="student-directory-table"><thead><tr><th><button type="button" class="student-sort-button" data-student-sort="id" onclick="setStudentSort('id')">ID</button></th><th><button type="button" class="student-sort-button" data-student-sort="studentName" onclick="setStudentSort('studentName')">Student</button></th><th><button type="button" class="student-sort-button" data-student-sort="normalTime" onclick="setStudentSort('normalTime')">Normal Time</button></th><th><button type="button" class="student-sort-button" data-student-sort="currentCycle" onclick="setStudentSort('currentCycle')">Current Cycle</button></th><th><button type="button" class="student-sort-button" data-student-sort="classes" onclick="setStudentSort('classes')">Classes</button></th><th><button type="button" class="student-sort-button" data-student-sort="status" onclick="setStudentSort('status')">Status</button></th><th><button type="button" class="student-sort-button" data-student-sort="enrollment" onclick="setStudentSort('enrollment')">Enrollment</button></th><th>Action</th></tr></thead><tbody id="studentsBody"></tbody></table></div></section>
 <section id="reviewRequests" class="page"><div id="reviewRequestsContent"></div></section>
 <section id="studentProfile" class="page"><div class="toolbar profile-toolbar"><button class="secondary" id="profileBack" onclick="page('students')">← Back to Students</button></div><div id="profileContent"></div></section>
 <section id="payments" class="page"><div class="grid three"><div class="metric"><h3>PAYMENT DUE</h3><strong id="payDueCount">0</strong><small>Ready for RM50 payment</small></div><div class="metric"><h3>ALMOST DUE</h3><strong id="payAlmostCount">0</strong><small>One attended class left</small></div><div class="metric"><h3>PAYMENTS RECORDED</h3><strong id="payHistoryCount">0</strong><small>Payment history is retained</small></div></div><div class="panel" style="margin-top:15px"><div class="row"><h3>Active Student Payment Cycles</h3><span class="badge blue" id="paymentStudentCount">0</span></div><div class="scroll"><table><thead><tr><th>Student</th><th>ID</th><th>Current Cycle</th><th>Progress</th><th>Status</th><th>Amount</th><th>Last Payment</th><th>Action</th></tr></thead><tbody id="paymentStudents"></tbody></table></div></div><div id="paymentDueSection" class="panel" style="margin-top:15px"><div class="row"><h3>Payment Due</h3><span class="badge absent" id="dueBadge">0</span></div><div id="paymentsDue"></div></div><div id="paymentAlmostSection" class="panel" style="margin-top:15px"><div class="row"><h3>Almost Due</h3><span class="badge almost">3 / 4</span></div><div id="paymentsAlmost"></div></div><div class="panel payment-history-panel" style="margin-top:15px"><div class="row"><div><h3>Payment History</h3><div class="subtle">Most recent payment activity</div></div><button class="secondary payment-view-more" type="button" onclick="openPaymentHistoryPanel()">View More <span>→</span></button></div><div class="scroll"><table class="payment-history-table"><thead><tr><th>Student</th><th>Cycle</th><th>Amount</th><th>Paid</th><th>Status</th><th>Classes Covered</th></tr></thead><tbody id="paymentsHistory"></tbody></table></div></div>
@@ -299,12 +368,13 @@
 <script src="data/data.js"></script>
 <script src="utils.js?v=20261003.3"></script>
 <script src="data-mappers.js?v=20261003.1"></script>
-<script src="javascript.js?v=20261110.2"></script>
+<script src="javascript.js?v=20261113.1"></script>
 <script src="registration.js?v=20261003.5"></script>
 <script src="parent-login-email.js?v=20261003.2"></script>
 <script src="tournament.js?v=20261005.8"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="certificate.js?v=20261005.8"></script>
+<script src="academy-parent-hub-v10.js?v=20261113.10"></script>
 <script>
 window.addEventListener("DOMContentLoaded",()=>{
   const showStartupFallback=()=>{

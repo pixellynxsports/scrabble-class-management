@@ -1,0 +1,240 @@
+/* Banting Scrabble Academy — Tournament theme harmonization, V11.
+ * Colour, contrast, backgrounds, borders and visual effects ONLY.
+ * Existing page composition, spacing, sizing, typography, event handlers,
+ * scoring engine, forms, permissions and data are intentionally untouched.
+ * Keep this stylesheet AFTER all existing stylesheets. */
+
+html[data-theme="light"] {
+  --tt-panel:#ffffff;
+  --tt-alt:#f7fafd;
+  --tt-raised:#edf4fb;
+  --tt-line:#dbe6f0;
+  --tt-line-strong:#c7d8e8;
+  --tt-text:#223750;
+  --tt-title:#172d46;
+  --tt-muted:#61758d;
+  --tt-blue:#3279da;
+  --tt-blue-soft:#e9f2fe;
+  --tt-teal:#087f80;
+  --tt-teal-soft:#e5f6f2;
+  --tt-amber:#95611b;
+  --tt-amber-soft:#fff3df;
+  --tt-rose:#be4558;
+  --tt-rose-soft:#fff0f3;
+  --tt-hero:linear-gradient(118deg,#173852 0%,#235c7c 55%,#14777b 100%);
+  --tt-hero-quiet:linear-gradient(125deg,#173a56,#245c7a);
+  --tt-btn:linear-gradient(112deg,#3984ec 0%,#2b86bc 54%,#138d91 100%);
+  --tt-btn-hover:linear-gradient(112deg,#2c72d3 0%,#20779f 55%,#087577 100%);
+  --tt-ring:rgba(54,127,221,.18);
+  --tt-elevation:0 12px 28px rgba(20,48,77,.06);
+}
+html[data-theme="dark"] {
+  --tt-panel:#1a2d45;
+  --tt-alt:#20364f;
+  --tt-raised:#27415c;
+  --tt-line:#344c66;
+  --tt-line-strong:#45617d;
+  --tt-text:#e1ecfa;
+  --tt-title:#f3f8ff;
+  --tt-muted:#b3c5da;
+  --tt-blue:#a7caff;
+  --tt-blue-soft:#284462;
+  --tt-teal:#80e0ce;
+  --tt-teal-soft:#234b51;
+  --tt-amber:#f0c88e;
+  --tt-amber-soft:#493c30;
+  --tt-rose:#ffb4bf;
+  --tt-rose-soft:#49313f;
+  --tt-hero:linear-gradient(118deg,#1e395a 0%,#245773 58%,#1a666b 100%);
+  --tt-hero-quiet:linear-gradient(125deg,#203a59,#275975);
+  --tt-btn:linear-gradient(112deg,#417fe0 0%,#2e80b9 55%,#18888d 100%);
+  --tt-btn-hover:linear-gradient(112deg,#4c8ced 0%,#348ac1 55%,#239c9b 100%);
+  --tt-ring:rgba(139,184,252,.2);
+  --tt-elevation:0 15px 32px rgba(0,9,23,.2);
+}
+
+/* Reuse the same foreground hierarchy as the Teacher Portal. */
+#tournament :is(.tournament-page-head,.tournament-hero-panel,.tournament-live-head,.tournament-no-live,.tournament-empty-active,.tournament-empty-list,.tournament-setup-card,.tournament-list-card,.tournament-round-summary,.tournament-round-detail,.tournament-setting-card,.tournament-settings-section,.tournament-certificate-panel,.tournament-special-awards,.tournament-next-panel,.tournament-round-panel,.tournament-settings-panel,.tournament-final-metrics .tournament-stat-card,.tournament-stat-card) {
+  background:var(--tt-panel);
+  border-color:var(--tt-line);
+  color:var(--tt-text);
+}
+#tournament :is(.tournament-page-head,.tournament-hero-panel,.tournament-list-card,.tournament-round-summary,.tournament-live-head,.tournament-setup-card,.tournament-round-panel) {box-shadow:var(--tt-elevation)}
+#tournament :is(.tournament-hero-panel,.tournament-no-live,.tournament-page-head):after{background:var(--tt-blue-soft);opacity:.55}
+#tournament :is(.tournament-page-head h2,.tournament-section-head h3,.tournament-workspace-title h2,.tournament-hero-panel h3,.tournament-live-head h3,.tournament-next-panel h3,.tournament-table-head h3,.tournament-round-toolbar h3,.tournament-round-summary h3,.tournament-round-detail h3,.tournament-settings-panel h3,.tournament-settings-section h3,.tournament-setup-card h2,.tournament-no-live-copy h3,.tournament-stat-card strong,.tournament-card-copy strong,.tournament-detail-lines b,.tournament-award-mini b,.tournament-setting-card b,.tournament-step-row b) {color:var(--tt-title)}
+#tournament :is(.tournament-page-head p,.tournament-hero-panel p,.tournament-live-head p,.tournament-workspace-title p,.tournament-no-live-copy p,.tournament-setup-card p,.tournament-list-card small,.tournament-card-copy small,.tournament-card-arrow,.tournament-stat-card span,.tournament-stat-card small,.tournament-step-row small,.tournament-detail-lines span,.tournament-award-mini span,.tournament-award-mini small,.tournament-round-summary small,.tournament-setting-card span,.tournament-setting-card small,.tournament-settings-lines span,.tournament-rule-list span,.tournament-settings-note p,.tournament-match-number,.tournament-match-side small,.tournament-vs,.tournament-round-summary-stat span,.tournament-table td small) {color:var(--tt-muted)}
+#tournament :is(.tournament-detail-lines div,.tournament-award-mini div,.tournament-settings-lines>div,.tournament-rule-list>div,.tournament-round-detail-head){border-color:var(--tt-line)}
+
+/* Primary actions: match the user's blue → ocean → teal reference button.
+ * Only tournament-positive primary actions, never destructive actions. */
+#tournament .primary:not(.danger),
+#modal:has(.tournament-create-modal) .primary:not(.danger),
+#modal:has(.tournament-score-form) .primary:not(.danger),
+#modal:has(.certificate-review-center) .primary:not(.danger),
+#modal:has(.certificate-preview-modal) .primary:not(.danger),
+#modal:has(.certificate-full-review) .primary:not(.danger) {
+  background:var(--tt-btn)!important;
+  color:#ffffff!important;
+  border-color:transparent!important;
+  box-shadow:0 5px 13px rgba(34,116,167,.17)!important;
+}
+#tournament .primary:not(.danger):not(:disabled):hover,
+#modal:has(.tournament-create-modal) .primary:not(.danger):not(:disabled):hover,
+#modal:has(.tournament-score-form) .primary:not(.danger):not(:disabled):hover,
+#modal:has(.certificate-review-center) .primary:not(.danger):not(:disabled):hover,
+#modal:has(.certificate-preview-modal) .primary:not(.danger):not(:disabled):hover,
+#modal:has(.certificate-full-review) .primary:not(.danger):not(:disabled):hover {background:var(--tt-btn-hover)!important}
+#tournament :is(.secondary,.tournament-back),
+#modal:has(.tournament-create-modal) .secondary,
+#modal:has(.tournament-score-form) .secondary {
+  background:var(--tt-alt);color:var(--tt-text);border-color:var(--tt-line-strong);
+}
+#tournament :is(.secondary,.tournament-back):not(:disabled):hover,
+#modal:has(.tournament-create-modal) .secondary:not(:disabled):hover,
+#modal:has(.tournament-score-form) .secondary:not(:disabled):hover {background:var(--tt-raised);color:var(--tt-title);border-color:var(--tt-blue)}
+#tournament button:focus-visible,#modal:has(.tournament-create-modal) button:focus-visible,#modal:has(.tournament-score-form) button:focus-visible {outline-color:var(--tt-blue);box-shadow:0 0 0 4px var(--tt-ring)}
+
+/* Navigation and status indicators remain readable in both modes. */
+#tournament .tournament-workspace-head{border-color:var(--tt-line)}
+#tournament .tournament-tabs{background:var(--tt-alt);border-color:var(--tt-line)}
+#tournament .tournament-tab{background:transparent;color:var(--tt-muted)}
+#tournament .tournament-tab:hover{color:var(--tt-title);background:var(--tt-raised)}
+#tournament .tournament-tab.active{background:var(--tt-btn);color:#fff;box-shadow:0 5px 12px rgba(30,105,168,.16)}
+#tournament :is(.tournament-card-mark,.tournament-step-row>span,.tournament-seed-number,.tournament-empty-icon){background:var(--tt-blue-soft);color:var(--tt-blue);border-color:var(--tt-line)}
+#tournament :is(.tournament-status-draft,.tournament-status-archived){background:var(--tt-raised);color:var(--tt-muted)}
+#tournament .tournament-status-ready{background:var(--tt-blue-soft);color:var(--tt-blue)}
+#tournament .tournament-status-active{background:var(--tt-teal-soft);color:var(--tt-teal)}
+#tournament .tournament-status-completed{background:var(--tt-blue-soft);color:var(--tt-blue)}
+#tournament :is(.tournament-list-card:hover,.tournament-round-summary:hover){background:var(--tt-alt);border-color:var(--tt-line-strong)}
+#tournament .tournament-round-summary.selected{background:var(--tt-blue-soft);border-color:var(--tt-blue);box-shadow:0 0 0 2px var(--tt-ring)}
+
+/* Main tournament feature cards and completion states use rich navy/teal,
+ * not the competing royal-blue and purple palettes from legacy styles. */
+#tournament :is(.tournament-command-hero,.tournament-active-card,.tournament-completed-dashboard,.tournament-settings-hero){background:var(--tt-hero)!important;border-color:var(--tt-line-strong);color:#ffffff}
+#tournament .tournament-command-hero-art{background:radial-gradient(circle,rgba(101,208,191,.16),rgba(101,208,191,0) 68%)}
+#tournament .tournament-command-hero:before{border-color:rgba(184,235,239,.15);box-shadow:0 0 0 55px rgba(184,235,239,.03),0 0 0 110px rgba(184,235,239,.015)}
+#tournament .tournament-completed-dashboard:after{border-color:rgba(181,222,232,.12);box-shadow:0 0 0 45px rgba(181,222,232,.03),0 0 0 90px rgba(181,222,232,.02)}
+#tournament :is(.tournament-command-content h2,.tournament-active-copy h2,.tournament-completed-dashboard h3,.tournament-settings-hero h3){color:#fff}
+#tournament :is(.tournament-command-content p,.tournament-command-meta,.tournament-active-copy p,.tournament-completed-dashboard p,.tournament-settings-hero p){color:#e0edf8}
+#tournament :is(.tournament-command-kicker,.tournament-command-content .eyebrow,.tournament-active-copy .eyebrow,.tournament-completed-dashboard .eyebrow){color:#b9e7ed}
+#tournament .tournament-command-meta b{color:#f2faff}
+#tournament .tournament-command-meta i{background:rgba(206,234,242,.55)}
+#tournament .tournament-final-podium .podium-place{background:rgba(255,255,255,.085);border-color:rgba(230,247,255,.18)}
+#tournament .tournament-final-podium .podium-place strong{color:#d3eef7}
+#tournament .tournament-final-podium .podium-place :is(b,span){color:#fff}
+#tournament .tournament-command-create{background:var(--tt-btn)!important;color:#fff!important;border-color:transparent!important;box-shadow:0 7px 20px rgba(4,33,58,.22)!important}
+#tournament .tournament-command-create:hover{background:var(--tt-btn-hover)!important;color:#fff!important}
+#tournament .tournament-active-card .primary{background:var(--tt-btn)!important;color:#fff!important}
+
+/* Pairings, rounds, scorecards, standings, progress and settings. */
+#tournament :is(.tournament-match-card,.tournament-seed-row,.tournament-participant-builder,.tournament-round-setting,.tournament-finish-hint,.tournament-viewing-banner,.tournament-settings-grid>div,.tournament-ended-round-item,.tournament-certificate-status-grid>div,.tournament-check-option){background:var(--tt-alt);border-color:var(--tt-line);color:var(--tt-text)}
+#tournament :is(.tournament-match-card.is-complete,.tournament-match-players>div:not(.tournament-vs),.tournament-participant-option){background:var(--tt-panel);border-color:var(--tt-line);color:var(--tt-text)}
+#tournament .tournament-match-players>div.winner{background:var(--tt-teal-soft);color:var(--tt-teal);border-color:var(--tt-teal);box-shadow:inset 3px 0 0 var(--tt-teal)}
+#tournament .tournament-match-card:hover,#tournament .tournament-check-option:hover{border-color:var(--tt-blue)}
+#tournament .tournament-match-players b,#tournament .tournament-round-summary-stat strong{color:var(--tt-title)}
+#tournament .tournament-vs,#tournament .tournament-score-vs{color:var(--tt-muted)}
+#tournament .tournament-table th{background:var(--tt-raised)!important;border-color:var(--tt-line);color:var(--tt-muted)}
+#tournament .tournament-table td{background:transparent;color:var(--tt-text);border-color:var(--tt-line)}
+#tournament .tournament-table td strong{color:var(--tt-title)}
+#tournament .tournament-table td:first-child strong{background:var(--tt-blue-soft);color:var(--tt-blue)}
+#tournament .tournament-table tbody tr:hover td{background:var(--tt-alt)}
+#tournament .tournament-live-head,#tournament .tournament-settings-section{background:var(--tt-panel);border-color:var(--tt-line)}
+#tournament .tournament-finish-hint strong{color:var(--tt-blue)}
+#tournament .tournament-finish-hint span{color:var(--tt-muted)}
+#tournament .tournament-settings-lines strong,#tournament .tournament-rule-list strong{color:var(--tt-title)}
+#tournament .tournament-stat-card:after,#tournament .tournament-home-stats .tournament-stat-card:after{background:var(--tt-raised)}
+#tournament .tournament-stat-card.active,#tournament .home-stat-live{background:var(--tt-teal-soft);border-color:var(--tt-line-strong)}
+#tournament :is(.tournament-stat-card.active strong,.home-stat-live strong){color:var(--tt-teal)}
+#tournament .tournament-stat-card em{background:var(--tt-raised);color:var(--tt-muted)}
+#tournament .home-stat-live em{background:var(--tt-panel);color:var(--tt-teal)}
+
+/* Ended-round screen and podium: consistent completion treatment. */
+#tournament .tournament-ended-round-panel{background:var(--tt-panel);border-color:var(--tt-line);color:var(--tt-text)}
+#tournament .tournament-ended-round-panel:before{background:var(--tt-teal-soft)}
+#tournament .tournament-ended-round-icon{background:var(--tt-teal-soft);color:var(--tt-teal);border-color:var(--tt-line)}
+#tournament .tournament-ended-round-panel .eyebrow{color:var(--tt-teal)}
+#tournament .tournament-ended-round-panel h3{color:var(--tt-title)}
+#tournament .tournament-ended-round-panel p,#tournament .tournament-ended-round-note{color:var(--tt-muted)}
+#tournament :is(.tournament-ended-round-stats,.tournament-ended-round-list .tournament-ended-round-item){background:var(--tt-alt);border-color:var(--tt-line)}
+#tournament .tournament-ended-round-stats div{border-color:var(--tt-line)}
+#tournament :is(.tournament-ended-round-stats b,.tournament-ended-round-item strong){color:var(--tt-title)}
+#tournament :is(.tournament-ended-round-stats span,.tournament-ended-round-item small){color:var(--tt-muted)}
+#tournament .tournament-ended-round-item span{color:var(--tt-text)}
+
+/* Tournament-related certificate delivery and review components. */
+#tournament :is(.tournament-review-gate,.tournament-review-gate:not(.reviewed),.certificate-review-progress-state.pending){background:var(--tt-amber-soft);border-color:var(--tt-line-strong);color:var(--tt-amber)}
+#tournament .tournament-review-gate.reviewed{background:var(--tt-teal-soft);border-color:var(--tt-line-strong)}
+#tournament .tournament-review-gate strong{color:var(--tt-title)}
+#tournament .tournament-review-gate small{color:var(--tt-muted)}
+#tournament .tournament-review-icon{background:var(--tt-amber-soft);color:var(--tt-amber)}
+#tournament .tournament-review-gate.reviewed .tournament-review-icon{background:var(--tt-panel);color:var(--tt-teal)}
+#tournament .tournament-certificate-status-grid strong{color:var(--tt-title)}
+#tournament .tournament-certificate-status-grid span{color:var(--tt-muted)}
+#tournament .certificate-teacher-preview-meta{background:var(--tt-alt);border-color:var(--tt-line);color:var(--tt-text)}
+#tournament .certificate-teacher-preview-meta span{color:var(--tt-title)}
+#tournament .certificate-teacher-preview-meta small{color:var(--tt-muted)}
+
+/* Creation and scoring dialogs. Scope them narrowly so no other modal changes. */
+#modal:has(.tournament-create-modal) .modalbox,#modal:has(.tournament-score-form) .modalbox{background:var(--tt-panel);border-color:var(--tt-line);color:var(--tt-text)}
+#modal:has(.tournament-create-modal) .tournament-create-hero,
+#modal:has(.tournament-score-form) .tournament-modal-head{background:var(--tt-hero-quiet)!important;color:#fff;border-color:var(--tt-line)}
+#modal:has(.tournament-create-modal) :is(.tournament-create-heading h2,.tournament-modal-close),
+#modal:has(.tournament-score-form) .tournament-modal-head h2{color:#fff}
+#modal:has(.tournament-create-modal) :is(.tournament-create-heading p,.tournament-create-heading .eyebrow),
+#modal:has(.tournament-score-form) :is(.tournament-modal-head p,.tournament-modal-head .eyebrow){color:#d8edf6}
+#modal:has(.tournament-create-modal) .tournament-create-form{background:var(--tt-alt)}
+#modal:has(.tournament-create-modal) .tournament-form-section{background:var(--tt-panel);border-color:var(--tt-line)}
+#modal:has(.tournament-create-modal) .tournament-form-section:nth-of-type(2){background:var(--tt-alt)}
+#modal:has(.tournament-create-modal) .tournament-form-section-head>span:first-child{background:var(--tt-blue-soft);color:var(--tt-blue);border-color:var(--tt-line)}
+#modal:has(.tournament-create-modal) .tournament-form-section-head strong{color:var(--tt-title)}
+#modal:has(.tournament-create-modal) .tournament-form-section-head small{color:var(--tt-muted)}
+#modal:has(.tournament-create-modal) .tournament-create-form .tournament-field label{color:var(--tt-text)}
+#modal:has(.tournament-create-modal) :is(.tournament-format-option,.tournament-participant-option){background:var(--tt-panel);color:var(--tt-text);border-color:var(--tt-line)}
+#modal:has(.tournament-create-modal) .tournament-format-option.selected,
+#modal:has(.tournament-create-modal) .tournament-participant-option:has(input:checked){background:var(--tt-blue-soft);border-color:var(--tt-blue)}
+#modal:has(.tournament-create-modal) .tournament-format-option:hover,#modal:has(.tournament-create-modal) .tournament-participant-option:hover{border-color:var(--tt-blue)}
+#modal:has(.tournament-create-modal) .tournament-format-icon{background:var(--tt-raised);color:var(--tt-muted)}
+#modal:has(.tournament-create-modal) .tournament-format-option.selected .tournament-format-icon{background:var(--tt-blue-soft);color:var(--tt-blue)}
+#modal:has(.tournament-create-modal) :is(.tournament-format-option b,.tournament-participant-option strong){color:var(--tt-title)}
+#modal:has(.tournament-create-modal) :is(.tournament-format-option small,.tournament-participant-option small,.tournament-round-setting small){color:var(--tt-muted)}
+#modal:has(.tournament-create-modal) :is(.tournament-round-setting,.tournament-participant-list){background:var(--tt-alt);border-color:var(--tt-line)}
+#modal:has(.tournament-create-modal) .tournament-round-setting label{color:var(--tt-text)}
+#modal:has(.tournament-create-modal) .tournament-create-footer{background:var(--tt-panel)!important;border-color:var(--tt-line)}
+#modal:has(.tournament-create-modal) .tournament-footer-note strong{color:var(--tt-text)}
+#modal:has(.tournament-create-modal) .tournament-footer-note small{color:var(--tt-muted)}
+#modal:has(.tournament-create-modal) .tournament-footer-note>span{background:var(--tt-teal);box-shadow:0 0 0 4px var(--tt-teal-soft)}
+#modal:has(.tournament-score-form) .tournament-score-form{background:var(--tt-panel)}
+#modal:has(.tournament-score-form) :is(.tournament-score-grid span,.tournament-score-form label){color:var(--tt-text)}
+#modal:has(.tournament-score-form) :is(.tournament-score-vs,.tournament-score-form>.subtle,.tournament-form-footer){background:var(--tt-alt);color:var(--tt-muted);border-color:var(--tt-line)}
+
+/* Form fields for every tournament dialog and settings edit screen. */
+#tournament :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea),
+#modal:has(.tournament-create-modal) :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea),
+#modal:has(.tournament-score-form) :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea){background:var(--tt-alt);color:var(--tt-title);border-color:var(--tt-line-strong)}
+#tournament :is(input,select,textarea):focus,#modal:has(.tournament-create-modal) :is(input,select,textarea):focus,#modal:has(.tournament-score-form) :is(input,select,textarea):focus{background:var(--tt-panel);border-color:var(--tt-blue);box-shadow:0 0 0 3px var(--tt-ring)}
+#tournament :is(input,textarea)::placeholder,#modal:has(.tournament-create-modal) :is(input,textarea)::placeholder,#modal:has(.tournament-score-form) :is(input,textarea)::placeholder{color:var(--tt-muted)}
+#tournament input[type="checkbox"],#modal:has(.tournament-create-modal) input[type="checkbox"]{accent-color:var(--tt-teal)}
+
+/* Error and warning tones keep their meaning; they are never converted to blue. */
+#tournament .tournament-danger-zone{background:var(--tt-rose-soft);border-color:var(--tt-line-strong)}
+#tournament .tournament-danger-zone :is(h4,p,.eyebrow){color:var(--tt-rose)}
+#tournament .tournament-review-gate:not(.reviewed){border-color:var(--tt-line)}
+
+/* Certificate preview/review dialogs have their own surface hierarchy. */
+#modal:has(.certificate-preview-modal) .modalbox,
+#modal:has(.certificate-review-center) .modalbox,
+#modal:has(.certificate-full-review) .modalbox{background:var(--tt-panel);color:var(--tt-text);border-color:var(--tt-line)}
+#modal:is(:has(.certificate-review-center),:has(.certificate-preview-modal),:has(.certificate-full-review)) :is(.certificate-review-card,.certificate-review-summary>div,.certificate-full-meta span,.certificate-preview-body .certificate-teacher-preview-meta){background:var(--tt-panel);border-color:var(--tt-line);color:var(--tt-text)}
+#modal:is(:has(.certificate-review-center),:has(.certificate-preview-modal),:has(.certificate-full-review)) :is(.certificate-review-note,.certificate-workflow-steps,.certificate-preview-status>span,.certificate-preview-stage,.certificate-full-stage){background:var(--tt-alt);border-color:var(--tt-line);color:var(--tt-muted)}
+#modal:is(:has(.certificate-review-center),:has(.certificate-preview-modal),:has(.certificate-full-review)) :is(.certificate-review-center-head h2,.certificate-review-card h3,.certificate-preview-head h2,.certificate-review-progress strong,.certificate-full-meta span,.certificate-review-summary strong){color:var(--tt-title)}
+#modal:is(:has(.certificate-review-center),:has(.certificate-preview-modal),:has(.certificate-full-review)) :is(.certificate-review-card p,.certificate-review-index,.certificate-preview-head p,.certificate-review-progress>div span,.certificate-review-summary span,.certificate-teacher-preview-meta small){color:var(--tt-muted)}
+#modal:is(:has(.certificate-review-center),:has(.certificate-preview-modal),:has(.certificate-full-review)) :is(.certificate-preview-head,.certificate-review-center-head,.certificate-preview-footer,.certificate-review-center-footer,.certificate-full-footer){border-color:var(--tt-line)}
+#modal:is(:has(.certificate-review-center),:has(.certificate-preview-modal),:has(.certificate-full-review)) :is(.certificate-review-progress-track,.certificate-workflow-step>span){background:var(--tt-raised)}
+#modal:is(:has(.certificate-review-center),:has(.certificate-preview-modal),:has(.certificate-full-review)) .certificate-review-progress-track>span{background:var(--tt-btn)}
+#modal:is(:has(.certificate-review-center),:has(.certificate-preview-modal),:has(.certificate-full-review)) :is(.certificate-review-card.is-viewed,.certificate-preview-status>span.done,.certificate-review-progress-state.done){background:var(--tt-teal-soft);border-color:var(--tt-line)}
+#modal:is(:has(.certificate-review-center),:has(.certificate-preview-modal),:has(.certificate-full-review)) :is(.certificate-review-status.done,.certificate-review-progress-state.done,.certificate-preview-status>span.done){color:var(--tt-teal)}
+#modal:is(:has(.certificate-review-center),:has(.certificate-preview-modal),:has(.certificate-full-review)) :is(.certificate-review-status.pending,.certificate-review-progress-state:not(.done),.certificate-preview-status>span.pending){background:var(--tt-amber-soft);color:var(--tt-amber);border-color:var(--tt-line)}
+#modal:is(:has(.certificate-review-center),:has(.certificate-preview-modal),:has(.certificate-full-review)) .certificate-review-status.error{background:var(--tt-rose-soft);color:var(--tt-rose)}
+#modal:is(:has(.certificate-review-center),:has(.certificate-preview-modal),:has(.certificate-full-review)) .certificate-preview-close{background:var(--tt-alt);color:var(--tt-text);border-color:var(--tt-line)}
+#modal:is(:has(.certificate-review-center),:has(.certificate-preview-modal),:has(.certificate-full-review)) .certificate-preview-close:hover{background:var(--tt-raised);color:var(--tt-title)}
+/* Keep the certificate document image itself unmodified in both themes. */

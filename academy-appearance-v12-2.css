@@ -1,0 +1,158 @@
+/* Appearance switch V12.2 — compact, icon-only, anchored expansion.
+   Visual change only; existing modes, time schedule and preference key remain intact. */
+@media screen {
+  .appearance-control,
+  #parentPortal.ph10-installed .parent-top-actions .appearance-control {
+    --appearance-slot: 36px;
+    --appearance-size: calc(var(--appearance-slot) + 8px);
+    --appearance-open-size: calc(var(--appearance-slot) * 3 + 8px);
+    position: relative !important;
+    isolation: isolate;
+    display: block !important;
+    width: var(--appearance-size) !important;
+    min-width: var(--appearance-size) !important;
+    max-width: var(--appearance-size) !important;
+    height: var(--appearance-size) !important;
+    min-height: var(--appearance-size) !important;
+    max-height: var(--appearance-size) !important;
+    padding: 0 !important;
+    flex: 0 0 var(--appearance-size) !important;
+    border: 0 !important;
+    border-radius: 999px !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+
+  /* The capsule grows leftwards, never moving neighbouring header controls. */
+  .appearance-control::before,
+  html[data-theme="dark"] .appearance-control::before {
+    content: "" !important;
+    display: block !important;
+    position: absolute !important;
+    inset: 0 0 auto auto !important;
+    width: var(--appearance-size) !important;
+    height: var(--appearance-size) !important;
+    border-radius: 999px !important;
+    border: 1px solid rgba(125, 154, 187, .29) !important;
+    background: linear-gradient(180deg, #fff, #eff5fb) !important;
+    box-shadow: 0 6px 18px rgba(35, 68, 108, .13), inset 0 1px 0 rgba(255, 255, 255, .9) !important;
+    opacity: 1 !important;
+    transform: none !important;
+    transition: width .24s cubic-bezier(.2,.8,.2,1), background .2s ease, box-shadow .2s ease !important;
+    z-index: 0 !important;
+    pointer-events: auto;
+  }
+  html[data-theme="dark"] .appearance-control::before {
+    background: linear-gradient(180deg, #1d314b, #17283e) !important;
+    border-color: rgba(119, 151, 189, .31) !important;
+    box-shadow: 0 9px 22px rgba(3, 12, 26, .28), inset 0 1px 0 rgba(255, 255, 255, .04) !important;
+  }
+  .appearance-control.is-expanded::before,
+  html[data-theme="dark"] .appearance-control.is-expanded::before {
+    width: var(--appearance-open-size) !important;
+  }
+
+  .appearance-control .appearance-segment {
+    position: absolute !important;
+    top: 4px !important;
+    right: 4px !important;
+    left: auto !important;
+    width: var(--appearance-slot) !important;
+    min-width: var(--appearance-slot) !important;
+    height: var(--appearance-slot) !important;
+    min-height: var(--appearance-slot) !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: 0 !important;
+    border-radius: 50% !important;
+    display: grid !important;
+    place-items: center !important;
+    background: transparent !important;
+    color: #607995 !important;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: none !important;
+    box-shadow: none !important;
+    transition: right .24s cubic-bezier(.2,.8,.2,1), opacity .12s ease, color .16s ease, background .16s ease, box-shadow .16s ease !important;
+    z-index: 2;
+    cursor: pointer;
+  }
+  html[data-theme="dark"] .appearance-control .appearance-segment { color: #a1b6d0 !important; }
+
+  /* While closed, the active icon always occupies the same single circle. */
+  .appearance-control:not(.is-expanded) .appearance-segment.is-active,
+  .appearance-control.is-expanded .appearance-segment {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+  /* Light / Auto / Night, left to right while expanded. */
+  .appearance-control.is-expanded .appearance-segment[data-appearance-option="light"] {
+    right: calc(4px + var(--appearance-slot) * 2) !important;
+  }
+  .appearance-control.is-expanded .appearance-segment[data-appearance-option="auto"] {
+    right: calc(4px + var(--appearance-slot)) !important;
+  }
+  .appearance-control.is-expanded .appearance-segment[data-appearance-option="dark"] {
+    right: 4px !important;
+  }
+  .appearance-control .appearance-segment.is-active,
+  html[data-theme="dark"] .appearance-control .appearance-segment.is-active {
+    color: #fff !important;
+    background: linear-gradient(145deg, #4a86e7 0%, #396bd0 100%) !important;
+    box-shadow: 0 3px 10px rgba(51, 105, 199, .26) !important;
+  }
+  html[data-theme="dark"] .appearance-control .appearance-segment.is-active {
+    background: linear-gradient(145deg, #4a7bcf 0%, #355ba7 100%) !important;
+    box-shadow: 0 3px 10px rgba(12, 33, 71, .4) !important;
+  }
+  .appearance-control.is-expanded .appearance-segment:not(.is-active):hover {
+    background: rgba(63, 117, 193, .10) !important;
+    color: #254f84 !important;
+  }
+  html[data-theme="dark"] .appearance-control.is-expanded .appearance-segment:not(.is-active):hover {
+    background: rgba(136, 177, 238, .13) !important;
+    color: #f0f6ff !important;
+  }
+  .appearance-control .appearance-segment:focus-visible {
+    outline: 2px solid #73a8fa !important;
+    outline-offset: 2px !important;
+    box-shadow: 0 0 0 4px rgba(108, 157, 238, .17) !important;
+  }
+  .appearance-control .appearance-segment .ui-icon { width: 18px; height: 18px; }
+
+  /* Existing login/teacher/parent header placement is unchanged. */
+  .login-appearance .appearance-control,
+  .top-actions .appearance-control,
+  .parent-top-actions .appearance-control {
+    flex-shrink: 0 !important;
+  }
+}
+@media screen and (max-width:650px) {
+  .appearance-control,
+  #parentPortal.ph10-installed .parent-top-actions .appearance-control {
+    --appearance-slot: 32px;
+  }
+}
+@media screen and (max-width:355px) {
+  .appearance-control,
+  #parentPortal.ph10-installed .parent-top-actions .appearance-control {
+    --appearance-slot: 29px;
+  }
+  .appearance-control .appearance-segment .ui-icon { width: 16px; height: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .appearance-control::before,
+  html[data-theme="dark"] .appearance-control::before,
+  .appearance-control .appearance-segment { transition: none !important; }
+}
+@media print {
+  .appearance-control { display: none !important; }
+}
+@media screen {
+  /* In the compact Teacher Portal mobile grid, keep the circle at the RIGHT
+     end of its available column so expansion stays inside the viewport. */
+  .top-actions .appearance-control { justify-self: end !important; margin-left: auto !important; }
+}
